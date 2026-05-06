@@ -86,7 +86,7 @@ export function IndexPage() {
         <For each={models}>
           {({ slug, model }) => (
             <a
-              href={`/${slug}/`}
+              href={`${slug}/`}
               style={{
                 display: 'block', background: '#12121f',
                 'border-radius': '8px', border: '1px solid #1e1e30',
