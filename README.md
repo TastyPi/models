@@ -6,9 +6,7 @@ Parametric 3D-printable models, configurable in the browser and exported as STL.
 
 ## Licence
 
-The source code is released under the [MIT licence](LICENSE).
-
-The models themselves are released under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) — you're free to use, remix, and share them as long as you give credit.
+Released under the [MIT licence](LICENSE).
 
 ## Development
 
