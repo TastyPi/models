@@ -6,16 +6,16 @@ export default defineModel({
   name: "Wall Hook",
   description: "Triangular prism hook. Side (a) mounts against the wall with screw holes, side (b) is the hook arm with a retention lip, side (c) is the hypotenuse — print flat on side (c), no supports needed.",
   parameters: {
-    wall_side_height: { type: "number", label: "Wall Side Height (mm)", default: 60, min: 20, max: 150, step: 1 },
-    depth: { type: "number", label: "Depth (mm)", default: 60, min: 5, max: 150, step: 1 },
-    width: { type: "number", label: "Width (mm)", default: 30, min: 10, max: 100, step: 1 },
+    wall_side_height: { type: "number", label: "Wall Side Height (mm)", default: 20, min: 20, max: 150, step: 1 },
+    depth: { type: "number", label: "Depth (mm)", default: 20, min: 5, max: 150, step: 1 },
+    width: { type: "number", label: "Width (mm)", default: 50, min: 10, max: 100, step: 1 },
     lip_edge_radius: {
       type: "number", label: "Lip Edge Radius (mm)", default: 2, min: 0,
       max: (v) => Math.floor(Math.min(v.lip_thickness as number, v.lip_height as number) / 2 / 0.5) * 0.5,
       step: 0.5
     },
-    lip_height: { type: "number", label: "Lip Height (mm)", default: 15, min: 5, max: 50, step: 1 },
-    lip_thickness: { type: "number", label: "Lip Thickness (mm)", default: 5, min: 2, max: 20, step: 0.5 },
+    lip_height: { type: "number", label: "Lip Height (mm)", default: 25, min: 5, max: 50, step: 1 },
+    lip_thickness: { type: "number", label: "Lip Thickness (mm)", default: 10, min: 2, max: 20, step: 0.5 },
     screw_holes: { type: "number", label: "Screw Holes", default: 2, min: 0, max: 6, step: 1 },
     screw_size: {
       type: "number",
