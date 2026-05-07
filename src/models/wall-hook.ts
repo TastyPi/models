@@ -10,7 +10,7 @@ export default defineModel({
     depth: { type: "number", label: "Depth (mm)", default: 20, min: 5, max: 150, step: 1 },
     width: { type: "number", label: "Width (mm)", default: 50, min: 10, max: 100, step: 1 },
     lip_edge_radius: {
-      type: "number", label: "Lip Edge Radius (mm)", default: 2, min: 0,
+      type: "number", label: "Lip Edge Radius (mm)", default: 5, min: 0,
       max: (v) => Math.floor(Math.min(v.lip_thickness as number, v.lip_height as number) / 2 / 0.5) * 0.5,
       step: 0.5
     },
