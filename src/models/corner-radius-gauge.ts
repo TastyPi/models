@@ -1,5 +1,5 @@
 import { getManifold } from '../manifold'
-import { defineModel } from '../types'
+import type { Attribution } from '../types'
 
 const TILE_W = 15
 const TILE_THICK = 3
@@ -46,62 +46,40 @@ export function segBox(seg: string): [number, number, number, number] | null {
   }
 }
 
-export default defineModel({
-  name: 'Corner Radius Gauge',
-  description:
-    'Set of 10 gauge tiles for corner radii from 0.5 to 5 mm in 0.5 mm steps. ' +
-    'Each tile has a convex (inner) radius at the SW inset corner and a convex (outer) radius at the NE corner. ' +
-    'The SW corner is inset 10 mm from the tile edge to provide straight reference walls for alignment.',
-  attribution: [
-    {
-      name: 'Gridfinity Radius Finder',
-      author: 'john zygoulakis',
-      url: 'https://www.printables.com/model/796404-gridfinity-radius-finder-measure-corner-size',
-      license: 'CC BY 4.0',
-    },
-    {
-      name: 'Gridfinity',
-      author: 'Zachary Freedman / Voidstar Lab',
-      url: 'https://www.youtube.com/watch?v=ra_9zU-mnl8',
-      license: 'MIT',
-    },
-    {
-      name: 'gridfinity-rebuilt-openscad',
-      author: 'Kenneth Hodson',
-      url: 'https://github.com/kennetek/gridfinity-rebuilt-openscad',
-      license: 'MIT',
-    },
-  ],
-  flatModel: true,
-  parameters: {
-    text_style: {
-      type: 'select',
-      label: 'Style',
-      options: [
-        { value: 'debossed',    label: 'Debossed' },
-        { value: 'multicolour', label: 'Multi-colour' },
-      ],
-    },
-    text_top: {
-      type: 'boolean',
-      label: 'On top face',
-    },
-    text_bottom: {
-      type: 'boolean',
-      label: 'On bottom face',
-    },
+export const attribution: Attribution[] = [
+  {
+    name: 'Gridfinity Radius Finder',
+    author: 'john zygoulakis',
+    url: 'https://www.printables.com/model/796404-gridfinity-radius-finder-measure-corner-size',
+    license: 'CC BY 4.0',
   },
-  groups: [
-    { label: 'Text', keys: ['text_style', 'text_top', 'text_bottom'], defaultOpen: true },
-  ],
-  presets: { text_style: 'debossed', text_top: true, text_bottom: false },
+  {
+    name: 'Gridfinity',
+    author: 'Zachary Freedman / Voidstar Lab',
+    url: 'https://www.youtube.com/watch?v=ra_9zU-mnl8',
+    license: 'MIT',
+  },
+  {
+    name: 'gridfinity-rebuilt-openscad',
+    author: 'Kenneth Hodson',
+    url: 'https://github.com/kennetek/gridfinity-rebuilt-openscad',
+    license: 'MIT',
+  },
+]
 
-  generate({ text_style, text_top, text_bottom }) {
+export const flatModel = true
+
+export interface Params {
+  text_style: string
+  text_top: boolean
+  text_bottom: boolean
+}
+
+export function generate({ text_style, text_top, text_bottom }: Params) {
     const { Manifold, CrossSection } = getManifold()
-    const style = text_style as string
-    const isMulti = style === 'multicolour'
-    const showTop = text_top as boolean
-    const showBottom = text_bottom as boolean
+    const isMulti = text_style === 'multicolour'
+    const showTop = text_top
+    const showBottom = text_bottom
 
     const arc = (cx: number, cy: number, a0: number, a1: number, r: number): [number, number][] => {
       const pts: [number, number][] = []
@@ -170,7 +148,7 @@ export default defineModel({
         ...arc(W - r, W - r, 0, Math.PI / 2, r),
         [0, W],
       ]
-      const tileCS = new (CrossSection as any)(pts, 'NonZero')
+      const tileCS = new CrossSection(pts, 'NonZero')
       let tile: any = tileCS.extrude(TILE_THICK)
 
       if (!isMulti) {
@@ -209,5 +187,4 @@ export default defineModel({
 
     const merged = allPieces.reduce((a, b) => ({ ...a, geom: a.geom.add(b.geom) })).geom
     return { merged, pieces: allPieces }
-  },
-})
+}

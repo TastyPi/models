@@ -3,11 +3,11 @@ import { resolveDriverDiameter, resolveScrew } from './screws'
 
 describe('resolveDriverDiameter', () => {
   it('returns 10 for ltt driver', () => {
-    expect(resolveDriverDiameter({ driver_type: 'ltt' })).toBe(10)
+    expect(resolveDriverDiameter('ltt', 10)).toBe(10)
   })
 
   it('returns custom driver_diameter for custom type', () => {
-    expect(resolveDriverDiameter({ driver_type: 'custom', driver_diameter: 12.5 })).toBe(12.5)
+    expect(resolveDriverDiameter('custom', 12.5)).toBe(12.5)
   })
 })
 

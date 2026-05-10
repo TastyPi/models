@@ -1,5 +1,3 @@
-import type { BooleanParameter, NumberParameter, SelectParameter } from './types'
-
 const BED_SIZES: Record<string, { x: number; y: number }> = {
   prusa_core_one:   { x: 250, y: 220 },
   prusa_core_one_l: { x: 300, y: 300 },
@@ -11,40 +9,17 @@ const BED_SIZES: Record<string, { x: number; y: number }> = {
   ender3:         { x: 220, y: 220 },
 }
 
-export const printBedParams = {
-  restrict_bed: {
-    type: 'boolean',
-    label: 'Restrict to print bed',
-    localStorage: true,
-  } satisfies BooleanParameter,
-  bed_type: {
-    type: 'select',
-    label: 'Printer',
-    options: [
-      { value: 'prusa_core_one',   label: 'Prusa Core One' },
-      { value: 'prusa_core_one_l', label: 'Prusa Core One L' },
-      { value: 'prusa_mk4',      label: 'Prusa MK4' },
-      { value: 'prusa_mk3s',     label: 'Prusa MK3S+' },
-      { value: 'bambu_p1',       label: 'Bambu P1S / X1C' },
-      { value: 'bambu_a1',       label: 'Bambu A1' },
-      { value: 'bambu_a1_mini',  label: 'Bambu A1 Mini' },
-      { value: 'ender3',         label: 'Creality Ender 3' },
-      { value: 'custom',         label: 'Custom' },
-    ],
-    visible: (v) => v.restrict_bed as boolean,
-    localStorage: true,
-  } satisfies SelectParameter,
-  bed_x: {
-    type: 'number', label: 'Bed X (mm)', min: 42, max: 500, step: 1,
-    visible: (v) => (v.restrict_bed as boolean) && v.bed_type === 'custom',
-    localStorage: true,
-  } satisfies NumberParameter,
-  bed_y: {
-    type: 'number', label: 'Bed Y (mm)', min: 42, max: 500, step: 1,
-    visible: (v) => (v.restrict_bed as boolean) && v.bed_type === 'custom',
-    localStorage: true,
-  } satisfies NumberParameter,
-}
+export const BED_OPTIONS = [
+  { value: 'prusa_core_one',   label: 'Prusa Core One' },
+  { value: 'prusa_core_one_l', label: 'Prusa Core One L' },
+  { value: 'prusa_mk4',      label: 'Prusa MK4' },
+  { value: 'prusa_mk3s',     label: 'Prusa MK3S+' },
+  { value: 'bambu_p1',       label: 'Bambu P1S / X1C' },
+  { value: 'bambu_a1',       label: 'Bambu A1' },
+  { value: 'bambu_a1_mini',  label: 'Bambu A1 Mini' },
+  { value: 'ender3',         label: 'Creality Ender 3' },
+  { value: 'custom',         label: 'Custom' },
+]
 
 export function resolveBed(bedType: string, bedX: number, bedY: number): { x: number; y: number } {
   if (bedType === 'custom') return { x: bedX, y: bedY }

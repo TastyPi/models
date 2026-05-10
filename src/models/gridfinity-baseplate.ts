@@ -1,6 +1,6 @@
 import { getManifold } from '../manifold'
-import { defineModel } from '../types'
-import { printBedParams, resolveBed, splitSizes, splitMaxInterior } from '../printBed'
+import type { Attribution } from '../types'
+import { resolveBed, splitSizes, splitMaxInterior } from '../printBed'
 
 // Gridfinity spec constants (from https://gridfinity.xyz/specification/)
 // Profile coordinates sourced from gridfinity-rebuilt-openscad by Kenneth Hodson
@@ -31,128 +31,49 @@ const MAG_CORNER = CELL / 2 - 8.0
 
 const PIECE_GAP = 5
 
-const hasWalls = (v: Record<string, number | boolean | string>) =>
-  (v.wall_n as number) > 0 || (v.wall_s as number) > 0 ||
-  (v.wall_e as number) > 0 || (v.wall_w as number) > 0
+export const attribution: Attribution[] = [
+  { name: 'Gridfinity', author: 'Zachary Freedman / Voidstar Lab', url: 'https://www.youtube.com/watch?v=ra_9zU-mnl8', license: 'MIT' },
+  { name: 'gridfinity-rebuilt-openscad', author: 'Kenneth Hodson', url: 'https://github.com/kennetek/gridfinity-rebuilt-openscad', license: 'MIT' },
+  { name: 'GridFlock', author: 'Jonas Konrad', url: 'https://github.com/yawkat/GridFlock', license: 'MIT, CC BY 4.0' },
+]
 
-const hasCorner = (v: Record<string, number | boolean | string>) =>
-  (((v.wall_n as number) > 0) && ((v.wall_e as number) > 0 || (v.wall_w as number) > 0)) ||
-  (((v.wall_s as number) > 0) && ((v.wall_e as number) > 0 || (v.wall_w as number) > 0))
+export const flatModel = true
 
-export default defineModel({
-  name: 'Gridfinity Baseplate',
-  attribution: [
-    { name: 'Gridfinity', author: 'Zachary Freedman / Voidstar Lab', url: 'https://www.youtube.com/watch?v=ra_9zU-mnl8', license: 'MIT' },
-    { name: 'gridfinity-rebuilt-openscad', author: 'Kenneth Hodson', url: 'https://github.com/kennetek/gridfinity-rebuilt-openscad', license: 'MIT' },
-    { name: 'GridFlock', author: 'Jonas Konrad', url: 'https://github.com/yawkat/GridFlock', license: 'MIT, CC BY 4.0' },
-  ],
-  parameters: {
-    cells_x: { type: 'number', label: 'Width (cells)', min: 1, max: 20, step: 1 },
-    cells_y: { type: 'number', label: 'Depth (cells)', min: 1, max: 20, step: 1 },
-    separate_walls: {
-      type: 'boolean',
-      label: 'Print walls separately',
-      description: 'Recommended when designing a plate for a new product — if measurements are off, only the walls need reprinting.',
-      visible: (v) => !!v.restrict_bed && hasWalls(v),
-    },
-    wall_connector: {
-      type: 'select',
-      label: 'Wall connector',
-      options: [
-        { value: 'wall_male',   label: 'Male on wall' },
-        { value: 'wall_female', label: 'Female on wall' },
-      ],
-      visible: (v) => !!v.separate_walls && hasWalls(v),
-    },
-    corner_style: {
-      type: 'select',
-      label: 'Corner style',
-      options: [
-        { value: 'corner_l',   label: 'L-shaped' },
-        { value: 'corner_cw',  label: 'Clockwise' },
-        { value: 'corner_ccw', label: 'Anti-clockwise' },
-        { value: 'corner_ns',  label: 'Included in N/S walls' },
-        { value: 'corner_ew',  label: 'Included in E/W walls' },
-      ],
-      visible: (v) => !!v.separate_walls && hasCorner(v),
-    },
-    corner_radius: {
-      type: 'number',
-      label: 'Outer corner radius (mm)',
-      min: 0,
-      max: OUTER_R,
-      step: 0.5,
-    },
-    edge_n: {
-      type: 'select', label: 'North edge',
-      options: [{ value: 'wall', label: 'Wall' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' }],
-      visible: (v) => !v.restrict_bed,
-    },
-    edge_s: {
-      type: 'select', label: 'South edge',
-      options: [{ value: 'wall', label: 'Wall' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' }],
-      visible: (v) => !v.restrict_bed,
-    },
-    edge_e: {
-      type: 'select', label: 'East edge',
-      options: [{ value: 'wall', label: 'Wall' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' }],
-      visible: (v) => !v.restrict_bed,
-    },
-    edge_w: {
-      type: 'select', label: 'West edge',
-      options: [{ value: 'wall', label: 'Wall' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' }],
-      visible: (v) => !v.restrict_bed,
-    },
-    wall_n: { type: 'number', optional: true, label: 'North (mm)', min: (v) => v.separate_walls && v.wall_connector === 'wall_female' ? EP_WALL_MIN : 0, max: 40, step: 0.5, visible: (v) => !!v.restrict_bed || v.edge_n === 'wall' },
-    wall_s: { type: 'number', optional: true, label: 'South (mm)', min: (v) => v.separate_walls && v.wall_connector === 'wall_female' ? EP_WALL_MIN : 0, max: 40, step: 0.5, visible: (v) => !!v.restrict_bed || v.edge_s === 'wall' },
-    wall_e: { type: 'number', optional: true, label: 'East (mm)',  min: (v) => v.separate_walls && v.wall_connector === 'wall_female' ? EP_WALL_MIN : 0, max: 40, step: 0.5, visible: (v) => !!v.restrict_bed || v.edge_e === 'wall' },
-    wall_w: { type: 'number', optional: true, label: 'West (mm)',  min: (v) => v.separate_walls && v.wall_connector === 'wall_female' ? EP_WALL_MIN : 0, max: 40, step: 0.5, visible: (v) => !!v.restrict_bed || v.edge_w === 'wall' },
-    base_style: {
-      type: 'select', label: 'Base style',
-      options: [
-        { value: 'solid', label: 'Solid' },
-        { value: 'open', label: 'Open' },
-      ],
-    },
-    magnets: { type: 'boolean', label: 'Magnet pockets', visible: (v) => v.base_style === 'solid' },
-    ...printBedParams,
-  },
-  groups: [
-    { label: 'Print bed', keys: ['restrict_bed', 'bed_type', 'bed_x', 'bed_y'],                                                       defaultOpen: true },
-    { label: 'Style',     keys: ['base_style', 'magnets', 'corner_radius'],                                                           defaultOpen: true },
-    { label: 'Size',      keys: ['cells_x', 'cells_y'],                                                                               defaultOpen: true },
-    { label: 'Walls',     keys: ['separate_walls', 'wall_connector', 'corner_style', 'edge_n', 'wall_n', 'edge_s', 'wall_s', 'edge_e', 'wall_e', 'edge_w', 'wall_w'], defaultOpen: true },
-  ],
-  flatModel: true,
-  presets: [
-    {
-      label: 'Halfords 3 Drawer Middle Chest (13×9)',
-      values: {
-        cells_x: 13, cells_y: 9,
-        separate_walls: false, wall_connector: 'wall_male', corner_style: 'corner_l',
-        edge_n: 'wall', edge_s: 'wall', edge_e: 'wall', edge_w: 'wall',
-        wall_n: 11.5, wall_s: 11.5, wall_e: 9, wall_w: 9,
-        base_style: 'open', magnets: false, corner_radius: 0,
-        restrict_bed: false, bed_type: 'prusa_core_one', bed_x: 250, bed_y: 220,
-      },
-    },
-  ],
+export { OUTER_R, EP_WALL_MIN }
 
-  info({ cells_x, cells_y, wall_n, wall_s, wall_e, wall_w, restrict_bed, edge_n, edge_s, edge_e, edge_w }) {
-    const wN = restrict_bed || edge_n === 'wall' ? (wall_n as number) : 0
-    const wS = restrict_bed || edge_s === 'wall' ? (wall_s as number) : 0
-    const wE = restrict_bed || edge_e === 'wall' ? (wall_e as number) : 0
-    const wW = restrict_bed || edge_w === 'wall' ? (wall_w as number) : 0
-    const w = cells_x * CELL + wW + wE
-    const d = cells_y * CELL + wN + wS
-    return `${w} × ${d} mm assembled`
-  },
+export interface Params {
+  cells_x: number
+  cells_y: number
+  wall_n: number | null
+  wall_s: number | null
+  wall_e: number | null
+  wall_w: number | null
+  separate_walls: boolean
+  wall_connector: string
+  corner_style: string
+  corner_radius: number
+  base_style: string
+  magnets: boolean
+  restrict_bed: boolean
+  bed_type: string
+  bed_x: number
+  bed_y: number
+  edge_n?: string
+  edge_s?: string
+  edge_e?: string
+  edge_w?: string
+}
 
-  generate({ cells_x, cells_y, wall_n, wall_s, wall_e, wall_w, separate_walls, wall_connector, corner_style, corner_radius, base_style, magnets, restrict_bed, bed_type, bed_x, bed_y, edge_n, edge_s, edge_e, edge_w }) {
+export function generate(params: Params) {
+  const { cells_x, cells_y, separate_walls, wall_connector, corner_style, corner_radius, base_style, magnets, restrict_bed, bed_type, bed_x, bed_y, edge_n, edge_s, edge_e, edge_w } = params
+  const wall_n = params.wall_n ?? 0
+  const wall_s = params.wall_s ?? 0
+  const wall_e = params.wall_e ?? 0
+  const wall_w = params.wall_w ?? 0
     const { Manifold, CrossSection } = getManifold()
     const wallFemale = wall_connector === 'wall_female'
-    const cStyle = (corner_style as string) ?? 'corner_l'
-    const cornerR = corner_radius as number
+    const cStyle = corner_style
+    const cornerR = corner_radius
 
     // Selective corner rounding: sw/se/ne/nw flags indicate which corners get radius r.
     // Builds an explicit polygon so sharp corners are exact and only one CrossSection is created.
@@ -170,12 +91,12 @@ export default defineModel({
         return pts
       }
       const pts: [number, number][] = [
-        ...(sw ? arc(x0 + r, y0 + r, Math.PI, Math.PI * 1.5)      : [[x0, y0] as [number, number]]),
-        ...(se ? arc(x1 - r, y0 + r, Math.PI * 1.5, Math.PI * 2)  : [[x1, y0] as [number, number]]),
-        ...(ne ? arc(x1 - r, y1 - r, 0, Math.PI * 0.5)            : [[x1, y1] as [number, number]]),
-        ...(nw ? arc(x0 + r, y1 - r, Math.PI * 0.5, Math.PI)      : [[x0, y1] as [number, number]]),
+        ...(sw ? arc(x0 + r, y0 + r, Math.PI, Math.PI * 1.5)      : [[x0, y0] satisfies [number, number]]),
+        ...(se ? arc(x1 - r, y0 + r, Math.PI * 1.5, Math.PI * 2)  : [[x1, y0] satisfies [number, number]]),
+        ...(ne ? arc(x1 - r, y1 - r, 0, Math.PI * 0.5)            : [[x1, y1] satisfies [number, number]]),
+        ...(nw ? arc(x0 + r, y1 - r, Math.PI * 0.5, Math.PI)      : [[x0, y1] satisfies [number, number]]),
       ]
-      return new CrossSection(pts as any, 'NonZero')
+      return new CrossSection(pts, 'NonZero')
     }
     // ── 2D helpers ──────────────────────────────────────────────────────────
 
@@ -583,14 +504,14 @@ export default defineModel({
       const tileB = -(cells_y / 2) * CELL
       const tileT =  (cells_y / 2) * CELL
 
-      const eN = (edge_n as string) ?? 'wall'
-      const eS = (edge_s as string) ?? 'wall'
-      const eE = (edge_e as string) ?? 'wall'
-      const eW = (edge_w as string) ?? 'wall'
-      const wN = eN === 'wall' ? (wall_n as number) : 0
-      const wS = eS === 'wall' ? (wall_s as number) : 0
-      const wE = eE === 'wall' ? (wall_e as number) : 0
-      const wW = eW === 'wall' ? (wall_w as number) : 0
+      const eN = edge_n ?? 'wall'
+      const eS = edge_s ?? 'wall'
+      const eE = edge_e ?? 'wall'
+      const eW = edge_w ?? 'wall'
+      const wN = eN === 'wall' ? wall_n : 0
+      const wS = eS === 'wall' ? wall_s : 0
+      const wE = eE === 'wall' ? wall_e : 0
+      const wW = eW === 'wall' ? wall_w : 0
 
       let tile = buildPiece(0, cells_x, 0, cells_y, wN, wS, wE, wW, false, false, false, false, false)
 
@@ -662,20 +583,20 @@ export default defineModel({
 
         // edgeSplit: given n cells, maxArm per side, and whether each side has a bounding piece,
         // returns arm sizes and middle strip segments (in cells).
-        const edgeSplit = (n: number, maxArm: number, hasL: boolean, hasR: boolean) => {
+        const edgeSplit = (n: number, maxArm: number, hasL: boolean, hasR: boolean): { L: number; R: number; mid: number[] } => {
           const l = hasL ? (hasR ? (2 * maxArm >= n ? Math.ceil(n / 2) : maxArm) : 1) : 0
           const r = hasR ? (hasL ? (2 * maxArm >= n ? Math.floor(n / 2) : maxArm) : 1) : 0
           const midN = n - l - r
-          if (midN <= 0) return { L: l, R: r, mid: [] as number[] }
+          if (midN <= 0) return { L: l, R: r, mid: [] }
           if (hasL && hasR) {
             const k = Math.ceil(midN / maxArm)
             const armTotal = n - k * maxArm
             const newL = Math.ceil(armTotal / 2)
-            return { L: newL, R: armTotal - newL, mid: Array(k).fill(maxArm) as number[] }
+            return { L: newL, R: armTotal - newL, mid: Array.from({ length: k }, () => maxArm) }
           }
           const numFull = Math.floor(midN / maxArm)
           const rem = midN % maxArm
-          return { L: l, R: r, mid: [...Array(numFull).fill(maxArm), ...(rem > 0 ? [rem] : [])] as number[] }
+          return { L: l, R: r, mid: [...Array.from({ length: numFull }, () => maxArm), ...(rem > 0 ? [rem] : [])] }
         }
 
         if (cStyle === 'corner_l') {
@@ -765,5 +686,4 @@ export default defineModel({
       merged,
       pieces: labeled.map(p => ({ label: p.label, geom: p.geom })),
     }
-  },
-})
+}
