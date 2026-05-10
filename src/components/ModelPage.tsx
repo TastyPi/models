@@ -162,7 +162,7 @@ export function ModelPage(props: Props) {
   })
 
   // Build query string including ?model= when not the default entry
-  const buildQs = (p: Record<string, number | boolean | string>) => {
+  const buildQs = (p: Record<string, number | boolean | string | null>) => {
     const sp = new URLSearchParams()
     const firstSlug = props.group?.entries[0].slug
     if (activeSlug() && activeSlug() !== firstSlug) sp.set('model', activeSlug()!)
@@ -272,7 +272,8 @@ export function ModelPage(props: Props) {
     onCleanup(() => clearTimeout(timer))
   })
 
-  const info = createMemo(() => activeModel().info?.(params()) ?? null)
+  const safeParams = createMemo(() => Object.fromEntries(Object.entries(params()).filter(([, v]) => v !== null)) as Record<string, number | boolean | string>)
+  const info = createMemo(() => activeModel().info?.(safeParams()) ?? null)
 
   const downloadStl = (pieceIndex?: number) => {
     const model = activeModel()
