@@ -42,9 +42,9 @@ self.onmessage = async (e: MessageEvent<InMsg>) => {
       const pieces: PieceMesh[] | undefined = pieced
         ? result.pieces.map((p: { label: string; geom: unknown }) => ({ label: p.label, mesh: extractMesh(p.geom) }))
         : undefined
-      const transferables: ArrayBuffer[] = [mesh.vertProperties.buffer, mesh.triVerts.buffer]
-      if (pieces) for (const p of pieces) transferables.push(p.mesh.vertProperties.buffer, p.mesh.triVerts.buffer)
-      self.postMessage({ type: 'result', key, mesh, pieces } satisfies OutMsg, transferables)
+      const transferables: Transferable[] = [mesh.vertProperties.buffer as ArrayBuffer, mesh.triVerts.buffer as ArrayBuffer]
+      if (pieces) for (const p of pieces) transferables.push(p.mesh.vertProperties.buffer as ArrayBuffer, p.mesh.triVerts.buffer as ArrayBuffer)
+      self.postMessage({ type: 'result', key, mesh, pieces } satisfies OutMsg, { transfer: transferables })
     } else {
       const { pieceIndex } = e.data as Extract<InMsg, { type: 'export' }>
       let geom: any
@@ -55,7 +55,7 @@ self.onmessage = async (e: MessageEvent<InMsg>) => {
       }
       if (entry.model.exportTransform) geom = entry.model.exportTransform(params, geom)
       const mesh = extractMesh(geom)
-      self.postMessage({ type: 'result', key, mesh } satisfies OutMsg, [mesh.vertProperties.buffer, mesh.triVerts.buffer])
+      self.postMessage({ type: 'result', key, mesh } satisfies OutMsg, { transfer: [mesh.vertProperties.buffer as ArrayBuffer, mesh.triVerts.buffer as ArrayBuffer] })
     }
   } catch {
     self.postMessage({ type: 'error', key } satisfies OutMsg)

@@ -10,7 +10,8 @@ type PieceMesh = { label: string; mesh: RawMesh }
 class GeometryCache {
   private entries = new Map<string, { mesh: RawMesh; pieces?: PieceMesh[]; bytes: number }>()
   private used = 0
-  constructor(private readonly limit: number) {}
+  private readonly limit: number
+  constructor(limit: number) { this.limit = limit }
 
   get(key: string) {
     const e = this.entries.get(key)
