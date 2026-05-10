@@ -47,14 +47,18 @@ describe('parameter visibility', () => {
     const vis = baseplate.parameters.separate_walls.visible!
 
     it('is hidden when all walls are 0', () => {
-      expect(vis(params())).toBe(false)
+      expect(vis(params({ restrict_bed: true }))).toBe(false)
     })
 
-    it('is visible when any wall is > 0', () => {
-      expect(vis(params({ wall_n: 5 }))).toBe(true)
-      expect(vis(params({ wall_s: 5 }))).toBe(true)
-      expect(vis(params({ wall_e: 5 }))).toBe(true)
-      expect(vis(params({ wall_w: 5 }))).toBe(true)
+    it('is hidden when restrict_bed is false', () => {
+      expect(vis(params({ restrict_bed: false, wall_n: 5 }))).toBe(false)
+    })
+
+    it('is visible when restrict_bed is true and any wall is > 0', () => {
+      expect(vis(params({ restrict_bed: true, wall_n: 5 }))).toBe(true)
+      expect(vis(params({ restrict_bed: true, wall_s: 5 }))).toBe(true)
+      expect(vis(params({ restrict_bed: true, wall_e: 5 }))).toBe(true)
+      expect(vis(params({ restrict_bed: true, wall_w: 5 }))).toBe(true)
     })
   })
 
