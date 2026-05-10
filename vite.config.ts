@@ -12,7 +12,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
-        'wall-hook': resolve(__dirname, 'wall-hook/index.html'),
+        'gridfinity-baseplate': resolve(__dirname, 'gridfinity-baseplate/index.html'),
+        'corner-radius-gauge': resolve(__dirname, 'corner-radius-gauge/index.html'),
       },
     },
   },
