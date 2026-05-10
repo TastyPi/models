@@ -8,6 +8,7 @@ const CELL = 42
 const params = (overrides: Record<string, number | boolean | string> = {}) => ({
   cells_x: 1, cells_y: 1,
   wall_n: 0, wall_s: 0, wall_e: 0, wall_w: 0,
+  edge_n: 'none', edge_s: 'none', edge_e: 'none', edge_w: 'none',
   separate_walls: false,
   wall_connector: 'wall_male',
   corner_style: 'corner_l',
@@ -25,18 +26,22 @@ describe('info', () => {
     expect(baseplate.info!(params({ cells_x: 2, cells_y: 3 }))).toBe(`${2 * CELL} × ${3 * CELL} mm assembled`)
   })
 
-  it('adds wall widths to the assembled dimensions', () => {
-    const p = params({ cells_x: 13, cells_y: 9, wall_n: 11.5, wall_s: 11.5, wall_e: 9, wall_w: 9 })
+  it('adds wall widths to the assembled dimensions when restrict_bed is true', () => {
+    const p = params({ cells_x: 13, cells_y: 9, wall_n: 11.5, wall_s: 11.5, wall_e: 9, wall_w: 9, restrict_bed: true })
     expect(baseplate.info!(p)).toBe(`${13 * CELL + 9 + 9} × ${9 * CELL + 11.5 + 11.5} mm assembled`)
   })
 
-  it('handles asymmetric walls', () => {
-    const p = params({ cells_x: 4, cells_y: 4, wall_n: 10, wall_s: 5, wall_e: 8, wall_w: 3 })
+  it('ignores wall widths when restrict_bed is false (walls not rendered)', () => {
+    const p = params({ cells_x: 13, cells_y: 9, wall_n: 11.5, wall_s: 11.5, wall_e: 9, wall_w: 9, restrict_bed: false })
+    expect(baseplate.info!(p)).toBe(`${13 * CELL} × ${9 * CELL} mm assembled`)
+  })
+
+  it('handles asymmetric walls with restrict_bed', () => {
+    const p = params({ cells_x: 4, cells_y: 4, wall_n: 10, wall_s: 5, wall_e: 8, wall_w: 3, restrict_bed: true })
     expect(baseplate.info!(p)).toBe(`${4 * CELL + 3 + 8} × ${4 * CELL + 5 + 10} mm assembled`)
   })
 
   it('handles null walls (optional params disabled) by treating as 0', () => {
-    // wall_n/s/e/w default to 0 (disabled optional) — info sums them
     const p = params({ cells_x: 3, cells_y: 2, wall_n: 0, wall_s: 0, wall_e: 0, wall_w: 0 })
     expect(baseplate.info!(p)).toBe(`${3 * CELL} × ${2 * CELL} mm assembled`)
   })
@@ -98,6 +103,30 @@ describe('parameter visibility', () => {
 
     it('is visible when S + W walls form a corner', () => {
       expect(vis(params({ separate_walls: true, wall_s: 10, wall_w: 10 }))).toBe(true)
+    })
+  })
+
+  describe('wall_n/s/e/w visibility', () => {
+    const vis = baseplate.parameters.wall_n.visible!
+
+    it('is hidden when restrict_bed is false', () => {
+      expect(vis(params({ restrict_bed: false }))).toBe(false)
+    })
+
+    it('is visible when restrict_bed is true', () => {
+      expect(vis(params({ restrict_bed: true }))).toBe(true)
+    })
+  })
+
+  describe('edge_n/s/e/w visibility', () => {
+    const vis = baseplate.parameters.edge_n.visible!
+
+    it('is visible when restrict_bed is false', () => {
+      expect(vis(params({ restrict_bed: false }))).toBe(true)
+    })
+
+    it('is hidden when restrict_bed is true', () => {
+      expect(vis(params({ restrict_bed: true }))).toBe(false)
     })
   })
 
