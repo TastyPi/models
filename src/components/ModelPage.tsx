@@ -392,7 +392,11 @@ export function ModelPage(props: Props) {
               style={{ color: '#778', 'text-decoration': 'none' }}
               onMouseEnter={(e) => (e.currentTarget.style.color = '#aabbdd')}
               onMouseLeave={(e) => (e.currentTarget.style.color = '#778')}
-            >CC BY 4.0</a> (designs)
+            >CC BY 4.0</a> (designs) · <a href="https://github.com/TastyPi/models" target="_blank" rel="noopener noreferrer"
+              style={{ color: '#778', 'text-decoration': 'none' }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = '#aabbdd')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = '#778')}
+            >GitHub</a>
           </div>
         </div>
       </aside>

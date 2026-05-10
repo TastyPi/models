@@ -133,7 +133,12 @@ export function IndexPage() {
             onMouseEnter={(e) => (e.currentTarget.style.color = '#aabbdd')}
             onMouseLeave={(e) => (e.currentTarget.style.color = '#666')}
           >CC BY 4.0</a>
-          {' '}(designs)
+          {' '}(designs) ·{' '}
+          <a href="https://github.com/TastyPi/models" target="_blank" rel="noopener noreferrer"
+            style={{ color: '#666', 'text-decoration': 'none' }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = '#aabbdd')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = '#666')}
+          >GitHub</a>
         </div>
       </footer>
     </div>
