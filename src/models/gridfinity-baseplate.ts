@@ -41,7 +41,6 @@ const hasCorner = (v: Record<string, number | boolean | string>) =>
 
 export default defineModel({
   name: 'Gridfinity Baseplate',
-  description: 'Gridfinity baseplate with optional border walls on any side. When printed in parts, split edges use puzzle connectors for assembly.',
   attribution: [
     { name: 'Gridfinity', author: 'Zachary Freedman / Voidstar Lab', url: 'https://www.youtube.com/watch?v=ra_9zU-mnl8', license: 'MIT' },
     { name: 'gridfinity-rebuilt-openscad', author: 'Kenneth Hodson', url: 'https://github.com/kennetek/gridfinity-rebuilt-openscad', license: 'MIT' },
@@ -54,7 +53,7 @@ export default defineModel({
       type: 'boolean',
       label: 'Print walls separately',
       description: 'Recommended when designing a plate for a new product — if measurements are off, only the walls need reprinting.',
-      visible: hasWalls,
+      visible: (v) => !!v.restrict_bed && hasWalls(v),
     },
     wall_connector: {
       type: 'select',
