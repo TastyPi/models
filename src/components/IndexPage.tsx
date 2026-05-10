@@ -65,7 +65,12 @@ export function IndexPage() {
       const p = model.presets
       const defaults = Array.isArray(p) ? { ...p[0].values } : { ...p }
       try {
-        thumbs[group.slug] = renderThumbnail(model.generate(defaults))
+        const result = model.generate(defaults)
+        let geom = (result !== null && typeof result === 'object' && 'pieces' in (result as object))
+          ? (result as any).merged
+          : result
+        if (model.flatModel) geom = (geom as any).rotate([-90, 0, 0])
+        thumbs[group.slug] = renderThumbnail(geom)
       } catch (e) {
         console.error('thumbnail failed for', slug, e)
       }

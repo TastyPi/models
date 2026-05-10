@@ -13,6 +13,7 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'index.html'),
         'wall-hook': resolve(__dirname, 'wall-hook/index.html'),
+        'gridfinity-baseplate': resolve(__dirname, 'gridfinity-baseplate/index.html'),
       },
     },
   },

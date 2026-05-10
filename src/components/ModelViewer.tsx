@@ -1,28 +1,40 @@
-import { createEffect, onCleanup, onMount } from 'solid-js'
+import { createEffect, createSignal, onCleanup, onMount, untrack, Show } from 'solid-js'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type { RawMesh } from '../types'
 
 interface Props {
   geometry: () => RawMesh | null
-  highlight?: () => RawMesh | null
+  pieces?: () => Array<{ mesh: RawMesh; label: string; secondaryMesh?: RawMesh }> | null
+  selectedPiece?: () => number
+  onPieceClick?: (index: number) => void
 }
 
-const MAT_PRIMARY   = { color: 0x6688cc, roughness: 0.4, metalness: 0.1, flatShading: true }
-const MAT_DIMMED    = { color: 0x2a3a5a, roughness: 0.7, metalness: 0.0, flatShading: true, transparent: true, opacity: 0.35 }
-const MAT_HIGHLIGHT = { color: 0x99bbff, roughness: 0.3, metalness: 0.15, flatShading: true }
+// Shared material instances — swapped onto meshes without reallocation
+const matPrimary   = new THREE.MeshStandardMaterial({ color: 0x6688cc, roughness: 0.4, metalness: 0.1, flatShading: true })
+const matHover     = new THREE.MeshStandardMaterial({ color: 0x7799dd, roughness: 0.35, metalness: 0.12, flatShading: true })
+const matHighlight = new THREE.MeshStandardMaterial({ color: 0x99bbff, roughness: 0.3, metalness: 0.15, flatShading: true })
+const matDimmed    = new THREE.MeshStandardMaterial({ color: 0x2a3a5a, roughness: 0.7, metalness: 0.0, flatShading: true, transparent: true, opacity: 0.35 })
 
-function buildMesh(raw: RawMesh, matParams: object): THREE.Mesh {
+const matSecondary          = new THREE.MeshStandardMaterial({ color: 0xe8d090, roughness: 0.4, metalness: 0.1, flatShading: true })
+const matSecondaryHover     = new THREE.MeshStandardMaterial({ color: 0xf0dca0, roughness: 0.35, metalness: 0.12, flatShading: true })
+const matSecondaryHighlight = new THREE.MeshStandardMaterial({ color: 0xfff0b8, roughness: 0.3, metalness: 0.15, flatShading: true })
+const matSecondaryDimmed    = new THREE.MeshStandardMaterial({ color: 0x3a3420, roughness: 0.7, metalness: 0.0, flatShading: true, transparent: true, opacity: 0.35 })
+
+function buildGeo(raw: RawMesh): THREE.BufferGeometry {
   const geo = new THREE.BufferGeometry()
   geo.setAttribute('position', new THREE.BufferAttribute(raw.vertProperties, raw.numProp))
   geo.setIndex(new THREE.BufferAttribute(raw.triVerts, 1))
   geo.computeBoundingSphere()
-  return new THREE.Mesh(geo, new THREE.MeshStandardMaterial(matParams))
+  return geo
 }
 
 export function ModelViewer(props: Props) {
   let containerRef!: HTMLDivElement
   let canvasRef!: HTMLCanvasElement
+  const [overlayLabel, setOverlayLabel] = createSignal<string | null>(null)
+  const [canReset, setCanReset] = createSignal(false)
+  let doResetCamera: (() => void) | null = null
 
   onMount(() => {
     const renderer = new THREE.WebGLRenderer({ canvas: canvasRef, antialias: true })
@@ -47,9 +59,17 @@ export function ModelViewer(props: Props) {
     scene.add(fill)
 
     let mainMesh: THREE.Mesh | null = null
-    let hlMesh: THREE.Mesh | null = null
+    let pieceMeshes: THREE.Mesh[] = []
+    let secondaryMeshes: { mesh: THREE.Mesh; pieceIdx: number }[] = []
+    let hoveredIdx = -1
     let rafId: number | null = null
     let lastRaw: RawMesh | null = null
+    let isResetting = false
+    const onCameraMove = () => { if (!isResetting) setCanReset(true) }
+
+    const raycaster = new THREE.Raycaster()
+    const mouse = new THREE.Vector2()
+    let mouseDownX = 0, mouseDownY = 0
 
     const render = () => { controls.update(); renderer.render(scene, camera) }
     const scheduleRender = () => {
@@ -70,55 +90,200 @@ export function ModelViewer(props: Props) {
     const ro = new ResizeObserver(syncSize)
     ro.observe(containerRef)
 
-    const disposeMesh = (m: THREE.Mesh) => {
-      scene.remove(m)
-      m.geometry.dispose()
-      ;(m.material as THREE.Material).dispose()
+    const pieceMat = (i: number, sel: number): THREE.Material => {
+      if (sel >= 0) return i === sel ? matHighlight : matDimmed
+      return i === hoveredIdx ? matHover : matPrimary
     }
 
+    const secMat = (i: number, sel: number): THREE.Material => {
+      if (sel >= 0) return i === sel ? matSecondaryHighlight : matSecondaryDimmed
+      return i === hoveredIdx ? matSecondaryHover : matSecondary
+    }
+
+    const applyMaterials = (sel: number) => {
+      for (let i = 0; i < pieceMeshes.length; i++) {
+        pieceMeshes[i].material = pieceMat(i, sel)
+      }
+      for (const { mesh, pieceIdx } of secondaryMeshes) {
+        mesh.material = secMat(pieceIdx, sel)
+      }
+      scheduleRender()
+    }
+
+    // Rebuild scene geometry when geometry/pieces data changes.
+    // Reads selectedPiece via untrack so selection changes don't trigger a full rebuild.
     createEffect(() => {
-      const raw  = props.geometry()
-      const hlRaw = props.highlight?.() ?? null
-      const geomChanged = raw !== lastRaw
+      const raw = props.geometry()
+      const piecesData = props.pieces?.() ?? null
+      const geomChanged = lastRaw === null
       lastRaw = raw
 
-      if (mainMesh) { disposeMesh(mainMesh); mainMesh = null }
-      if (hlMesh)   { disposeMesh(hlMesh);   hlMesh   = null }
+      if (mainMesh) { scene.remove(mainMesh); mainMesh.geometry.dispose(); mainMesh = null }
+      for (const m of pieceMeshes) { scene.remove(m); m.geometry.dispose() }
+      for (const { mesh } of secondaryMeshes) { scene.remove(mesh); mesh.geometry.dispose() }
+      pieceMeshes = []
+      secondaryMeshes = []
+      hoveredIdx = -1
+      setOverlayLabel(null)
 
-      if (raw) {
-        mainMesh = buildMesh(raw, hlRaw ? MAT_DIMMED : MAT_PRIMARY)
+      const sel = untrack(() => props.selectedPiece?.() ?? -1)
+
+      if (piecesData && piecesData.length > 0) {
+        for (let i = 0; i < piecesData.length; i++) {
+          pieceMeshes.push(new THREE.Mesh(buildGeo(piecesData[i].mesh), pieceMat(i, sel)))
+          scene.add(pieceMeshes[i])
+          if (piecesData[i].secondaryMesh) {
+            const sm = new THREE.Mesh(buildGeo(piecesData[i].secondaryMesh!), secMat(i, sel))
+            scene.add(sm)
+            secondaryMeshes.push({ mesh: sm, pieceIdx: i })
+          }
+        }
+      } else if (raw) {
+        mainMesh = new THREE.Mesh(buildGeo(raw), matPrimary)
         scene.add(mainMesh)
       }
-      if (hlRaw) {
-        hlMesh = buildMesh(hlRaw, MAT_HIGHLIGHT)
-        scene.add(hlMesh)
-      }
 
-      if (raw && geomChanged) {
-        const sphere = (mainMesh!.geometry as THREE.BufferGeometry).boundingSphere!
-        const dist = (sphere.radius / Math.sin((45 / 2) * (Math.PI / 180))) * 1.2
-        controls.target.copy(sphere.center)
-        camera.position.copy(sphere.center).addScaledVector(new THREE.Vector3(1.2, 0.9, 2).normalize(), dist)
-        camera.near = dist * 0.01
-        camera.far = dist * 10
-        camera.updateProjectionMatrix()
-        controls.update()
+      if (raw) {
+        const geo = piecesData ? buildGeo(raw) : (mainMesh!.geometry as THREE.BufferGeometry)
+        const sphere = geo.boundingSphere!.clone()
+        if (piecesData) geo.dispose()
+
+        // Use the narrower of vertical/horizontal half-FOV so the model fits regardless of portrait/landscape
+        const fitDist = (r: number) => {
+          const fovY = camera.fov * Math.PI / 180
+          const fovX = 2 * Math.atan(Math.tan(fovY / 2) * camera.aspect)
+          const halfFov = Math.min(fovY, fovX) / 2
+          return (r / Math.sin(halfFov)) * 1.2
+        }
+
+        if (geomChanged) {
+          const dist = fitDist(sphere.radius)
+          controls.target.copy(sphere.center)
+          camera.position.copy(sphere.center).addScaledVector(new THREE.Vector3(1.2, 0.9, 2).normalize(), dist)
+          camera.near = dist * 0.01
+          camera.far = dist * 10
+          camera.updateProjectionMatrix()
+          controls.update()
+          controls.addEventListener('change', onCameraMove)
+        }
+
+        doResetCamera = () => {
+          isResetting = true
+          const dist = fitDist(sphere.radius)
+          controls.target.copy(sphere.center)
+          camera.position.copy(sphere.center).addScaledVector(new THREE.Vector3(1.2, 0.9, 2).normalize(), dist)
+          camera.near = dist * 0.01
+          camera.far = dist * 10
+          camera.updateProjectionMatrix()
+          controls.update()
+          scheduleRender()
+          setCanReset(false)
+          isResetting = false
+        }
       }
 
       scheduleRender()
     })
 
+    // Update materials (only) when selection changes — no geometry rebuild.
+    createEffect(() => {
+      const sel = props.selectedPiece?.() ?? -1
+      if (pieceMeshes.length === 0) return
+      hoveredIdx = -1
+      canvasRef.style.cursor = ''
+      applyMaterials(sel)
+      const label = sel >= 0 ? (untrack(() => props.pieces?.())?.[sel]?.label ?? null) : null
+      setOverlayLabel(label)
+    })
+
+    // Raycasting
+    const hitIndex = (e: MouseEvent) => {
+      if (pieceMeshes.length === 0) return -1
+      const rect = canvasRef.getBoundingClientRect()
+      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
+      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+      raycaster.setFromCamera(mouse, camera)
+      const allMeshes = [...pieceMeshes, ...secondaryMeshes.map(s => s.mesh)]
+      const hits = raycaster.intersectObjects(allMeshes)
+      if (hits.length === 0) return -1
+      const hit = hits[0].object as THREE.Mesh
+      const primaryIdx = pieceMeshes.indexOf(hit)
+      if (primaryIdx >= 0) return primaryIdx
+      return secondaryMeshes.find(s => s.mesh === hit)?.pieceIdx ?? -1
+    }
+
+    const onMouseDown = (e: MouseEvent) => { mouseDownX = e.clientX; mouseDownY = e.clientY }
+    const onClick = (e: MouseEvent) => {
+      if (Math.hypot(e.clientX - mouseDownX, e.clientY - mouseDownY) > 5) return
+      const idx = hitIndex(e)
+      const sel = props.selectedPiece?.() ?? -1
+      props.onPieceClick?.(idx === sel ? -1 : idx)
+    }
+    const onMouseMove = (e: MouseEvent) => {
+      if (pieceMeshes.length === 0) return
+      const sel = props.selectedPiece?.() ?? -1
+      const newHovered = hitIndex(e)
+      canvasRef.style.cursor = newHovered >= 0 ? 'pointer' : ''
+      if (sel >= 0 || newHovered === hoveredIdx) return
+      hoveredIdx = newHovered
+      applyMaterials(-1)
+      setOverlayLabel(newHovered >= 0 ? (props.pieces?.()?.[newHovered]?.label ?? null) : null)
+    }
+    const onMouseLeave = () => {
+      if (hoveredIdx < 0) return
+      hoveredIdx = -1
+      canvasRef.style.cursor = ''
+      applyMaterials(props.selectedPiece?.() ?? -1)
+      if ((props.selectedPiece?.() ?? -1) < 0) setOverlayLabel(null)
+    }
+
+    canvasRef.addEventListener('mousedown', onMouseDown)
+    canvasRef.addEventListener('click', onClick)
+    canvasRef.addEventListener('mousemove', onMouseMove)
+    canvasRef.addEventListener('mouseleave', onMouseLeave)
+
     onCleanup(() => {
       if (rafId !== null) cancelAnimationFrame(rafId)
       controls.removeEventListener('change', scheduleRender)
+      controls.removeEventListener('change', onCameraMove)
       ro.disconnect()
       renderer.dispose()
+      canvasRef.removeEventListener('mousedown', onMouseDown)
+      canvasRef.removeEventListener('click', onClick)
+      canvasRef.removeEventListener('mousemove', onMouseMove)
+      canvasRef.removeEventListener('mouseleave', onMouseLeave)
     })
   })
 
   return (
     <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%' }}>
       <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
+      <Show when={canReset()}>
+        <button
+          onClick={() => doResetCamera?.()}
+          title="Reset camera"
+          style={{
+            position: 'absolute', top: '10px', right: '10px',
+            background: 'rgba(18,18,31,0.85)', color: '#aabbdd',
+            border: '1px solid rgba(170,187,221,0.25)', 'border-radius': '4px',
+            padding: '4px 10px', 'font-size': '0.75rem', cursor: 'pointer',
+          }}
+        >
+          Reset view
+        </button>
+      </Show>
+      <Show when={overlayLabel()}>
+        {(label) => (
+          <div style={{
+            position: 'absolute', bottom: '16px', left: '50%', transform: 'translateX(-50%)',
+            background: 'rgba(18,18,31,0.85)', color: '#aabbdd',
+            padding: '5px 14px', 'border-radius': '4px', 'font-size': '0.8rem',
+            'pointer-events': 'none', 'white-space': 'nowrap',
+          }}>
+            {label()}
+          </div>
+        )}
+      </Show>
     </div>
   )
 }

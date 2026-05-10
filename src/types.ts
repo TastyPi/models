@@ -4,6 +4,7 @@ export type DynNum = number | ((values: Record<string, number | boolean | string
 
 export type NumberParameter = {
   type: 'number'
+  optional?: boolean
   min?: DynNum
   max?: DynNum
   step?: number
@@ -82,6 +83,7 @@ export type ModelDefinition = {
   groups?: ParameterGroup[]
   presets: Presets
   info?: (params: Record<string, number | boolean | string>) => string
+  flatModel?: boolean
   generate: (params: Record<string, number | boolean | string>) => unknown
   exportTransform?: (params: Record<string, number | boolean | string>, geom: unknown) => unknown
 }
@@ -94,6 +96,7 @@ export function defineModel<T extends Record<string, Parameter>>(def: {
   groups?: ParameterGroup[]
   presets: Presets
   info?: (params: InferParamValues<T>) => string
+  flatModel?: boolean
   generate: (params: InferParamValues<T>) => unknown
   exportTransform?: (params: InferParamValues<T>, geom: unknown) => unknown
 }): ModelDefinition {
