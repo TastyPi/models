@@ -8,7 +8,7 @@ const CELL = 42
 const params = (overrides: Record<string, number | boolean | string> = {}) => ({
   cells_x: 1, cells_y: 1,
   wall_n: 0, wall_s: 0, wall_e: 0, wall_w: 0,
-  edge_n: 'none', edge_s: 'none', edge_e: 'none', edge_w: 'none',
+  edge_n: 'wall', edge_s: 'wall', edge_e: 'wall', edge_w: 'wall',
   separate_walls: false,
   wall_connector: 'wall_male',
   corner_style: 'corner_l',
@@ -31,9 +31,14 @@ describe('info', () => {
     expect(baseplate.info!(p)).toBe(`${13 * CELL + 9 + 9} × ${9 * CELL + 11.5 + 11.5} mm assembled`)
   })
 
-  it('ignores wall widths when restrict_bed is false (walls not rendered)', () => {
-    const p = params({ cells_x: 13, cells_y: 9, wall_n: 11.5, wall_s: 11.5, wall_e: 9, wall_w: 9, restrict_bed: false })
-    expect(baseplate.info!(p)).toBe(`${13 * CELL} × ${9 * CELL} mm assembled`)
+  it('includes wall widths when restrict_bed is false and edge is wall', () => {
+    const p = params({ cells_x: 13, cells_y: 9, wall_n: 11.5, wall_s: 11.5, wall_e: 9, wall_w: 9, restrict_bed: false, edge_n: 'wall', edge_s: 'wall', edge_e: 'wall', edge_w: 'wall' })
+    expect(baseplate.info!(p)).toBe(`${13 * CELL + 9 + 9} × ${9 * CELL + 11.5 + 11.5} mm assembled`)
+  })
+
+  it('excludes wall widths for connector edges when restrict_bed is false', () => {
+    const p = params({ cells_x: 2, cells_y: 2, wall_n: 10, wall_s: 10, wall_e: 10, wall_w: 10, restrict_bed: false, edge_n: 'male', edge_s: 'female', edge_e: 'male', edge_w: 'female' })
+    expect(baseplate.info!(p)).toBe(`${2 * CELL} × ${2 * CELL} mm assembled`)
   })
 
   it('handles asymmetric walls with restrict_bed', () => {
@@ -109,12 +114,18 @@ describe('parameter visibility', () => {
   describe('wall_n/s/e/w visibility', () => {
     const vis = baseplate.parameters.wall_n.visible!
 
-    it('is hidden when restrict_bed is false', () => {
-      expect(vis(params({ restrict_bed: false }))).toBe(false)
+    it('is hidden when restrict_bed is false and edge is not wall', () => {
+      expect(vis(params({ restrict_bed: false, edge_n: 'male' }))).toBe(false)
+      expect(vis(params({ restrict_bed: false, edge_n: 'female' }))).toBe(false)
     })
 
-    it('is visible when restrict_bed is true', () => {
-      expect(vis(params({ restrict_bed: true }))).toBe(true)
+    it('is visible when restrict_bed is false and edge is wall', () => {
+      expect(vis(params({ restrict_bed: false, edge_n: 'wall' }))).toBe(true)
+    })
+
+    it('is visible when restrict_bed is true regardless of edge', () => {
+      expect(vis(params({ restrict_bed: true, edge_n: 'male' }))).toBe(true)
+      expect(vis(params({ restrict_bed: true, edge_n: 'wall' }))).toBe(true)
     })
   })
 

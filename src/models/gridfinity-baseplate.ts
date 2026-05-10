@@ -83,30 +83,30 @@ export default defineModel({
       max: OUTER_R,
       step: 0.5,
     },
-    wall_n: { type: 'number', optional: true, label: 'North (mm)', min: (v) => v.separate_walls && v.wall_connector === 'wall_female' ? EP_WALL_MIN : 0, max: 40, step: 0.5, visible: (v) => !!v.restrict_bed },
-    wall_s: { type: 'number', optional: true, label: 'South (mm)', min: (v) => v.separate_walls && v.wall_connector === 'wall_female' ? EP_WALL_MIN : 0, max: 40, step: 0.5, visible: (v) => !!v.restrict_bed },
-    wall_e: { type: 'number', optional: true, label: 'East (mm)',  min: (v) => v.separate_walls && v.wall_connector === 'wall_female' ? EP_WALL_MIN : 0, max: 40, step: 0.5, visible: (v) => !!v.restrict_bed },
-    wall_w: { type: 'number', optional: true, label: 'West (mm)',  min: (v) => v.separate_walls && v.wall_connector === 'wall_female' ? EP_WALL_MIN : 0, max: 40, step: 0.5, visible: (v) => !!v.restrict_bed },
     edge_n: {
       type: 'select', label: 'North edge',
-      options: [{ value: 'none', label: 'None' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' }],
+      options: [{ value: 'wall', label: 'Wall' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' }],
       visible: (v) => !v.restrict_bed,
     },
     edge_s: {
       type: 'select', label: 'South edge',
-      options: [{ value: 'none', label: 'None' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' }],
+      options: [{ value: 'wall', label: 'Wall' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' }],
       visible: (v) => !v.restrict_bed,
     },
     edge_e: {
       type: 'select', label: 'East edge',
-      options: [{ value: 'none', label: 'None' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' }],
+      options: [{ value: 'wall', label: 'Wall' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' }],
       visible: (v) => !v.restrict_bed,
     },
     edge_w: {
       type: 'select', label: 'West edge',
-      options: [{ value: 'none', label: 'None' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' }],
+      options: [{ value: 'wall', label: 'Wall' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' }],
       visible: (v) => !v.restrict_bed,
     },
+    wall_n: { type: 'number', optional: true, label: 'North (mm)', min: (v) => v.separate_walls && v.wall_connector === 'wall_female' ? EP_WALL_MIN : 0, max: 40, step: 0.5, visible: (v) => !!v.restrict_bed || v.edge_n === 'wall' },
+    wall_s: { type: 'number', optional: true, label: 'South (mm)', min: (v) => v.separate_walls && v.wall_connector === 'wall_female' ? EP_WALL_MIN : 0, max: 40, step: 0.5, visible: (v) => !!v.restrict_bed || v.edge_s === 'wall' },
+    wall_e: { type: 'number', optional: true, label: 'East (mm)',  min: (v) => v.separate_walls && v.wall_connector === 'wall_female' ? EP_WALL_MIN : 0, max: 40, step: 0.5, visible: (v) => !!v.restrict_bed || v.edge_e === 'wall' },
+    wall_w: { type: 'number', optional: true, label: 'West (mm)',  min: (v) => v.separate_walls && v.wall_connector === 'wall_female' ? EP_WALL_MIN : 0, max: 40, step: 0.5, visible: (v) => !!v.restrict_bed || v.edge_w === 'wall' },
     base_style: {
       type: 'select', label: 'Base style',
       options: [
@@ -121,7 +121,7 @@ export default defineModel({
     { label: 'Print bed', keys: ['restrict_bed', 'bed_type', 'bed_x', 'bed_y'],                                                       defaultOpen: true },
     { label: 'Style',     keys: ['base_style', 'magnets', 'corner_radius'],                                                           defaultOpen: true },
     { label: 'Size',      keys: ['cells_x', 'cells_y'],                                                                               defaultOpen: true },
-    { label: 'Walls',     keys: ['separate_walls', 'wall_connector', 'corner_style', 'wall_n', 'wall_s', 'wall_e', 'wall_w', 'edge_n', 'edge_s', 'edge_e', 'edge_w'], defaultOpen: true },
+    { label: 'Walls',     keys: ['separate_walls', 'wall_connector', 'corner_style', 'edge_n', 'wall_n', 'edge_s', 'wall_s', 'edge_e', 'wall_e', 'edge_w', 'wall_w'], defaultOpen: true },
   ],
   flatModel: true,
   presets: [
@@ -130,18 +130,19 @@ export default defineModel({
       values: {
         cells_x: 13, cells_y: 9,
         separate_walls: false, wall_connector: 'wall_male', corner_style: 'corner_l',
+        edge_n: 'wall', edge_s: 'wall', edge_e: 'wall', edge_w: 'wall',
         wall_n: 11.5, wall_s: 11.5, wall_e: 9, wall_w: 9,
         base_style: 'open', magnets: false, corner_radius: 0,
-        restrict_bed: true, bed_type: 'prusa_core_one', bed_x: 250, bed_y: 220,
+        restrict_bed: false, bed_type: 'prusa_core_one', bed_x: 250, bed_y: 220,
       },
     },
   ],
 
-  info({ cells_x, cells_y, wall_n, wall_s, wall_e, wall_w, restrict_bed }) {
-    const wN = restrict_bed ? (wall_n as number) : 0
-    const wS = restrict_bed ? (wall_s as number) : 0
-    const wE = restrict_bed ? (wall_e as number) : 0
-    const wW = restrict_bed ? (wall_w as number) : 0
+  info({ cells_x, cells_y, wall_n, wall_s, wall_e, wall_w, restrict_bed, edge_n, edge_s, edge_e, edge_w }) {
+    const wN = restrict_bed || edge_n === 'wall' ? (wall_n as number) : 0
+    const wS = restrict_bed || edge_s === 'wall' ? (wall_s as number) : 0
+    const wE = restrict_bed || edge_e === 'wall' ? (wall_e as number) : 0
+    const wW = restrict_bed || edge_w === 'wall' ? (wall_w as number) : 0
     const w = cells_x * CELL + wW + wE
     const d = cells_y * CELL + wN + wS
     return `${w} × ${d} mm assembled`
@@ -573,13 +574,18 @@ export default defineModel({
       const tileB = -(cells_y / 2) * CELL
       const tileT =  (cells_y / 2) * CELL
 
-      let tile = buildPiece(0, cells_x, 0, cells_y, 0, 0, 0, 0, false, false, false, false, false)
+      const eN = (edge_n as string) ?? 'wall'
+      const eS = (edge_s as string) ?? 'wall'
+      const eE = (edge_e as string) ?? 'wall'
+      const eW = (edge_w as string) ?? 'wall'
+      const wN = eN === 'wall' ? (wall_n as number) : 0
+      const wS = eS === 'wall' ? (wall_s as number) : 0
+      const wE = eE === 'wall' ? (wall_e as number) : 0
+      const wW = eW === 'wall' ? (wall_w as number) : 0
+
+      let tile = buildPiece(0, cells_x, 0, cells_y, wN, wS, wE, wW, false, false, false, false, false)
 
       const toAdd: any[] = [], toSub: any[] = []
-      const eN = (edge_n as string) ?? 'none'
-      const eS = (edge_s as string) ?? 'none'
-      const eE = (edge_e as string) ?? 'none'
-      const eW = (edge_w as string) ?? 'none'
 
       if (eN === 'male')   for (const cx of cellXC) toAdd.push(maleNorth.translate([cx, tileT]).extrude(EP_H_MALE))
       if (eN === 'female') for (const cx of cellXC) toSub.push(femaleNorth.translate([cx, tileT]).extrude(EP_H_FEMALE))
