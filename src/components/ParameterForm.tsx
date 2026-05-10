@@ -1,43 +1,57 @@
-import { For, Show, createEffect } from 'solid-js'
-import type { DynNum, Parameter, ParameterGroup } from '../types'
+import { For, Show, type JSX } from 'solid-js'
+import type { DynNum, Parameter, ParameterGroup, SelectParameter } from '../types'
 
-const evalDyn = (v: DynNum | undefined, vals: Record<string, number | boolean>) =>
+const evalDyn = (v: DynNum | undefined, vals: Record<string, number | boolean | string>) =>
   typeof v === 'function' ? v(vals) : v
 
 interface Props {
   parameters: Record<string, Parameter>
-  values: Record<string, number | boolean>
+  values: Record<string, number | boolean | string>
   groups?: ParameterGroup[]
-  onChange: (key: string, value: number | boolean) => void
+  defaults: Record<string, number | boolean | string>
+  onChange: (key: string, value: number | boolean | string) => void
 }
 
 function ParamField(props: {
   name: string
   param: Parameter
-  value: number | boolean
-  values: Record<string, number | boolean>
-  onChange: (v: number | boolean) => void
+  value: number | boolean | string
+  values: Record<string, number | boolean | string>
+  effectiveDefault: number | boolean | string
+  onChange: (v: number | boolean | string) => void
 }) {
-  const isDefault = () => props.value === props.param.default
+  const isDefault = () => props.value === props.effectiveDefault
+  const resetBtn = (
+    <button
+      onClick={() => props.onChange(props.effectiveDefault)}
+      disabled={isDefault()}
+      title="Reset to default"
+      style={{
+        background: 'none', border: 'none', padding: '0',
+        cursor: isDefault() ? 'default' : 'pointer',
+        color: isDefault() ? '#444' : '#6688cc',
+        'font-size': '0.75rem', 'line-height': '1',
+      }}
+    >↺</button>
+  )
+
   return (
     <div>
-      <label style={{ display: 'flex', 'justify-content': 'space-between', 'align-items': 'baseline', 'margin-bottom': '4px' }}>
+      <label style={{ display: 'flex', 'justify-content': 'space-between', 'align-items': 'center', 'margin-bottom': props.param.type === 'boolean' ? '0' : '4px' }}>
         <span style={{ 'font-size': '0.8rem', color: '#aaa' }}>{props.param.label ?? props.name}</span>
         <span style={{ display: 'flex', gap: '6px', 'align-items': 'center' }}>
           {props.param.type === 'number' && (
             <span style={{ 'font-size': '0.8rem', color: '#fff' }}>{props.value}</span>
           )}
-          <button
-            onClick={() => props.onChange(props.param.default)}
-            disabled={isDefault()}
-            title="Reset to default"
-            style={{
-              background: 'none', border: 'none', padding: '0',
-              cursor: isDefault() ? 'default' : 'pointer',
-              color: isDefault() ? '#444' : '#6688cc',
-              'font-size': '0.75rem', 'line-height': '1',
-            }}
-          >↺</button>
+          {props.param.type === 'boolean' && (
+            <input
+              type="checkbox"
+              checked={props.value as boolean}
+              onChange={(e) => props.onChange(e.currentTarget.checked)}
+              style={{ 'accent-color': '#6688cc' }}
+            />
+          )}
+          {resetBtn}
         </span>
       </label>
       {props.param.type === 'number' && (
@@ -51,13 +65,20 @@ function ParamField(props: {
           style={{ width: '100%', 'accent-color': '#6688cc' }}
         />
       )}
-      {props.param.type === 'boolean' && (
-        <input
-          type="checkbox"
-          checked={props.value as boolean}
-          onChange={(e) => props.onChange(e.currentTarget.checked)}
-          style={{ 'accent-color': '#6688cc' }}
-        />
+      {props.param.type === 'select' && (
+        <select
+          value={props.value as string}
+          onChange={(e) => props.onChange(e.currentTarget.value)}
+          style={{
+            width: '100%', background: '#1a1a2e', color: '#e0e0e0',
+            border: '1px solid #333', 'border-radius': '4px',
+            padding: '5px 8px', 'font-size': '0.8rem', cursor: 'pointer',
+          }}
+        >
+          <For each={(props.param as SelectParameter).options}>
+            {(opt) => <option value={opt.value}>{opt.label}</option>}
+          </For>
+        </select>
       )}
       {props.param.description && (
         <p style={{ margin: '3px 0 0', 'font-size': '0.72rem', color: '#555', 'line-height': '1.4' }}>
@@ -69,30 +90,21 @@ function ParamField(props: {
 }
 
 export function ParameterForm(props: Props) {
-  createEffect(() => {
-    for (const [key, param] of Object.entries(props.parameters)) {
-      if (param.type !== 'number') continue
-      const val = props.values[key] as number
-      const lo = evalDyn(param.min, props.values) ?? -Infinity
-      const hi = evalDyn(param.max, props.values) ?? Infinity
-      const clamped = Math.min(Math.max(val, lo), hi)
-      if (clamped !== val) props.onChange(key, clamped)
-    }
-  })
-
-  const renderParam = (key: string) => {
+  const renderParam = (key: string): JSX.Element => {
     const param = props.parameters[key]
     if (!param) return null
-    if (param.visible && !param.visible(props.values)) return null
-    return (
+    const field = (
       <ParamField
         name={key}
         param={param}
         value={props.values[key]}
         values={props.values}
+        effectiveDefault={param.resetValue ? param.resetValue(props.values) : props.defaults[key]}
         onChange={(v) => props.onChange(key, v)}
       />
     )
+    if (!param.visible) return field
+    return <Show when={param.visible(props.values)}>{field}</Show>
   }
 
   return (
