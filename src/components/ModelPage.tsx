@@ -304,20 +304,36 @@ export function ModelPage(props: Props) {
             {(list) => (
               <div>
                 <div style={{ 'font-size': '0.6rem', color: '#555', 'text-transform': 'uppercase', 'letter-spacing': '0.08em', 'margin-bottom': '4px' }}>Preset</div>
-                <select
-                  value={activePresetIdx() ?? 0}
-                  onChange={(e) => applyPreset(parseInt(e.currentTarget.value))}
-                  style={{
-                    width: '100%', background: '#1e1e30', color: '#fff',
-                    border: '1px solid #2a2a40', 'border-radius': '6px',
-                    padding: '6px 8px', 'font-size': '0.875rem',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <For each={list()}>
-                    {(preset, i) => <option value={i()}>{preset.label}</option>}
-                  </For>
-                </select>
+                <div style={{ display: 'flex', gap: '6px', 'align-items': 'center' }}>
+                  <select
+                    value={activePresetIdx() ?? 0}
+                    onChange={(e) => applyPreset(parseInt(e.currentTarget.value))}
+                    style={{
+                      flex: '1', background: '#1e1e30', color: '#fff',
+                      border: '1px solid #2a2a40', 'border-radius': '6px',
+                      padding: '6px 8px', 'font-size': '0.875rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <For each={list()}>
+                      {(preset, i) => <option value={i()}>{preset.label}</option>}
+                    </For>
+                  </select>
+                  <Show when={activePresetIdx() !== null && list()[activePresetIdx()!]?.printablesUrl}>
+                    {(url) => (
+                      <div style={{ position: 'relative', display: 'flex', 'align-items': 'center' }}>
+                        <a href={url()} target="_blank" rel="noopener noreferrer" class="printables-link"
+                          style={{ display: 'flex', 'align-items': 'center', 'flex-shrink': '0' }}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="18" height="18">
+                            <path d="M77.9 512 256 409.6 77.9 307.2zM256 0 77.9 102.4 256 204.8v204.8l178.1-102.4V102.4z" fill="#e27546"/>
+                          </svg>
+                          <span class="tooltip">View on Printables</span>
+                        </a>
+                      </div>
+                    )}
+                  </Show>
+                </div>
               </div>
             )}
           </Show>

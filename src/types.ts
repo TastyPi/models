@@ -47,6 +47,7 @@ export type InferParamValues<T extends Record<string, Parameter>> = {
 
 export type Preset = {
   label: string
+  printablesUrl?: string
   values: Record<string, number | boolean | string>
 }
 
