@@ -1,9 +1,52 @@
 import { createSignal, createEffect, createResource, Show, For } from 'solid-js'
 import * as THREE from 'three'
+import type { Manifold } from 'manifold-3d'
 import { initManifold } from '../manifold'
-import { groups } from '../models/registry'
+import { isPieced, type GeomResult } from '../types'
+import * as wallHook from '../models/wall-hook'
+import * as gridfinityBaseplate from '../models/gridfinity-baseplate'
+import * as cornerRadiusGauge from '../models/corner-radius-gauge'
 
-function renderThumbnail(geom: unknown): string {
+function extractMerged(result: GeomResult): Manifold {
+  return isPieced(result) ? result.merged : result
+}
+
+const MODELS: { slug: string; label: string; description: string; generate: () => Manifold }[] = [
+  {
+    slug: 'wall-hook',
+    label: 'Wall Hook',
+    description: 'Triangular prism hook. Side (a) mounts against the wall with screw holes, side (b) is the hook arm with a retention lip, side (c) is the hypotenuse — print flat on side (c), no supports needed.',
+    generate: () => wallHook.generate({
+      wall_side_height: 20, depth: 10, width: 50,
+      lip_height: 25, lip_thickness: 5, lip_edge_radius: 2.5,
+      screw_holes: 2, screw_spacing: 20, screw_type: 'wood4', screw_shaft: 4, screw_head: 8,
+      driver_type: 'ltt', driver_diameter: 10, countersunk: true,
+    }),
+  },
+  {
+    slug: 'gridfinity-baseplate',
+    label: 'Gridfinity Baseplate',
+    description: 'Parametric Gridfinity baseplate with optional walls, magnet pockets, and print-bed-aware splitting.',
+    generate: () => extractMerged(gridfinityBaseplate.generate({
+      cells_x: 3, cells_y: 3,
+      edge_n: 'wall', edge_s: 'wall', edge_e: 'wall', edge_w: 'wall',
+      wall_n: null, wall_s: null, wall_e: null, wall_w: null,
+      separate_walls: false, wall_connector: 'wall_male', corner_style: 'corner_l',
+      corner_radius: 0, base_style: 'open', magnets: false,
+      restrict_bed: false, bed_type: 'prusa_core_one', bed_x: 250, bed_y: 220,
+    })).rotate(-90, 0, 0),
+  },
+  {
+    slug: 'corner-radius-gauge',
+    label: 'Corner Radius Gauge',
+    description: 'Set of 10 gauge tiles for corner radii from 0.5 to 5 mm in 0.5 mm steps.',
+    generate: () => extractMerged(cornerRadiusGauge.generate(
+      { text_style: 'debossed', text_top: true, text_bottom: false }
+    )).rotate(-90, 0, 0),
+  },
+]
+
+function renderThumbnail(geom: Manifold): string {
   const W = 280, H = 200
   const canvas = document.createElement('canvas')
   canvas.width = W
@@ -15,7 +58,7 @@ function renderThumbnail(geom: unknown): string {
   const scene = new THREE.Scene()
   scene.background = new THREE.Color(0x1a1a2e)
 
-  const m = (geom as any).getMesh()
+  const m = geom.getMesh()
   const geo = new THREE.BufferGeometry()
   geo.setAttribute('position', new THREE.BufferAttribute(m.vertProperties, m.numProp))
   geo.setIndex(new THREE.BufferAttribute(m.triVerts, 1))
@@ -48,7 +91,7 @@ function renderThumbnail(geom: unknown): string {
 
   renderer.dispose()
   geo.dispose()
-  ;(mesh.material as THREE.Material).dispose()
+  ;(mesh.material as THREE.MeshStandardMaterial).dispose()
 
   return dataUrl
 }
@@ -60,19 +103,11 @@ export function IndexPage() {
   createEffect(() => {
     if (!ready()) return
     const thumbs: Record<string, string> = {}
-    for (const group of groups) {
-      const { slug, model } = group.entries[0]
-      const p = model.presets
-      const defaults = Array.isArray(p) ? { ...p[0].values } : { ...p }
+    for (const entry of MODELS) {
       try {
-        const result = model.generate(defaults)
-        let geom = (result !== null && typeof result === 'object' && 'pieces' in (result as object))
-          ? (result as any).merged
-          : result
-        if (model.flatModel) geom = (geom as any).rotate([-90, 0, 0])
-        thumbs[group.slug] = renderThumbnail(geom)
+        thumbs[entry.slug] = renderThumbnail(entry.generate())
       } catch (e) {
-        console.error('thumbnail failed for', slug, e)
+        console.error('thumbnail failed for', entry.slug, e)
       }
     }
     setThumbnails(thumbs)
@@ -89,10 +124,10 @@ export function IndexPage() {
         Parametric 3D-printable models
       </p>
       <div style={{ display: 'grid', 'grid-template-columns': 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px', 'max-width': '960px' }}>
-        <For each={groups}>
-          {(group) => (
+        <For each={MODELS}>
+          {(entry) => (
             <a
-              href={`${group.slug}/`}
+              href={`${entry.slug}/`}
               style={{
                 display: 'block', background: '#12121f',
                 'border-radius': '8px', border: '1px solid #1e1e30',
@@ -103,21 +138,21 @@ export function IndexPage() {
               onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#1e1e30')}
             >
               <Show
-                when={thumbnails()[group.slug]}
+                when={thumbnails()[entry.slug]}
                 fallback={
                   <div style={{ height: '160px', background: '#0e0e1a', display: 'flex', 'align-items': 'center', 'justify-content': 'center' }}>
                     <span style={{ color: '#333', 'font-size': '0.75rem' }}>{ready() ? '—' : 'Loading…'}</span>
                   </div>
                 }
               >
-                {(src) => <img src={src()} alt={group.label} style={{ display: 'block', width: '100%', height: '160px', 'object-fit': 'cover' }} />}
+                {(src) => <img src={src()} alt={entry.label} style={{ display: 'block', width: '100%', height: '160px', 'object-fit': 'cover' }} />}
               </Show>
               <div style={{ padding: '16px' }}>
                 <div style={{ 'font-size': '1rem', 'font-weight': '600', color: '#fff', 'margin-bottom': '6px' }}>
-                  {group.label}
+                  {entry.label}
                 </div>
                 <div style={{ 'font-size': '0.8rem', color: '#666', 'line-height': '1.5' }}>
-                  {group.description ?? group.entries[0].model.description}
+                  {entry.description}
                 </div>
               </div>
             </a>

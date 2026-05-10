@@ -1,24 +1,18 @@
 import { getManifold } from '../manifold'
-import { defineModel } from '../types'
-import { printBedParams, resolveBed, splitSizes } from '../printBed'
+import { resolveBed, splitSizes } from '../printBed'
 
-// Gridfinity spec constants (from https://gridfinity.xyz/specification/)
-// Profile coordinates sourced from gridfinity-rebuilt-openscad by Kenneth Hodson
 const CELL = 42
 const OUTER_R = 4
 const BASE_H = 5
-const CLEARANCE = BASE_H - 4.65          // 0.35mm clearance at bottom
-const CORE_HALF = CELL / 2 - OUTER_R    // 17mm — half the 34×34 inner square core
+const CLEARANCE = BASE_H - 4.65
+const CORE_HALF = CELL / 2 - OUTER_R
 
-// Profile cross-section key (corner radius, height) pairs
-const R1 = OUTER_R - 2.85              // 1.15 — bottom of profile
-const H1 = CLEARANCE                   // 0.35
-const R2 = R1 + 0.7                    // 1.85 — after first 45° step
-const H2 = H1 + 0.7                    // 1.05
-const H3 = H2 + 1.8                    // 2.85 — end of straight section
-// R2 holds until H3, then 45° slope to OUTER_R at BASE_H
+const R1 = OUTER_R - 2.85
+const H1 = CLEARANCE
+const R2 = R1 + 0.7
+const H2 = H1 + 0.7
+const H3 = H2 + 1.8
 
-// Edge puzzle connector defaults (geometry from GridFlock by Jonas Konrad)
 const EP_TAB_W = 10
 const EP_TAB_D = 2.5
 const EP_NECK_W = 3
@@ -27,48 +21,27 @@ const EP_GAP = 0.15
 const EP_H_MALE = 2.0
 const EP_H_FEMALE = 2.25
 
-// Magnet pocket geometry
 const MAG_D = 6.0
 const MAG_H = 2.4
-const MAG_CORNER = CELL / 2 - 8.0     // 13mm from cell center (8mm in from corner)
+const MAG_CORNER = CELL / 2 - 8.0
 
-const PIECE_GAP = 5                    // mm between pieces in print-bed layout
+const PIECE_GAP = 5
 
-export default defineModel({
-  name: 'Gridfinity Base Tile',
-  description: 'Repeatable interior tile for a modular Gridfinity baseplate. Edge puzzle connectors on all four sides (male N/E, female S/W) let tiles and border pieces snap together.',
-  attribution: [
-    { name: 'Gridfinity', author: 'Zachary Freedman / Voidstar Lab', url: 'https://www.youtube.com/watch?v=ra_9zU-mnl8', license: 'MIT' },
-    { name: 'gridfinity-rebuilt-openscad', author: 'Kenneth Hodson', url: 'https://github.com/kennetek/gridfinity-rebuilt-openscad', license: 'MIT' },
-    { name: 'GridFlock', author: 'Jonas Konrad', url: 'https://github.com/yawkat/GridFlock', license: 'MIT, CC BY 4.0' },
-  ],
-  parameters: {
-    cells_x: { type: 'number', label: 'Width (cells)', min: 1, max: 20, step: 1 },
-    cells_y: { type: 'number', label: 'Depth (cells)', min: 1, max: 20, step: 1 },
-    base_style: {
-      type: 'select', label: 'Base style',
-      options: [
-        { value: 'solid', label: 'Solid' },
-        { value: 'floor', label: 'Open floor' },
-        { value: 'open', label: 'Open walls' },
-      ],
-    },
-    magnets: { type: 'boolean', label: 'Magnet pockets', visible: (v) => v.base_style === 'solid' },
-    ...printBedParams,
-  },
-  groups: [
-    { label: 'Print bed', keys: ['restrict_bed', 'bed_type', 'bed_x', 'bed_y'], defaultOpen: true },
-    { label: 'Size', keys: ['cells_x', 'cells_y'], defaultOpen: true },
-    { label: 'Options', keys: ['base_style', 'magnets'], defaultOpen: true },
-  ],
-  presets: [
-    { label: 'Halfords Middle Chest (13×9)', values: { cells_x: 13, cells_y: 9, base_style: 'floor', magnets: false, restrict_bed: false, bed_type: 'prusa_core_one', bed_x: 250, bed_y: 220 } },
-  ],
+export const flatModel = true
 
-  generate({ cells_x, cells_y, base_style, magnets, restrict_bed, bed_type, bed_x, bed_y }) {
+export interface Params {
+  cells_x: number
+  cells_y: number
+  base_style: string
+  magnets: boolean
+  restrict_bed: boolean
+  bed_type: string
+  bed_x: number
+  bed_y: number
+}
+
+export function generate({ cells_x, cells_y, base_style, magnets, restrict_bed, bed_type, bed_x, bed_y }: Params) {
     const { Manifold, CrossSection } = getManifold()
-
-    // ── 2D helpers ──────────────────────────────────────────────────────────
 
     const roundBarX = (w: number, h: number) => {
       const r = h / 2
@@ -88,7 +61,6 @@ export default defineModel({
         )
     }
 
-    // ── Gridfinity cell void ─────────────────────────────────────────────────
     const voidCS = (r: number) =>
       CrossSection.square([2 * CORE_HALF, 2 * CORE_HALF], true).offset(r)
 
@@ -105,9 +77,7 @@ export default defineModel({
       CrossSection.square([CELL, CELL]).translate([cx - CELL / 2, cy - CELL / 2]).extrude(BASE_H)
         .subtract(cellVoid(cx, cy))
 
-    // ── Connector profiles ───────────────────────────────────────────────────
-    // Convention: N/E edges are male (protrude), S/W edges are female (socket).
-    // Applies to both outer tile edges and inner cut edges between split pieces.
+
     const malePiece =
       roundBarXNeg(EP_NECK_W, EP_NECK_D).translate([-EP_NECK_W / 2, 0])
         .add(roundBarX(EP_TAB_W, EP_TAB_D).translate([-EP_TAB_W / 2, EP_NECK_D]))
@@ -123,9 +93,6 @@ export default defineModel({
     const maleEast = malePiece.rotate(-90)
     const femaleWest = femalePiece.rotate(-90)
 
-    // ── Build one piece ──────────────────────────────────────────────────────
-    // startX/Y: first cell index (in the global grid), nX/nY: cell count.
-    // Coordinates are in the global frame: full tile centered at origin.
     const buildPiece = (startX: number, nX: number, startY: number, nY: number) => {
       const cellXCenters = Array.from({ length: nX }, (_, i) =>
         (startX + i - (cells_x - 1) / 2) * CELL
@@ -196,7 +163,6 @@ export default defineModel({
       return tile
     }
 
-    // ── Assemble ─────────────────────────────────────────────────────────────
     if (!restrict_bed) {
       return buildPiece(0, cells_x, 0, cells_y).rotate([-90, 0, 0])
     }
@@ -205,11 +171,6 @@ export default defineModel({
     const sizesX = splitSizes(cells_x, Math.max(1, Math.floor(bed.x / CELL)))
     const sizesY = splitSizes(cells_y, Math.max(1, Math.floor(bed.y / CELL)))
 
-    // Translate each piece from global coords to a flat print-bed layout.
-    // Piece (pi, pj) in global coords is centered at origin of the full tile.
-    // Translation to layout: tx = pi * PIECE_GAP + cells_x * CELL / 2
-    //                        ty = pj * PIECE_GAP + cells_y * CELL / 2
-    // (derived from aligning each piece's left/bottom edge to its layout slot)
     const pieces: ReturnType<typeof buildPiece>[] = []
     let startX = 0
     for (let pi = 0; pi < sizesX.length; pi++) {
@@ -225,5 +186,4 @@ export default defineModel({
     }
 
     return Manifold.union(pieces).rotate([-90, 0, 0])
-  },
-})
+}

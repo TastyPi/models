@@ -1,23 +1,32 @@
 import { initManifold } from './manifold'
-import { models } from './models/registry'
-import type { RawMesh } from './types'
+import type { Manifold } from 'manifold-3d'
+import * as wallHook from './models/wall-hook'
+import * as gridfinityBaseplate from './models/gridfinity-baseplate'
+import * as cornerRadiusGauge from './models/corner-radius-gauge'
+import type { RawMesh, PieceMesh, GeomResult, PieceGeom } from './types'
+import { isPieced } from './types'
 
-type PieceMesh = { label: string; mesh: RawMesh; secondaryMesh?: RawMesh }
+const MODELS: Record<string, {
+  generate: (p: any) => GeomResult
+  flatModel?: boolean
+  exportTransform?: (p: any, g: Manifold) => Manifold
+}> = {
+  'wall-hook':             { generate: wallHook.generate,             exportTransform: wallHook.exportTransform },
+  'gridfinity-baseplate':  { generate: gridfinityBaseplate.generate,  flatModel: gridfinityBaseplate.flatModel },
+  'corner-radius-gauge':   { generate: cornerRadiusGauge.generate,    flatModel: cornerRadiusGauge.flatModel },
+}
 
 type InMsg =
-  | { type: 'generate'; key: string; modelName: string; params: Record<string, number | boolean | string> }
-  | { type: 'export';   key: string; modelName: string; params: Record<string, number | boolean | string>; pieceIndex?: number }
+  | { type: 'generate'; key: string; slug: string; params: Record<string, unknown> }
+  | { type: 'export';   key: string; slug: string; params: Record<string, unknown>; pieceIndex?: number }
 
 type OutMsg =
   | { type: 'result'; key: string; mesh: RawMesh; pieces?: PieceMesh[] }
   | { type: 'error';  key: string }
 
-function isPieced(r: unknown): r is { merged: unknown; pieces: { label: string; geom: unknown }[] } {
-  return r !== null && typeof r === 'object' && 'pieces' in (r as object)
-}
 
-function extractMesh(geom: unknown): RawMesh {
-  const m = (geom as any).getMesh()
+function extractMesh(geom: Manifold): RawMesh {
+  const m = geom.getMesh()
   return {
     vertProperties: new Float32Array(m.vertProperties),
     triVerts: new Uint32Array(m.triVerts),
@@ -29,20 +38,20 @@ const readyPromise = initManifold()
 
 self.onmessage = async (e: MessageEvent<InMsg>) => {
   await readyPromise
-  const { type, key, modelName, params } = e.data
-  const entry = models.find(m => m.model.name === modelName)
+  const { type, key, slug, params } = e.data
+  const entry = MODELS[slug]
   if (!entry) { self.postMessage({ type: 'error', key } satisfies OutMsg); return }
   try {
-    const result: any = entry.model.generate(params)
+    const result = entry.generate(params)
     const pieced = isPieced(result)
 
-    const flatRotate = (g: any) => entry.model.flatModel ? g.rotate([-90, 0, 0]) : g
+    const flatRotate = (g: Manifold): Manifold => entry.flatModel ? g.rotate(-90, 0, 0) : g
 
     if (type === 'generate') {
       const geom = flatRotate(pieced ? result.merged : result)
       const mesh = extractMesh(geom)
       const pieces: PieceMesh[] | undefined = pieced
-        ? result.pieces.map((p: any) => {
+        ? result.pieces.map((p: PieceGeom) => {
             const displayGeom = flatRotate(p.primaryGeom ?? p.geom)
             const piece: PieceMesh = { label: p.label, mesh: extractMesh(displayGeom) }
             if (p.secondaryGeom) piece.secondaryMesh = extractMesh(flatRotate(p.secondaryGeom))
@@ -57,13 +66,13 @@ self.onmessage = async (e: MessageEvent<InMsg>) => {
       self.postMessage({ type: 'result', key, mesh, pieces } satisfies OutMsg, { transfer: transferables })
     } else {
       const { pieceIndex } = e.data as Extract<InMsg, { type: 'export' }>
-      let geom: any
+      let geom: Manifold
       if (pieced && pieceIndex !== undefined && pieceIndex >= 0) {
         geom = flatRotate(result.pieces[pieceIndex].geom)
       } else {
         geom = flatRotate(pieced ? result.merged : result)
       }
-      if (entry.model.exportTransform) geom = entry.model.exportTransform(params, geom)
+      if (entry.exportTransform) geom = entry.exportTransform(params, geom)
       const mesh = extractMesh(geom)
       self.postMessage({ type: 'result', key, mesh } satisfies OutMsg, { transfer: [mesh.vertProperties.buffer as ArrayBuffer, mesh.triVerts.buffer as ArrayBuffer] })
     }
