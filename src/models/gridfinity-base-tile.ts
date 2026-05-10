@@ -113,11 +113,11 @@ export default defineModel({
         .add(roundBarX(EP_TAB_W, EP_TAB_D).translate([-EP_TAB_W / 2, EP_NECK_D]))
 
     const femalePiece =
-      roundBarXNeg(EP_NECK_W + 2 * EP_GAP, EP_NECK_D)
+      roundBarXNeg(EP_NECK_W + 2 * EP_GAP, EP_NECK_D - EP_GAP)
         .translate([-(EP_NECK_W / 2 + EP_GAP), 0])
         .add(
-          roundBarX(EP_TAB_W + 2 * EP_GAP, EP_TAB_D + EP_GAP)
-            .translate([-(EP_TAB_W / 2 + EP_GAP), EP_NECK_D])
+          roundBarX(EP_TAB_W + EP_GAP, EP_TAB_D + EP_GAP)
+            .translate([-(EP_TAB_W / 2 + EP_GAP), EP_NECK_D - EP_GAP])
         )
 
     const maleEast = malePiece.rotate(-90)

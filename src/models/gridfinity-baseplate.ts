@@ -23,7 +23,7 @@ const EP_NECK_D = 1.2
 const EP_GAP = 0.15
 const EP_H_MALE = 2.0
 const EP_H_FEMALE = 2.25
-const EP_WALL_MIN = Math.ceil((EP_NECK_D + EP_TAB_D + EP_GAP) / 0.5) * 0.5  // min wall depth to contain female socket pocket
+const EP_WALL_MIN = Math.ceil((EP_NECK_D + EP_TAB_D) / 0.5) * 0.5  // min wall depth to contain female socket pocket
 
 const MAG_D = 6.0
 const MAG_H = 2.4
@@ -218,11 +218,11 @@ export default defineModel({
         .add(roundBarX(EP_TAB_W, EP_TAB_D).translate([-EP_TAB_W / 2, EP_NECK_D]))
 
     const femalePiece =
-      roundBarXNeg(EP_NECK_W + 2 * EP_GAP, EP_NECK_D)
+      roundBarXNeg(EP_NECK_W + 2 * EP_GAP, EP_NECK_D - EP_GAP)
         .translate([-(EP_NECK_W / 2 + EP_GAP), 0])
         .add(
-          roundBarX(EP_TAB_W + 2 * EP_GAP, EP_TAB_D + EP_GAP)
-            .translate([-(EP_TAB_W / 2 + EP_GAP), EP_NECK_D])
+          roundBarX(EP_TAB_W + EP_GAP, EP_TAB_D + EP_GAP)
+            .translate([-(EP_TAB_W / 2 + EP_GAP), EP_NECK_D - EP_GAP])
         )
 
     // Directional variants — all protrude outward in their named direction

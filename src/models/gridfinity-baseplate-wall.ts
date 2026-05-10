@@ -68,9 +68,9 @@ export default defineModel({
     }
     const buildFemale = (s: number) => {
       const tw = EP_TAB_W * s, td = EP_TAB_D * s, nw = EP_NECK_W * s, nd = EP_NECK_D * s
-      return roundBarXNeg(nw + 2 * EP_GAP, nd)
+      return roundBarXNeg(nw + 2 * EP_GAP, nd - EP_GAP)
         .translate([-(nw / 2 + EP_GAP), 0])
-        .add(roundBarX(tw + 2 * EP_GAP, td + EP_GAP).translate([-(tw / 2 + EP_GAP), nd]))
+        .add(roundBarX(tw + EP_GAP, td + EP_GAP).translate([-(tw / 2 + EP_GAP), nd - EP_GAP]))
     }
 
     const malePiece = buildMale(1)
