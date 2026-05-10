@@ -83,10 +83,30 @@ export default defineModel({
       max: OUTER_R,
       step: 0.5,
     },
-    wall_n: { type: 'number', optional: true, label: 'North (mm)', min: (v) => v.separate_walls && v.wall_connector === 'wall_female' ? EP_WALL_MIN : 0, max: 40, step: 0.5 },
-    wall_s: { type: 'number', optional: true, label: 'South (mm)', min: (v) => v.separate_walls && v.wall_connector === 'wall_female' ? EP_WALL_MIN : 0, max: 40, step: 0.5 },
-    wall_e: { type: 'number', optional: true, label: 'East (mm)',  min: (v) => v.separate_walls && v.wall_connector === 'wall_female' ? EP_WALL_MIN : 0, max: 40, step: 0.5 },
-    wall_w: { type: 'number', optional: true, label: 'West (mm)',  min: (v) => v.separate_walls && v.wall_connector === 'wall_female' ? EP_WALL_MIN : 0, max: 40, step: 0.5 },
+    wall_n: { type: 'number', optional: true, label: 'North (mm)', min: (v) => v.separate_walls && v.wall_connector === 'wall_female' ? EP_WALL_MIN : 0, max: 40, step: 0.5, visible: (v) => !!v.restrict_bed },
+    wall_s: { type: 'number', optional: true, label: 'South (mm)', min: (v) => v.separate_walls && v.wall_connector === 'wall_female' ? EP_WALL_MIN : 0, max: 40, step: 0.5, visible: (v) => !!v.restrict_bed },
+    wall_e: { type: 'number', optional: true, label: 'East (mm)',  min: (v) => v.separate_walls && v.wall_connector === 'wall_female' ? EP_WALL_MIN : 0, max: 40, step: 0.5, visible: (v) => !!v.restrict_bed },
+    wall_w: { type: 'number', optional: true, label: 'West (mm)',  min: (v) => v.separate_walls && v.wall_connector === 'wall_female' ? EP_WALL_MIN : 0, max: 40, step: 0.5, visible: (v) => !!v.restrict_bed },
+    edge_n: {
+      type: 'select', label: 'North edge',
+      options: [{ value: 'none', label: 'None' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' }],
+      visible: (v) => !v.restrict_bed,
+    },
+    edge_s: {
+      type: 'select', label: 'South edge',
+      options: [{ value: 'none', label: 'None' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' }],
+      visible: (v) => !v.restrict_bed,
+    },
+    edge_e: {
+      type: 'select', label: 'East edge',
+      options: [{ value: 'none', label: 'None' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' }],
+      visible: (v) => !v.restrict_bed,
+    },
+    edge_w: {
+      type: 'select', label: 'West edge',
+      options: [{ value: 'none', label: 'None' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' }],
+      visible: (v) => !v.restrict_bed,
+    },
     base_style: {
       type: 'select', label: 'Base style',
       options: [
@@ -101,7 +121,7 @@ export default defineModel({
     { label: 'Print bed', keys: ['restrict_bed', 'bed_type', 'bed_x', 'bed_y'],                                                       defaultOpen: true },
     { label: 'Style',     keys: ['base_style', 'magnets', 'corner_radius'],                                                           defaultOpen: true },
     { label: 'Size',      keys: ['cells_x', 'cells_y'],                                                                               defaultOpen: true },
-    { label: 'Walls',     keys: ['separate_walls', 'wall_connector', 'corner_style', 'wall_n', 'wall_s', 'wall_e', 'wall_w'],         defaultOpen: true },
+    { label: 'Walls',     keys: ['separate_walls', 'wall_connector', 'corner_style', 'wall_n', 'wall_s', 'wall_e', 'wall_w', 'edge_n', 'edge_s', 'edge_e', 'edge_w'], defaultOpen: true },
   ],
   flatModel: true,
   presets: [
@@ -112,18 +132,22 @@ export default defineModel({
         separate_walls: false, wall_connector: 'wall_male', corner_style: 'corner_l',
         wall_n: 11.5, wall_s: 11.5, wall_e: 9, wall_w: 9,
         base_style: 'open', magnets: false, corner_radius: 0,
-        restrict_bed: false, bed_type: 'prusa_core_one', bed_x: 250, bed_y: 220,
+        restrict_bed: true, bed_type: 'prusa_core_one', bed_x: 250, bed_y: 220,
       },
     },
   ],
 
-  info({ cells_x, cells_y, wall_n, wall_s, wall_e, wall_w }) {
-    const w = cells_x * CELL + wall_w + wall_e
-    const d = cells_y * CELL + wall_n + wall_s
+  info({ cells_x, cells_y, wall_n, wall_s, wall_e, wall_w, restrict_bed }) {
+    const wN = restrict_bed ? (wall_n as number) : 0
+    const wS = restrict_bed ? (wall_s as number) : 0
+    const wE = restrict_bed ? (wall_e as number) : 0
+    const wW = restrict_bed ? (wall_w as number) : 0
+    const w = cells_x * CELL + wW + wE
+    const d = cells_y * CELL + wN + wS
     return `${w} × ${d} mm assembled`
   },
 
-  generate({ cells_x, cells_y, wall_n, wall_s, wall_e, wall_w, separate_walls, wall_connector, corner_style, corner_radius, base_style, magnets, restrict_bed, bed_type, bed_x, bed_y }) {
+  generate({ cells_x, cells_y, wall_n, wall_s, wall_e, wall_w, separate_walls, wall_connector, corner_style, corner_radius, base_style, magnets, restrict_bed, bed_type, bed_x, bed_y, edge_n, edge_s, edge_e, edge_w }) {
     const { Manifold, CrossSection } = getManifold()
     const wallFemale = wall_connector === 'wall_female'
     const cStyle = (corner_style as string) ?? 'corner_l'
@@ -544,41 +568,32 @@ export default defineModel({
     if (!restrict_bed) {
       const cellXC = Array.from({ length: cells_x }, (_, i) => (i - (cells_x - 1) / 2) * CELL)
       const cellYC = Array.from({ length: cells_y }, (_, j) => (j - (cells_y - 1) / 2) * CELL)
-      labeled.push({
-        label: 'Tile',
-        geom: buildPiece(0, cells_x, 0, cells_y, wall_n, wall_s, wall_e, wall_w, false, false, false, false, separate_walls),
-      })
-      if (separate_walls) {
-        // Arm sizes (cells) for corner_l: per-side, ceil on "left/south", floor on "right/north"
-        let armXL = 0, armXR = 0, armYS = 0, armYN = 0
-        if (cStyle === 'corner_l') {
-          const bothWE = wall_w > 0 && wall_e > 0, bothNS = wall_n > 0 && wall_s > 0
-          armXL = !wall_w ? 0 : (bothWE || (cells_y === 1 && bothNS)) ? Math.ceil(cells_x / 2) : 1
-          armXR = !wall_e ? 0 : (bothWE || (cells_y === 1 && bothNS)) ? Math.floor(cells_x / 2) : 1
-          armYS = !wall_s ? 0 : (bothNS || (cells_x === 1 && bothWE)) ? Math.ceil(cells_y / 2) : 1
-          armYN = !wall_n ? 0 : (bothNS || (cells_x === 1 && bothWE)) ? Math.floor(cells_y / 2) : 1
-        }
-        pushStrip('North wall', buildWallStrip('N', cellXC, cellYC, wall_n, wall_s, wall_e, wall_w, armXL * CELL, armXR * CELL), 0, PIECE_GAP)
-        pushStrip('South wall', buildWallStrip('S', cellXC, cellYC, wall_n, wall_s, wall_e, wall_w, armXL * CELL, armXR * CELL), 0, -PIECE_GAP)
-        pushStrip('East wall',  buildWallStrip('E', cellXC, cellYC, wall_n, wall_s, wall_e, wall_w, armYS * CELL, armYN * CELL), PIECE_GAP, 0)
-        pushStrip('West wall',  buildWallStrip('W', cellXC, cellYC, wall_n, wall_s, wall_e, wall_w, armYS * CELL, armYN * CELL), -PIECE_GAP, 0)
-        if (cStyle === 'corner_l') {
-          const needBox = cells_x === 1 && cells_y === 1 && wall_n > 0 && wall_s > 0 && wall_e > 0 && wall_w > 0
-          const needWU = !needBox && cells_y === 1 && cells_x >= 2 && wall_w > 0 && wall_n > 0 && wall_s > 0
-          const needEU = !needBox && cells_y === 1 && cells_x >= 2 && wall_e > 0 && wall_n > 0 && wall_s > 0
-          const needNU = !needBox && cells_x === 1 && cells_y >= 2 && wall_n > 0 && wall_w > 0 && wall_e > 0
-          const needSU = !needBox && cells_x === 1 && cells_y >= 2 && wall_s > 0 && wall_w > 0 && wall_e > 0
-          if (needBox) labeled.push({ label: 'Wall frame', geom: buildBoxPiece(wall_n, wall_s, wall_e, wall_w, cellXC, cellYC).translate([0, -(CELL + wall_n + PIECE_GAP), 0]) })
-          if (needWU) labeled.push({ label: 'West wall',  geom: buildUPiece('W', wall_n, wall_s, wall_e, wall_w, cellXC, cellYC, armXL).translate([0, cells_y * CELL + wall_s + PIECE_GAP, 0]) })
-          if (needEU) labeled.push({ label: 'East wall',  geom: buildUPiece('E', wall_n, wall_s, wall_e, wall_w, cellXC, cellYC, armXR).translate([0, -(cells_y * CELL + wall_n + PIECE_GAP), 0]) })
-          if (needNU) labeled.push({ label: 'North wall', geom: buildUPiece('N', wall_n, wall_s, wall_e, wall_w, cellXC, cellYC, armYN).translate([cells_x * CELL + wall_w + PIECE_GAP, 0, 0]) })
-          if (needSU) labeled.push({ label: 'South wall', geom: buildUPiece('S', wall_n, wall_s, wall_e, wall_w, cellXC, cellYC, armYS).translate([-(cells_x * CELL + wall_e + PIECE_GAP), 0, 0]) })
-          if (!needBox && !needWU && !needNU && wall_n > 0 && wall_w > 0) labeled.push({ label: 'NW corner', geom: buildCornerPiece('NW', wall_n, wall_s, wall_e, wall_w, cellXC, cellYC, armXL * CELL, armYN * CELL).translate([-PIECE_GAP, PIECE_GAP, 0]) })
-          if (!needBox && !needEU && !needNU && wall_n > 0 && wall_e > 0) labeled.push({ label: 'NE corner', geom: buildCornerPiece('NE', wall_n, wall_s, wall_e, wall_w, cellXC, cellYC, armXR * CELL, armYN * CELL).translate([PIECE_GAP, PIECE_GAP, 0]) })
-          if (!needBox && !needWU && !needSU && wall_s > 0 && wall_w > 0) labeled.push({ label: 'SW corner', geom: buildCornerPiece('SW', wall_n, wall_s, wall_e, wall_w, cellXC, cellYC, armXL * CELL, armYS * CELL).translate([-PIECE_GAP, -PIECE_GAP, 0]) })
-          if (!needBox && !needEU && !needSU && wall_s > 0 && wall_e > 0) labeled.push({ label: 'SE corner', geom: buildCornerPiece('SE', wall_n, wall_s, wall_e, wall_w, cellXC, cellYC, armXR * CELL, armYS * CELL).translate([PIECE_GAP, -PIECE_GAP, 0]) })
-        }
-      }
+      const tileL = -(cells_x / 2) * CELL
+      const tileR =  (cells_x / 2) * CELL
+      const tileB = -(cells_y / 2) * CELL
+      const tileT =  (cells_y / 2) * CELL
+
+      let tile = buildPiece(0, cells_x, 0, cells_y, 0, 0, 0, 0, false, false, false, false, false)
+
+      const toAdd: any[] = [], toSub: any[] = []
+      const eN = (edge_n as string) ?? 'none'
+      const eS = (edge_s as string) ?? 'none'
+      const eE = (edge_e as string) ?? 'none'
+      const eW = (edge_w as string) ?? 'none'
+
+      if (eN === 'male')   for (const cx of cellXC) toAdd.push(maleNorth.translate([cx, tileT]).extrude(EP_H_MALE))
+      if (eN === 'female') for (const cx of cellXC) toSub.push(femaleNorth.translate([cx, tileT]).extrude(EP_H_FEMALE))
+      if (eS === 'male')   for (const cx of cellXC) toAdd.push(maleSouth.translate([cx, tileB]).extrude(EP_H_MALE))
+      if (eS === 'female') for (const cx of cellXC) toSub.push(femaleSouth.translate([cx, tileB]).extrude(EP_H_FEMALE))
+      if (eE === 'male')   for (const cy of cellYC) toAdd.push(maleEast.translate([tileR, cy]).extrude(EP_H_MALE))
+      if (eE === 'female') for (const cy of cellYC) toSub.push(femaleEast.translate([tileR, cy]).extrude(EP_H_FEMALE))
+      if (eW === 'male')   for (const cy of cellYC) toAdd.push(maleWest.translate([tileL, cy]).extrude(EP_H_MALE))
+      if (eW === 'female') for (const cy of cellYC) toSub.push(femaleWest.translate([tileL, cy]).extrude(EP_H_FEMALE))
+
+      if (toAdd.length > 0) tile = tile.add(Manifold.union(toAdd))
+      if (toSub.length > 0) tile = tile.subtract(Manifold.union(toSub))
+
+      labeled.push({ label: 'Tile', geom: tile })
     } else {
       const bed = resolveBed(bed_type, bed_x, bed_y)
       const maxCellsX = Math.max(1, Math.floor(bed.x / CELL))
