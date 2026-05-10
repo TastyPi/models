@@ -2,7 +2,7 @@ import { initManifold } from './manifold'
 import { models } from './models/registry'
 import type { RawMesh } from './types'
 
-type PieceMesh = { label: string; mesh: RawMesh }
+type PieceMesh = { label: string; mesh: RawMesh; secondaryMesh?: RawMesh }
 
 type InMsg =
   | { type: 'generate'; key: string; modelName: string; params: Record<string, number | boolean | string> }
@@ -36,28 +36,39 @@ self.onmessage = async (e: MessageEvent<InMsg>) => {
     const result: any = entry.model.generate(params)
     const pieced = isPieced(result)
 
+    const flatRotate = (g: any) => entry.model.flatModel ? g.rotate([-90, 0, 0]) : g
+
     if (type === 'generate') {
-      const geom = pieced ? result.merged : result
+      const geom = flatRotate(pieced ? result.merged : result)
       const mesh = extractMesh(geom)
       const pieces: PieceMesh[] | undefined = pieced
-        ? result.pieces.map((p: { label: string; geom: unknown }) => ({ label: p.label, mesh: extractMesh(p.geom) }))
+        ? result.pieces.map((p: any) => {
+            const displayGeom = flatRotate(p.primaryGeom ?? p.geom)
+            const piece: PieceMesh = { label: p.label, mesh: extractMesh(displayGeom) }
+            if (p.secondaryGeom) piece.secondaryMesh = extractMesh(flatRotate(p.secondaryGeom))
+            return piece
+          })
         : undefined
       const transferables: Transferable[] = [mesh.vertProperties.buffer as ArrayBuffer, mesh.triVerts.buffer as ArrayBuffer]
-      if (pieces) for (const p of pieces) transferables.push(p.mesh.vertProperties.buffer as ArrayBuffer, p.mesh.triVerts.buffer as ArrayBuffer)
+      if (pieces) for (const p of pieces) {
+        transferables.push(p.mesh.vertProperties.buffer as ArrayBuffer, p.mesh.triVerts.buffer as ArrayBuffer)
+        if (p.secondaryMesh) transferables.push(p.secondaryMesh.vertProperties.buffer as ArrayBuffer, p.secondaryMesh.triVerts.buffer as ArrayBuffer)
+      }
       self.postMessage({ type: 'result', key, mesh, pieces } satisfies OutMsg, { transfer: transferables })
     } else {
       const { pieceIndex } = e.data as Extract<InMsg, { type: 'export' }>
       let geom: any
       if (pieced && pieceIndex !== undefined && pieceIndex >= 0) {
-        geom = result.pieces[pieceIndex].geom
+        geom = flatRotate(result.pieces[pieceIndex].geom)
       } else {
-        geom = pieced ? result.merged : result
+        geom = flatRotate(pieced ? result.merged : result)
       }
       if (entry.model.exportTransform) geom = entry.model.exportTransform(params, geom)
       const mesh = extractMesh(geom)
       self.postMessage({ type: 'result', key, mesh } satisfies OutMsg, { transfer: [mesh.vertProperties.buffer as ArrayBuffer, mesh.triVerts.buffer as ArrayBuffer] })
     }
-  } catch {
+  } catch (err) {
+    console.error('Render error:', err)
     self.postMessage({ type: 'error', key } satisfies OutMsg)
   }
 }

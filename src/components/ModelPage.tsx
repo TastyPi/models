@@ -3,7 +3,7 @@ import type { ModelDefinition, ModelGroup, Preset, RawMesh } from '../types'
 import { ModelViewer } from './ModelViewer'
 import { ParameterForm } from './ParameterForm'
 
-type PieceMesh = { label: string; mesh: RawMesh }
+type PieceMesh = { label: string; mesh: RawMesh; secondaryMesh?: RawMesh }
 
 // LRU geometry cache — keyed by model name + serialised params.
 // Map insertion order gives O(1) LRU: delete+re-insert on hit, evict from front on overflow.
@@ -23,7 +23,8 @@ class GeometryCache {
 
   set(key: string, mesh: RawMesh, pieces?: PieceMesh[]) {
     const bytes = mesh.vertProperties.byteLength + mesh.triVerts.byteLength +
-      (pieces?.reduce((s, p) => s + p.mesh.vertProperties.byteLength + p.mesh.triVerts.byteLength, 0) ?? 0)
+      (pieces?.reduce((s, p) => s + p.mesh.vertProperties.byteLength + p.mesh.triVerts.byteLength +
+        (p.secondaryMesh?.vertProperties.byteLength ?? 0) + (p.secondaryMesh?.triVerts.byteLength ?? 0), 0) ?? 0)
     if (this.entries.has(key)) { this.used -= this.entries.get(key)!.bytes; this.entries.delete(key) }
     this.entries.set(key, { mesh, pieces, bytes })
     this.used += bytes
@@ -48,14 +49,15 @@ function baseDefaults(model: ModelDefinition): Record<string, number | boolean |
   return Array.isArray(p) ? { ...p[0].values } : { ...p }
 }
 
-function paramsFromUrl(model: ModelDefinition, defaults: Record<string, number | boolean | string>) {
+function paramsFromUrl(model: ModelDefinition, defaults: Record<string, number | boolean | string | null>) {
   const sp = new URLSearchParams(window.location.search)
   const out = { ...defaults }
   for (const [k, p] of Object.entries(model.parameters)) {
     if (p.localStorage) continue
     const val = sp.get(k)
     if (val !== null) {
-      if (p.type === 'boolean') out[k] = val === 'true'
+      if (p.type === 'number' && (p as any).optional && val === 'null') out[k] = null
+      else if (p.type === 'boolean') out[k] = val === 'true'
       else if (p.type === 'number') out[k] = parseFloat(val)
       else out[k] = val
     }
@@ -65,22 +67,25 @@ function paramsFromUrl(model: ModelDefinition, defaults: Record<string, number |
 
 const LS_KEY = 'persistent-params'
 
-function loadLocalStorage(model: ModelDefinition): Record<string, number | boolean | string> {
+function loadLocalStorage(model: ModelDefinition): Record<string, number | boolean | string | null> {
   try {
     const stored: Record<string, unknown> = JSON.parse(localStorage.getItem(LS_KEY) ?? '{}')
-    const out: Record<string, number | boolean | string> = {}
+    const out: Record<string, number | boolean | string | null> = {}
     for (const [k, p] of Object.entries(model.parameters)) {
       if (!p.localStorage || !(k in stored)) continue
       const v = stored[k]
       if (p.type === 'boolean' && typeof v === 'boolean') out[k] = v
-      else if (p.type === 'number' && typeof v === 'number') out[k] = v
+      else if (p.type === 'number') {
+        if (v === null && (p as any).optional) out[k] = null
+        else if (typeof v === 'number') out[k] = v
+      }
       else if (p.type === 'select' && typeof v === 'string') out[k] = v
     }
     return out
   } catch { return {} }
 }
 
-function saveLocalStorage(key: string, value: number | boolean | string) {
+function saveLocalStorage(key: string, value: number | boolean | string | null) {
   try {
     const stored = JSON.parse(localStorage.getItem(LS_KEY) ?? '{}')
     localStorage.setItem(LS_KEY, JSON.stringify({ ...stored, [key]: value }))
@@ -122,7 +127,7 @@ export function ModelPage(props: Props) {
     return baseDefaults(activeModel())
   })
 
-  const [params, setParams] = createSignal({
+  const [params, setParams] = createSignal<Record<string, number | boolean | string | null>>({
     ...paramsFromUrl(activeModel(), effectiveDefaults()),
     ...loadLocalStorage(activeModel()),
   })
@@ -137,13 +142,15 @@ export function ModelPage(props: Props) {
   // Clamp all number params to their dynamic bounds in one batched update
   createEffect(() => {
     const current = params()
+    const safeVals = current as Record<string, number | boolean | string>
     const corrections: Record<string, number> = {}
     for (const [key, param] of Object.entries(activeModel().parameters)) {
       if (param.type !== 'number') continue
       if (!(key in current)) continue  // params not yet reset for this model — skip
+      if (current[key] === null) continue  // optional param that is disabled — skip
       const val = current[key] as number
-      const lo = typeof param.min === 'function' ? param.min(current) : (param.min ?? -Infinity)
-      const hi = typeof param.max === 'function' ? param.max(current) : (param.max ?? Infinity)
+      const lo = typeof param.min === 'function' ? param.min(safeVals) : (param.min ?? -Infinity)
+      const hi = typeof param.max === 'function' ? param.max(safeVals) : (param.max ?? Infinity)
       const clamped = Math.min(Math.max(val, lo), hi)
       if (clamped !== val) corrections[key] = clamped
     }
@@ -155,7 +162,7 @@ export function ModelPage(props: Props) {
   })
 
   // Build query string including ?model= when not the default entry
-  const buildQs = (p: Record<string, number | boolean | string>) => {
+  const buildQs = (p: Record<string, number | boolean | string | null>) => {
     const sp = new URLSearchParams()
     const firstSlug = props.group?.entries[0].slug
     if (activeSlug() && activeSlug() !== firstSlug) sp.set('model', activeSlug()!)
@@ -163,7 +170,7 @@ export function ModelPage(props: Props) {
     const modelParams = activeModel().parameters
     for (const [k, v] of Object.entries(p)) {
       if (modelParams[k]?.localStorage) continue
-      if (v !== base[k]) sp.set(k, String(v))
+      if (v !== base[k]) sp.set(k, v === null ? 'null' : String(v))
     }
     const qs = sp.toString()
     return qs ? '?' + qs : window.location.pathname
@@ -185,7 +192,25 @@ export function ModelPage(props: Props) {
     history.replaceState(null, '', buildQs(next))
   }
 
-  const updateParams = (k: string, v: number | boolean | string) => {
+  const isDirty = createMemo(() => {
+    const defaults = effectiveDefaults()
+    const current = params()
+    const modelParams = activeModel().parameters
+    return Object.keys(defaults).some(k => !modelParams[k]?.localStorage && current[k] !== defaults[k])
+  })
+
+  const resetAll = () => {
+    const defaults = effectiveDefaults()
+    const current = params()
+    const next = { ...current }
+    for (const [k, p] of Object.entries(activeModel().parameters)) {
+      if (!p.localStorage) next[k] = defaults[k]
+    }
+    setParams(next)
+    history.replaceState(null, '', buildQs(next))
+  }
+
+  const updateParams = (k: string, v: number | boolean | string | null) => {
     const next = { ...params(), [k]: v }
     setParams(next)
     if (activeModel().parameters[k]?.localStorage) {
@@ -247,7 +272,8 @@ export function ModelPage(props: Props) {
     onCleanup(() => clearTimeout(timer))
   })
 
-  const info = createMemo(() => activeModel().info?.(params()) ?? null)
+  const safeParams = createMemo(() => Object.fromEntries(Object.entries(params()).filter(([, v]) => v !== null)) as Record<string, number | boolean | string>)
+  const info = createMemo(() => activeModel().info?.(safeParams()) ?? null)
 
   const downloadStl = (pieceIndex?: number) => {
     const model = activeModel()
@@ -266,8 +292,9 @@ export function ModelPage(props: Props) {
 
   return (
     <div style={{ display: 'flex', height: '100vh', 'font-family': 'system-ui, sans-serif', color: '#e0e0e0' }}>
-      <aside style={{ width: '260px', 'flex-shrink': '0', background: '#12121f', padding: '20px', 'overflow-y': 'auto', display: 'flex', 'flex-direction': 'column', gap: '16px' }}>
-        <div>
+      <aside style={{ width: '260px', 'flex-shrink': '0', background: '#12121f', display: 'flex', 'flex-direction': 'column', overflow: 'hidden' }}>
+        {/* Fixed header */}
+        <div style={{ 'padding-top': '20px', 'padding-left': '20px', 'padding-right': '20px', 'padding-bottom': presetList() ? '12px' : '0', 'flex-shrink': '0' }}>
           <a href="../" style={{ 'font-size': '0.75rem', color: '#555', 'text-decoration': 'none', display: 'inline-block', 'margin-bottom': '12px' }}
             onMouseEnter={(e) => (e.currentTarget.style.color = '#6688cc')}
             onMouseLeave={(e) => (e.currentTarget.style.color = '#555')}
@@ -295,48 +322,41 @@ export function ModelPage(props: Props) {
             </select>
           </Show>
           <p style={{ margin: 0, 'font-size': '0.8rem', color: '#777' }}>{activeModel().description}</p>
-          <Show when={info()}>
-            <p style={{ margin: '6px 0 0', 'font-size': '0.78rem', color: '#5a8a6a', 'font-variant-numeric': 'tabular-nums' }}>{info()}</p>
-          </Show>
-        </div>
-
           <Show when={presetList()}>
             {(list) => (
-              <div>
-                <div style={{ 'font-size': '0.6rem', color: '#555', 'text-transform': 'uppercase', 'letter-spacing': '0.08em', 'margin-bottom': '4px' }}>Preset</div>
-                <div style={{ display: 'flex', gap: '6px', 'align-items': 'center' }}>
-                  <select
-                    value={activePresetIdx() ?? 0}
-                    onChange={(e) => applyPreset(parseInt(e.currentTarget.value))}
-                    style={{
-                      flex: '1', background: '#1e1e30', color: '#fff',
-                      border: '1px solid #2a2a40', 'border-radius': '6px',
-                      padding: '6px 8px', 'font-size': '0.875rem',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <For each={list()}>
-                      {(preset, i) => <option value={i()}>{preset.label}</option>}
-                    </For>
-                  </select>
-                  <Show when={activePresetIdx() !== null && list()[activePresetIdx()!]?.printablesUrl}>
-                    {(url) => (
-                      <div style={{ position: 'relative', display: 'flex', 'align-items': 'center' }}>
-                        <a href={url()} target="_blank" rel="noopener noreferrer" class="printables-link"
-                          style={{ display: 'flex', 'align-items': 'center', 'flex-shrink': '0' }}
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="18" height="18">
-                            <path d="M77.9 512 256 409.6 77.9 307.2zM256 0 77.9 102.4 256 204.8v204.8l178.1-102.4V102.4z" fill="#e27546"/>
-                          </svg>
-                          <span class="tooltip">View on Printables</span>
-                        </a>
-                      </div>
-                    )}
+              <div style={{ 'margin-top': '12px' }}>
+                <div style={{ display: 'flex', 'align-items': 'baseline', 'justify-content': 'space-between', 'margin-bottom': '4px' }}>
+                  <div style={{ 'font-size': '0.6rem', color: '#555', 'text-transform': 'uppercase', 'letter-spacing': '0.08em' }}>Preset</div>
+                  <Show when={isDirty()}>
+                    <button
+                      onClick={resetAll}
+                      style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', 'font-size': '0.7rem', padding: '0' }}
+                    >Reset all</button>
                   </Show>
                 </div>
+                <select
+                  value={activePresetIdx() ?? 0}
+                  onChange={(e) => applyPreset(parseInt(e.currentTarget.value))}
+                  style={{
+                    width: '100%', background: '#1e1e30', color: '#fff',
+                    border: '1px solid #2a2a40', 'border-radius': '6px',
+                    padding: '6px 8px', 'font-size': '0.875rem', cursor: 'pointer',
+                  }}
+                >
+                  <For each={list()}>
+                    {(preset, i) => <option value={i()}>{preset.label}</option>}
+                  </For>
+                </select>
               </div>
             )}
           </Show>
+          <Show when={info()}>
+            <p style={{ margin: '6px 0 12px', 'font-size': '0.78rem', color: '#5a8a6a', 'font-variant-numeric': 'tabular-nums' }}>{info()}</p>
+          </Show>
+        </div>
+
+        {/* Scrollable parameters */}
+        <div style={{ flex: '1', 'overflow-y': 'auto', padding: '12px 20px', 'border-top': '1px solid #2a2a3a' }}>
           <ParameterForm
             parameters={activeModel().parameters}
             values={params()}
@@ -344,71 +364,73 @@ export function ModelPage(props: Props) {
             defaults={effectiveDefaults()}
             onChange={updateParams}
           />
-          <Show when={pieces()}>
-            {(list) => (
-              <div style={{ display: 'flex', 'flex-direction': 'column', gap: '6px' }}>
-                <div style={{ 'font-size': '0.6rem', color: '#555', 'text-transform': 'uppercase', 'letter-spacing': '0.08em' }}>Piece</div>
-                <select
-                  value={selectedPiece()}
-                  onChange={(e) => setSelectedPiece(parseInt(e.currentTarget.value))}
-                  style={{
-                    width: '100%', background: '#1e1e30', color: '#fff',
-                    border: '1px solid #2a2a40', 'border-radius': '6px',
-                    padding: '6px 8px', 'font-size': '0.875rem', cursor: 'pointer',
-                  }}
-                >
-                  <option value={-1}>All pieces</option>
-                  <For each={list()}>
-                    {(piece, i) => <option value={i()}>{piece.label}</option>}
-                  </For>
-                </select>
-                <Show when={selectedPiece() >= 0}>
-                  <button
-                    onClick={() => downloadStl(selectedPiece())}
-                    style={{ padding: '8px', background: '#3a5a8a', color: '#fff', border: 'none', 'border-radius': '6px', cursor: 'pointer', 'font-size': '0.8rem' }}
-                  >
-                    Download {pieces()?.[selectedPiece()]?.label} STL
-                  </button>
-                </Show>
-              </div>
-            )}
-          </Show>
-          <button
-            onClick={() => downloadStl()}
-            style={{ padding: '10px', background: '#6688cc', color: '#fff', border: 'none', 'border-radius': '6px', cursor: 'pointer', 'font-size': '0.875rem', 'margin-top': 'auto' }}
-          >
-            Download STL
-          </button>
+        </div>
 
-        <div style={{ 'border-top': '1px solid #2a2a3a', 'padding-top': '12px', 'font-size': '0.68rem', color: '#666', 'line-height': '1.7' }}>
-          <Show when={activeModel().attribution && activeModel().attribution!.length > 0}>
-            <div style={{ 'margin-bottom': '6px' }}>
-              <div style={{ 'text-transform': 'uppercase', 'letter-spacing': '0.05em', 'font-size': '0.6rem', 'margin-bottom': '2px', color: '#555' }}>Based on</div>
-              <For each={activeModel().attribution}>
-                {(credit) => (
-                  <div>
-                    <a href={credit.url} target="_blank" rel="noopener noreferrer"
-                      style={{ color: '#778', 'text-decoration': 'none' }}
-                      onMouseEnter={(e) => (e.currentTarget.style.color = '#aabbdd')}
-                      onMouseLeave={(e) => (e.currentTarget.style.color = '#778')}
-                    >{credit.name}</a>
-                    {' '}by {credit.author} ({credit.license})
-                  </div>
-                )}
-              </For>
-            </div>
+        {/* Fixed footer */}
+        <div style={{ padding: '12px 20px 20px', 'flex-shrink': '0', display: 'flex', 'flex-direction': 'column', gap: '8px', 'border-top': '1px solid #2a2a3a' }}>
+          <Show when={selectedPiece() >= 0 && pieces()}>
+            <button
+              onClick={() => downloadStl(selectedPiece())}
+              style={{ padding: '10px', background: '#6688cc', color: '#fff', border: 'none', 'border-radius': '6px', cursor: 'pointer', 'font-size': '0.875rem' }}
+            >
+              Download {pieces()?.[selectedPiece()]?.label} STL
+            </button>
+            <button
+              onClick={() => downloadStl()}
+              style={{ padding: '8px', background: 'none', color: '#6688cc', border: '1px solid #6688cc', 'border-radius': '6px', cursor: 'pointer', 'font-size': '0.8rem' }}
+            >
+              Download all STL
+            </button>
           </Show>
-          <div>© 2026 Graham Rogers</div>
-          <div>
-            <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer"
-              style={{ color: '#778', 'text-decoration': 'none' }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = '#aabbdd')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = '#778')}
-            >MIT</a> (code) · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer"
-              style={{ color: '#778', 'text-decoration': 'none' }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = '#aabbdd')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = '#778')}
-            >CC BY 4.0</a> (designs)
+          <Show when={!(selectedPiece() >= 0 && pieces())}>
+            <button
+              onClick={() => downloadStl()}
+              style={{ padding: '10px', background: '#6688cc', color: '#fff', border: 'none', 'border-radius': '6px', cursor: 'pointer', 'font-size': '0.875rem' }}
+            >
+              Download STL
+            </button>
+          </Show>
+          <div style={{ 'border-top': '1px solid #2a2a3a', 'padding-top': '12px', 'font-size': '0.68rem', color: '#666', 'line-height': '1.5' }}>
+            <div>
+              {'© 2026 Graham Rogers · '}
+              <a href="https://github.com/TastyPi/models" target="_blank" rel="noopener noreferrer"
+                style={{ color: '#778', 'text-decoration': 'none' }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = '#aabbdd')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = '#778')}
+              >GitHub</a>
+            </div>
+            <div>
+              <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer" title="MIT licence (source code)"
+                style={{ color: '#778', 'text-decoration': 'none' }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = '#aabbdd')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = '#778')}
+              >MIT</a>
+              {' (code) · '}
+              <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer" title="CC BY 4.0 (generated designs)"
+                style={{ color: '#778', 'text-decoration': 'none' }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = '#aabbdd')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = '#778')}
+              >CC BY 4.0</a>
+              {' (designs)'}
+            </div>
+            <Show when={activeModel().attribution && activeModel().attribution!.length > 0}>
+              <div style={{ 'margin-top': '2px' }}>
+                {'Based on '}
+                <For each={activeModel().attribution}>
+                  {(credit, i) => (
+                    <>
+                      {i() > 0 && ' · '}
+                      <a href={credit.url} target="_blank" rel="noopener noreferrer"
+                        title={`${credit.name} by ${credit.author} (${credit.license})`}
+                        style={{ color: '#778', 'text-decoration': 'none', 'white-space': 'nowrap' }}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = '#aabbdd')}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = '#778')}
+                      >{credit.name}</a>
+                    </>
+                  )}
+                </For>
+              </div>
+            </Show>
           </div>
         </div>
       </aside>
@@ -416,10 +438,9 @@ export function ModelPage(props: Props) {
       <main style={{ flex: '1', position: 'relative' }}>
         <ModelViewer
           geometry={geometry}
-          highlight={() => {
-            const i = selectedPiece()
-            return i >= 0 ? (pieces()?.[i]?.mesh ?? null) : null
-          }}
+          pieces={pieces}
+          selectedPiece={selectedPiece}
+          onPieceClick={setSelectedPiece}
         />
         <Show when={rendering()}>
           <div style={{

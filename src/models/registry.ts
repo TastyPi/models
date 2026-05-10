@@ -1,4 +1,5 @@
 import wallHook from './wall-hook'
+import gridfinityBaseplate from './gridfinity-baseplate'
 import type { ModelDefinition, ModelEntry, ModelGroup } from '../types'
 
 export type { ModelEntry, ModelGroup }
@@ -9,6 +10,13 @@ export const groups: ModelGroup[] = [
     label: 'Wall Hook',
     entries: [
       { slug: 'wall-hook', model: wallHook },
+    ],
+  },
+  {
+    slug: 'gridfinity-baseplate',
+    label: 'Gridfinity Baseplate',
+    entries: [
+      { slug: 'gridfinity-baseplate', model: gridfinityBaseplate },
     ],
   },
 ]
