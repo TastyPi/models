@@ -20,7 +20,7 @@ export function PageLayout(props: Props) {
   return (
     <div style={{ display: 'flex', height: '100vh', 'font-family': 'system-ui, sans-serif', color: '#e0e0e0' }}>
       <aside style={{ width: '260px', 'flex-shrink': '0', background: '#12121f', display: 'flex', 'flex-direction': 'column', overflow: 'hidden' }}>
-        <div style={{ 'padding-top': '20px', 'padding-left': '20px', 'padding-right': '20px', 'flex-shrink': '0' }}>
+        <div style={{ 'padding-top': '20px', 'padding-left': '20px', 'padding-right': '20px', 'padding-bottom': '16px', 'flex-shrink': '0' }}>
           <a href="../" style={{ 'font-size': '0.75rem', color: '#555', 'text-decoration': 'none', display: 'inline-block', 'margin-bottom': '12px' }}
             onMouseEnter={(e) => (e.currentTarget.style.color = '#6688cc')}
             onMouseLeave={(e) => (e.currentTarget.style.color = '#555')}

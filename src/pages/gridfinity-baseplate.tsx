@@ -23,7 +23,7 @@ function writeLS(key: string, value: unknown) {
 const PRESET = {
   cells_x: 13, cells_y: 9,
   edge_n: 'wall', edge_s: 'wall', edge_e: 'wall', edge_w: 'wall',
-  wall_n: 11.5, wall_s: 11.5, wall_e: 9, wall_w: 9,
+  wall_n: 12.5, wall_s: 12.5, wall_e: 9, wall_w: 9,
   separate_walls: false, wall_connector: 'wall_male', corner_style: 'corner_l',
   corner_radius: 0, base_style: 'open', magnets: false,
 }
@@ -118,12 +118,16 @@ function GridfinityBaseplatePage() {
     history.replaceState(null, '', qs ? '?' + qs : window.location.pathname)
   })
 
-  const applyPreset = () => {
-    setCellsX(PRESET.cells_x); setCellsY(PRESET.cells_y)
-    setEdgeN(PRESET.edge_n); setEdgeS(PRESET.edge_s); setEdgeE(PRESET.edge_e); setEdgeW(PRESET.edge_w)
-    setWallN(PRESET.wall_n); setWallS(PRESET.wall_s); setWallE(PRESET.wall_e); setWallW(PRESET.wall_w)
-    setSeparateWalls(PRESET.separate_walls); setWallConnector(PRESET.wall_connector); setCornerStyle(PRESET.corner_style)
-    setCornerRadius(PRESET.corner_radius); setBaseStyle(PRESET.base_style); setMagnets(PRESET.magnets)
+  const [presetSel, setPresetSel] = createSignal('halfords')
+  const onPresetChange = (v: string) => {
+    setPresetSel(v)
+    if (v === 'halfords') {
+      setCellsX(PRESET.cells_x); setCellsY(PRESET.cells_y)
+      setEdgeN(PRESET.edge_n); setEdgeS(PRESET.edge_s); setEdgeE(PRESET.edge_e); setEdgeW(PRESET.edge_w)
+      setWallN(PRESET.wall_n); setWallS(PRESET.wall_s); setWallE(PRESET.wall_e); setWallW(PRESET.wall_w)
+      setSeparateWalls(PRESET.separate_walls); setWallConnector(PRESET.wall_connector); setCornerStyle(PRESET.corner_style)
+      setCornerRadius(PRESET.corner_radius); setBaseStyle(PRESET.base_style); setMagnets(PRESET.magnets)
+    }
   }
 
   return (
@@ -137,15 +141,14 @@ function GridfinityBaseplatePage() {
       rendering={rendering}
       header={
         <div>
-          <div style={{ 'font-size': '0.6rem', color: '#555', 'text-transform': 'uppercase', 'letter-spacing': '0.08em', 'margin-bottom': '4px' }}>Preset</div>
-          <button
-            onClick={applyPreset}
-            style={{
-              width: '100%', background: '#1e1e30', color: '#fff',
-              border: '1px solid #2a2a40', 'border-radius': '6px',
-              padding: '6px 8px', 'font-size': '0.875rem', cursor: 'pointer', 'text-align': 'left',
-            }}
-          >Halfords 3 Drawer Middle Chest (13×9)</button>
+          <SelectField
+            label="Preset"
+            value={presetSel()}
+            onChange={onPresetChange}
+            options={[
+              { value: 'halfords', label: 'Halfords 3 Drawer Middle Chest (13×9)' },
+            ]}
+          />
           <p style={{ margin: '6px 0 0', 'font-size': '0.78rem', color: '#5a8a6a', 'font-variant-numeric': 'tabular-nums' }}>{info()}</p>
         </div>
       }
@@ -163,14 +166,11 @@ function GridfinityBaseplatePage() {
         </Show>
       }
     >
-      <SidebarSection label="Print bed" defaultOpen>
-        <BooleanField label="Restrict to print bed" value={restrictBed()} onChange={setRestrictBed} />
-        <Show when={restrictBed()}>
-          <SelectField label="Printer" value={bedType()} onChange={setBedType} options={BED_OPTIONS} />
-          <Show when={bedType() === 'custom'}>
-            <NumberSlider label="Bed X (mm)" value={bedX()} onChange={setBedX} min={42} max={500} />
-            <NumberSlider label="Bed Y (mm)" value={bedY()} onChange={setBedY} min={42} max={500} />
-          </Show>
+      <SidebarSection label="Print bed" defaultOpen checked={restrictBed} onCheckedChange={setRestrictBed}>
+        <SelectField label="Printer" value={bedType()} onChange={setBedType} options={BED_OPTIONS} />
+        <Show when={bedType() === 'custom'}>
+          <NumberSlider label="Bed X (mm)" value={bedX()} onChange={setBedX} min={42} max={500} />
+          <NumberSlider label="Bed Y (mm)" value={bedY()} onChange={setBedY} min={42} max={500} />
         </Show>
       </SidebarSection>
       <SidebarSection label="Style" defaultOpen>
