@@ -21,6 +21,7 @@ export function SelectField(props: Props) {
           width: '100%', background: '#1a1a2e', color: '#e0e0e0',
           border: '1px solid #333', 'border-radius': '4px',
           padding: '5px 8px', 'font-size': '0.8rem', cursor: 'pointer',
+          'text-overflow': 'ellipsis', overflow: 'hidden',
         }}
       >
         <For each={props.options}>

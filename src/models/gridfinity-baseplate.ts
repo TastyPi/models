@@ -41,6 +41,43 @@ export const flatModel = true
 
 export { OUTER_R, EP_WALL_MIN }
 
+export function wallStripExtent(
+  side: 'N' | 'S' | 'E' | 'W',
+  tile: { L: number; R: number; B: number; T: number },
+  walls: { N: number; S: number; E: number; W: number },
+  cStyle: string,
+  arm: { L: number; R: number },
+  outer: { L: boolean; R: boolean },
+): { min: number; max: number } | null {
+  if (side === 'N' || side === 'S') {
+    let x0 = tile.L, x1 = tile.R
+    if (cStyle === 'corner_l') { x0 += arm.L; x1 -= arm.R }
+    else if (side === 'N') {
+      if (cStyle === 'corner_ns')  { if (walls.W > 0 && outer.L) x0 -= walls.W; if (walls.E > 0 && outer.R) x1 += walls.E }
+      else if (cStyle === 'corner_cw')  { if (walls.E > 0 && outer.R) x1 += walls.E }
+      else if (cStyle === 'corner_ccw') { if (walls.W > 0 && outer.L) x0 -= walls.W }
+    } else {
+      if (cStyle === 'corner_ns')  { if (walls.W > 0 && outer.L) x0 -= walls.W; if (walls.E > 0 && outer.R) x1 += walls.E }
+      else if (cStyle === 'corner_cw')  { if (walls.W > 0 && outer.L) x0 -= walls.W }
+      else if (cStyle === 'corner_ccw') { if (walls.E > 0 && outer.R) x1 += walls.E }
+    }
+    return x1 <= x0 ? null : { min: x0, max: x1 }
+  } else {
+    let y0 = tile.B, y1 = tile.T
+    if (cStyle === 'corner_l') { y0 += arm.L; y1 -= arm.R }
+    else if (side === 'E') {
+      if (cStyle === 'corner_ew')  { if (walls.S > 0 && outer.L) y0 -= walls.S; if (walls.N > 0 && outer.R) y1 += walls.N }
+      else if (cStyle === 'corner_cw')  { if (walls.S > 0 && outer.L) y0 -= walls.S }
+      else if (cStyle === 'corner_ccw') { if (walls.N > 0 && outer.R) y1 += walls.N }
+    } else {
+      if (cStyle === 'corner_ew')  { if (walls.S > 0 && outer.L) y0 -= walls.S; if (walls.N > 0 && outer.R) y1 += walls.N }
+      else if (cStyle === 'corner_cw')  { if (walls.N > 0 && outer.R) y1 += walls.N }
+      else if (cStyle === 'corner_ccw') { if (walls.S > 0 && outer.L) y0 -= walls.S }
+    }
+    return y1 <= y0 ? null : { min: y0, max: y1 }
+  }
+}
+
 export interface Params {
   cells_x: number
   cells_y: number
@@ -281,13 +318,13 @@ export function generate(params: Params) {
       const toSub: any[] = []
       let strip: any
 
+      const tile = { L: tileL, R: tileR, B: tileB, T: tileT }
+      const walls = { N: wallN, S: wallS, E: wallE, W: wallW }
+      const ext = wallStripExtent(side, tile, walls, cStyle, { L: armL, R: armR }, { L: outerL, R: outerR })
+      if (ext === null) return null
+
       if (side === 'N') {
-        let x0 = tileL, x1 = tileR
-        if      (cStyle === 'corner_l')   { x0 += armL; x1 -= armR }
-        else if (cStyle === 'corner_ns')  { if (wallW > 0) x0 -= wallW; if (wallE > 0) x1 += wallE }
-        else if (cStyle === 'corner_cw')  { if (wallE > 0) x1 += wallE }
-        else if (cStyle === 'corner_ccw') { if (wallW > 0) x0 -= wallW }
-        if (x1 <= x0) return null
+        const { min: x0, max: x1 } = ext
         const nNW = outerL && (cStyle === 'corner_ns' || cStyle === 'corner_ccw' || (cStyle === 'corner_l' ? armL === 0 : !(wallW > 0)))
         const nNE = outerR && (cStyle === 'corner_ns' || cStyle === 'corner_cw'  || (cStyle === 'corner_l' ? armR === 0 : !(wallE > 0)))
         strip = selRRect(x0, tileT, x1, tileT + wallN, false, false, nNE, nNW).extrude(BASE_H)
@@ -297,12 +334,7 @@ export function generate(params: Params) {
           else            toAdd.push(maleSouth.translate([cx, tileT]).extrude(EP_H_MALE).intersect(adjCellSolid(cx, tileT - CELL / 2)))
         }
       } else if (side === 'S') {
-        let x0 = tileL, x1 = tileR
-        if      (cStyle === 'corner_l')   { x0 += armL; x1 -= armR }
-        else if (cStyle === 'corner_ns')  { if (wallW > 0) x0 -= wallW; if (wallE > 0) x1 += wallE }
-        else if (cStyle === 'corner_cw')  { if (wallW > 0) x0 -= wallW }
-        else if (cStyle === 'corner_ccw') { if (wallE > 0) x1 += wallE }
-        if (x1 <= x0) return null
+        const { min: x0, max: x1 } = ext
         const sSW = outerL && (cStyle === 'corner_ns' || cStyle === 'corner_cw'  || (cStyle === 'corner_l' ? armL === 0 : !(wallW > 0)))
         const sSE = outerR && (cStyle === 'corner_ns' || cStyle === 'corner_ccw' || (cStyle === 'corner_l' ? armR === 0 : !(wallE > 0)))
         strip = selRRect(x0, tileB - wallS, x1, tileB, sSW, sSE, false, false).extrude(BASE_H)
@@ -312,12 +344,7 @@ export function generate(params: Params) {
           else            toAdd.push(maleNorth.translate([cx, tileB]).extrude(EP_H_MALE).intersect(adjCellSolid(cx, tileB + CELL / 2)))
         }
       } else if (side === 'E') {
-        let y0 = tileB, y1 = tileT
-        if      (cStyle === 'corner_l')   { y0 += armL; y1 -= armR }
-        else if (cStyle === 'corner_ew')  { if (wallS > 0) y0 -= wallS; if (wallN > 0) y1 += wallN }
-        else if (cStyle === 'corner_cw')  { if (wallS > 0) y0 -= wallS }
-        else if (cStyle === 'corner_ccw') { if (wallN > 0) y1 += wallN }
-        if (y1 <= y0) return null
+        const { min: y0, max: y1 } = ext
         const eSE = outerL && (cStyle === 'corner_ew' || cStyle === 'corner_cw'  || (cStyle === 'corner_l' ? armL === 0 : !(wallS > 0)))
         const eNE = outerR && (cStyle === 'corner_ew' || cStyle === 'corner_ccw' || (cStyle === 'corner_l' ? armR === 0 : !(wallN > 0)))
         strip = selRRect(tileR, y0, tileR + wallE, y1, false, eSE, eNE, false).extrude(BASE_H)
@@ -327,12 +354,7 @@ export function generate(params: Params) {
           else            toAdd.push(maleWest.translate([tileR, cy]).extrude(EP_H_MALE).intersect(adjCellSolid(tileR - CELL / 2, cy)))
         }
       } else {
-        let y0 = tileB, y1 = tileT
-        if      (cStyle === 'corner_l')   { y0 += armL; y1 -= armR }
-        else if (cStyle === 'corner_ew')  { if (wallS > 0) y0 -= wallS; if (wallN > 0) y1 += wallN }
-        else if (cStyle === 'corner_cw')  { if (wallN > 0) y1 += wallN }
-        else if (cStyle === 'corner_ccw') { if (wallS > 0) y0 -= wallS }
-        if (y1 <= y0) return null
+        const { min: y0, max: y1 } = ext
         const wSW = outerL && (cStyle === 'corner_ew' || cStyle === 'corner_ccw' || (cStyle === 'corner_l' ? armL === 0 : !(wallS > 0)))
         const wNW = outerR && (cStyle === 'corner_ew' || cStyle === 'corner_cw'  || (cStyle === 'corner_l' ? armR === 0 : !(wallN > 0)))
         strip = selRRect(tileL - wallW, y0, tileL, y1, wSW, false, false, wNW).extrude(BASE_H)
