@@ -1,12 +1,24 @@
 import wallHook from './wall-hook'
-import type { ModelDefinition } from '../types'
+import type { ModelDefinition, ModelEntry, ModelGroup } from '../types'
 
-export type ModelEntry = { slug: string; model: ModelDefinition }
+export type { ModelEntry, ModelGroup }
 
-export const models: ModelEntry[] = [
-  { slug: 'wall-hook', model: wallHook },
+export const groups: ModelGroup[] = [
+  {
+    slug: 'wall-hook',
+    label: 'Wall Hook',
+    entries: [
+      { slug: 'wall-hook', model: wallHook },
+    ],
+  },
 ]
+
+export const models: ModelEntry[] = groups.flatMap(g => g.entries)
 
 export function findModel(slug: string): ModelEntry | undefined {
   return models.find((e) => e.slug === slug)
+}
+
+export function findGroupForModel(model: ModelDefinition): ModelGroup | undefined {
+  return groups.find(g => g.entries.some(e => e.model === model))
 }

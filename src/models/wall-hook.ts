@@ -1,63 +1,87 @@
 import { getManifold } from "../manifold";
 import { defineModel } from "../types";
+import { screwParams, resolveScrew, driverParams, resolveDriverDiameter } from "../screws";
 import { type Manifold } from "manifold-3d";
+
+type V = Record<string, number | boolean | string>
+const hasHoles = (v: V) => (v.screw_holes as number) > 0
+const screwParamsForHook = {
+  screw_type: { ...screwParams.screw_type, visible: hasHoles },
+  screw_shaft: { ...screwParams.screw_shaft, visible: (v: V) => hasHoles(v) && v.screw_type === 'custom' },
+  screw_head:  { ...screwParams.screw_head,  visible: (v: V) => hasHoles(v) && v.screw_type === 'custom' },
+}
+const driverParamsForHook = {
+  driver_type:     { ...driverParams.driver_type,     visible: hasHoles },
+  driver_diameter: { ...driverParams.driver_diameter, visible: (v: V) => hasHoles(v) && v.driver_type === 'custom' },
+}
 
 export default defineModel({
   name: "Wall Hook",
   description: "Triangular prism hook. Side (a) mounts against the wall with screw holes, side (b) is the hook arm with a retention lip, side (c) is the hypotenuse — print flat on side (c), no supports needed.",
   parameters: {
-    wall_side_height: { type: "number", label: "Wall Side Height (mm)", default: 20, min: 20, max: 150, step: 1 },
-    depth: { type: "number", label: "Depth (mm)", default: 20, min: 5, max: 150, step: 1 },
-    width: { type: "number", label: "Width (mm)", default: 50, min: 10, max: 100, step: 1 },
+    wall_side_height: { type: "number", label: "Wall Side Height (mm)", min: 20, max: 150, step: 1 },
+    depth: { type: "number", label: "Depth (mm)", min: 5, max: 150, step: 1 },
+    width: { type: "number", label: "Width (mm)", min: 10, max: 100, step: 1 },
     lip_edge_radius: {
-      type: "number", label: "Lip Edge Radius (mm)", default: 5, min: 0,
+      type: "number", label: "Lip Edge Radius (mm)", min: 0,
       max: (v) => Math.floor(Math.min(v.lip_thickness as number, v.lip_height as number) / 2 / 0.5) * 0.5,
       step: 0.5
     },
-    lip_height: { type: "number", label: "Lip Height (mm)", default: 25, min: 5, max: 50, step: 1 },
-    lip_thickness: { type: "number", label: "Lip Thickness (mm)", default: 10, min: 2, max: 20, step: 0.5 },
-    screw_holes: { type: "number", label: "Screw Holes", default: 2, min: 0, max: 6, step: 1 },
-    screw_size: {
+    lip_height: { type: "number", label: "Lip Height (mm)", min: 5, max: 50, step: 1 },
+    lip_thickness: { type: "number", label: "Lip Thickness (mm)", min: 2, max: 20, step: 0.5 },
+    screw_holes: { type: "number", label: "Screw Holes", min: 0, max: 6, step: 1 },
+    screw_spacing: {
       type: "number",
-      label: "Screw Size",
-      default: 4,
-      min: 3,
-      max: 6,
+      label: "Hole Spacing (mm)",
+      min: (v) => {
+        const { head } = resolveScrew(v.screw_type as string, v.screw_shaft as number, v.screw_head as number)
+        return Math.max(head, resolveDriverDiameter(v))
+      },
+      max: (v) => {
+        const { head } = resolveScrew(v.screw_type as string, v.screw_shaft as number, v.screw_head as number)
+        const boreDiameter = Math.max(head, resolveDriverDiameter(v))
+        const hi = Math.floor((v.width as number - boreDiameter) / Math.max((v.screw_holes as number) - 1, 1))
+        return Math.max(hi, boreDiameter)  // keep max >= min so range input stays valid
+      },
       step: 1,
-      description: "Nominal metric size: 3=M3, 4=M4, 5=M5, 6=M6. Head diameter per ISO 10642."
+      visible: (v) => (v.screw_holes as number) >= 2,
+      resetValue: (v) => {
+        const { head } = resolveScrew(v.screw_type as string, v.screw_shaft as number, v.screw_head as number)
+        const boreDiameter = Math.max(head, resolveDriverDiameter(v))
+        return Math.round((v.width as number + boreDiameter) / ((v.screw_holes as number) + 1))
+      },
     },
-    driver_diameter: {
-      type: "number",
-      label: "Driver Diameter (mm)",
-      default: 10,
-      min: 7,
-      max: 30,
-      step: 0.5,
-      description: "Bore diameter through side (c). Default matches the LTT screwdriver (10 mm). Must be at least the screw head diameter."
-    },
-    countersunk: { type: "boolean", label: "Countersunk", default: true }
+    ...screwParamsForHook,
+    ...driverParamsForHook,
+    countersunk: { type: "boolean", label: "Countersunk", visible: (v) => (v.screw_holes as number) > 0 }
   },
   groups: [
     { label: "Shape", keys: ["wall_side_height", "depth", "width"], defaultOpen: true },
     { label: "Lip", keys: ["lip_height", "lip_thickness", "lip_edge_radius"], defaultOpen: true },
-    { label: "Screws", keys: ["screw_holes", "screw_size", "driver_diameter", "countersunk"], defaultOpen: true }
+    { label: "Screws", keys: ["screw_holes", "screw_spacing", "screw_type", "screw_shaft", "screw_head", "driver_type", "driver_diameter", "countersunk"], defaultOpen: true }
+  ],
+  presets: [
+    {
+      label: "Joseph Joseph Tota lid",
+      values: {
+        wall_side_height: 20, depth: 10, width: 50,
+        lip_height: 25, lip_thickness: 5, lip_edge_radius: 2.5,
+        screw_holes: 2, screw_spacing: 20, screw_type: "wood4", screw_shaft: 4, screw_head: 8,
+        driver_type: "ltt", driver_diameter: 10, countersunk: true,
+      }
+    }
   ],
 
   generate({
              wall_side_height: wallHeight, depth, width, lip_height: lipHeight, lip_thickness: lipThickness,
-             lip_edge_radius: edgeRadius, screw_holes: holeCount, screw_size: screwSize,
-             driver_diameter: driverDiameter, countersunk
+             lip_edge_radius: edgeRadius, screw_holes: holeCount, screw_spacing: screwSpacing,
+             screw_type: screwType, screw_shaft: screwShaft, screw_head: screwHead,
+             driver_type: driverType, driver_diameter: driverDiameterCustom, countersunk
            }) {
     const { Manifold } = getManifold();
 
-    // ISO 10642 (90° countersunk) head dimensions
-    const screwDims: Record<number, { shaft: number; head: number }> = {
-      3: { shaft: 3, head: 6.72 },
-      4: { shaft: 4, head: 8.96 },
-      5: { shaft: 5, head: 11.20 },
-      6: { shaft: 6, head: 13.44 }
-    };
-    const { shaft: shaftDiameter, head: headDiameter } = screwDims[screwSize] ?? screwDims[4];
+    const { shaft: shaftDiameter, head: headDiameter } = resolveScrew(screwType, screwShaft, screwHead);
+    const driverDiameter = resolveDriverDiameter({ driver_type: driverType, driver_diameter: driverDiameterCustom });
 
     // Coordinate system: X = width, Y = height (up when mounted), Z = depth from wall
     //
@@ -115,6 +139,9 @@ export default defineModel({
     const makeHole = (x: number) => {
       const y = wallHeight / 2;
       const surfaceZ = y * depth / wallHeight;  // hypotenuse Z at this Y height
+      // The hypotenuse slopes at depth/wallHeight, so the bore (radius boreRadius) must extend
+      // boreRadius * depth/wallHeight past surfaceZ to exit cleanly at the high-Y edge.
+      const boreOvershoot = boreRadius * depth / wallHeight + 1;
 
       // Shaft exits through side a into the wall
       const shaft = Manifold.cylinder(countersinkDepth + 1, shaftDiameter / 2, shaftDiameter / 2, 32)
@@ -122,7 +149,7 @@ export default defineModel({
 
       if (!countersunk) {
         // No countersink: flat shoulder at z=countersinkDepth -- screw head pushes against this lip
-        const bore = Manifold.cylinder(surfaceZ - countersinkDepth + 2, boreRadius, boreRadius, 32)
+        const bore = Manifold.cylinder(surfaceZ - countersinkDepth + boreOvershoot, boreRadius, boreRadius, 32)
           .translate([x, y, countersinkDepth]);
         return shaft.add(bore);
       }
@@ -131,15 +158,15 @@ export default defineModel({
       const cone = Manifold.cylinder(countersinkDepth, shaftDiameter / 2, coneRadius, 32)
         .translate([x, y, 0]);
       // Bore from cone to hypotenuse -- at least head diameter, wider if driver_diameter > head
-      const bore = Manifold.cylinder(surfaceZ - countersinkDepth + 2, boreRadius, boreRadius, 32)
+      const bore = Manifold.cylinder(surfaceZ - countersinkDepth + boreOvershoot, boreRadius, boreRadius, 32)
         .translate([x, y, countersinkDepth]);
 
       return shaft.add(cone).add(bore);
     };
 
-    const boreDiameter = boreRadius * 2;
-    const gap = (width - holeCount * boreDiameter) / (holeCount + 1);
-    return Array.from({ length: holeCount }, (_, i) => -width / 2 + (i + 1) * gap + (2 * i + 1) * boreRadius)
+    if (holeCount === 1) return body.subtract(makeHole(0));
+
+    return Array.from({ length: holeCount }, (_, i) => (i - (holeCount - 1) / 2) * screwSpacing)
       .reduce((acc, x) => acc.subtract(makeHole(x)), body);
   },
 
