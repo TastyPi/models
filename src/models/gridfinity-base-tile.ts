@@ -101,6 +101,10 @@ export default defineModel({
       Manifold.hull([voidSlab(R2, cx, cy, H3), voidSlab(OUTER_R, cx, cy, BASE_H)]),
     ])
 
+    const adjCellSolid = (cx: number, cy: number) =>
+      CrossSection.square([CELL, CELL]).translate([cx - CELL / 2, cy - CELL / 2]).extrude(BASE_H)
+        .subtract(cellVoid(cx, cy))
+
     // ── Connector profiles ───────────────────────────────────────────────────
     // Convention: N/E edges are male (protrude), S/W edges are female (socket).
     // Applies to both outer tile edges and inner cut edges between split pieces.
@@ -109,11 +113,11 @@ export default defineModel({
         .add(roundBarX(EP_TAB_W, EP_TAB_D).translate([-EP_TAB_W / 2, EP_NECK_D]))
 
     const femalePiece =
-      roundBarXNeg(EP_NECK_W + 2 * EP_GAP, EP_NECK_D - EP_GAP)
+      roundBarXNeg(EP_NECK_W + 2 * EP_GAP, EP_NECK_D)
         .translate([-(EP_NECK_W / 2 + EP_GAP), 0])
         .add(
-          roundBarX(EP_TAB_W + EP_GAP, EP_TAB_D + EP_GAP)
-            .translate([-(EP_TAB_W / 2 + EP_GAP), EP_NECK_D - EP_GAP])
+          roundBarX(EP_TAB_W + 2 * EP_GAP, EP_TAB_D + EP_GAP)
+            .translate([-(EP_TAB_W / 2 + EP_GAP), EP_NECK_D])
         )
 
     const maleEast = malePiece.rotate(-90)
@@ -158,9 +162,11 @@ export default defineModel({
 
       const northConnectors = cellXCenters.map(cx =>
         malePiece.translate([cx, pieceTop]).extrude(EP_H_MALE)
+          .intersect(adjCellSolid(cx, pieceTop + CELL / 2))
       )
       const eastConnectors = cellYCenters.map(cy =>
         maleEast.translate([pieceRight, cy]).extrude(EP_H_MALE)
+          .intersect(adjCellSolid(pieceRight + CELL / 2, cy))
       )
       const southCuts = cellXCenters.map(cx =>
         femalePiece.translate([cx, pieceBottom]).extrude(EP_H_FEMALE)

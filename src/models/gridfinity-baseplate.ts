@@ -23,7 +23,7 @@ const EP_NECK_D = 1.2
 const EP_GAP = 0.15
 const EP_H_MALE = 2.0
 const EP_H_FEMALE = 2.25
-const EP_WALL_MIN = Math.ceil((EP_NECK_D + EP_TAB_D) / 0.5) * 0.5  // min wall depth to contain female socket pocket
+const EP_WALL_MIN = Math.ceil((EP_NECK_D + EP_TAB_D + EP_GAP) / 0.5) * 0.5  // min wall depth to contain female socket pocket
 
 const MAG_D = 6.0
 const MAG_H = 2.4
@@ -209,17 +209,21 @@ export default defineModel({
       Manifold.hull([voidSlab(R2, cx, cy, H3), voidSlab(OUTER_R, cx, cy, BASE_H)]),
     ])
 
+    const adjCellSolid = (cx: number, cy: number) =>
+      CrossSection.square([CELL, CELL]).translate([cx - CELL / 2, cy - CELL / 2]).extrude(BASE_H)
+        .subtract(cellVoid(cx, cy))
+
     // ── Connector profiles ───────────────────────────────────────────────────
     const malePiece =
       roundBarXNeg(EP_NECK_W, EP_NECK_D).translate([-EP_NECK_W / 2, 0])
         .add(roundBarX(EP_TAB_W, EP_TAB_D).translate([-EP_TAB_W / 2, EP_NECK_D]))
 
     const femalePiece =
-      roundBarXNeg(EP_NECK_W + 2 * EP_GAP, EP_NECK_D - EP_GAP)
+      roundBarXNeg(EP_NECK_W + 2 * EP_GAP, EP_NECK_D)
         .translate([-(EP_NECK_W / 2 + EP_GAP), 0])
         .add(
-          roundBarX(EP_TAB_W + EP_GAP, EP_TAB_D + EP_GAP)
-            .translate([-(EP_TAB_W / 2 + EP_GAP), EP_NECK_D - EP_GAP])
+          roundBarX(EP_TAB_W + 2 * EP_GAP, EP_TAB_D + EP_GAP)
+            .translate([-(EP_TAB_W / 2 + EP_GAP), EP_NECK_D])
         )
 
     // Directional variants — all protrude outward in their named direction
@@ -286,28 +290,33 @@ export default defineModel({
       const toAdd: any[] = []
       const toSub: any[] = []
 
+      const maleN = (cx: number) => maleNorth.translate([cx, tileT]).extrude(EP_H_MALE).intersect(adjCellSolid(cx, tileT + CELL / 2))
+      const maleS = (cx: number) => maleSouth.translate([cx, tileB]).extrude(EP_H_MALE).intersect(adjCellSolid(cx, tileB - CELL / 2))
+      const maleE = (cy: number) => maleEast.translate([tileR, cy]).extrude(EP_H_MALE).intersect(adjCellSolid(tileR + CELL / 2, cy))
+      const maleW = (cy: number) => maleWest.translate([tileL, cy]).extrude(EP_H_MALE).intersect(adjCellSolid(tileL - CELL / 2, cy))
+
       // Inner split connectors (N/E faces get male, S/W get female)
-      if (hasNConn) for (const cx of cellXC) toAdd.push(maleNorth.translate([cx, tileT]).extrude(EP_H_MALE))
+      if (hasNConn) for (const cx of cellXC) toAdd.push(maleN(cx))
       if (hasSConn) for (const cx of cellXC) toSub.push(femaleSouth.translate([cx, tileB]).extrude(EP_H_FEMALE))
-      if (hasEConn) for (const cy of cellYC) toAdd.push(maleEast.translate([tileR, cy]).extrude(EP_H_MALE))
+      if (hasEConn) for (const cy of cellYC) toAdd.push(maleE(cy))
       if (hasWConn) for (const cy of cellYC) toSub.push(femaleWest.translate([tileL, cy]).extrude(EP_H_FEMALE))
 
       // Separate-wall connectors on outer walled faces
       if (wallsSep) {
         if (wallN > 0) for (const cx of cellXC) {
-          if (wallFemale) toAdd.push(maleNorth.translate([cx, tileT]).extrude(EP_H_MALE))  // male on tile
-          else            toSub.push(femaleNorth.translate([cx, tileT]).extrude(EP_H_FEMALE)) // female on tile
+          if (wallFemale) toAdd.push(maleN(cx))
+          else            toSub.push(femaleNorth.translate([cx, tileT]).extrude(EP_H_FEMALE))
         }
         if (wallS > 0) for (const cx of cellXC) {
-          if (wallFemale) toAdd.push(maleSouth.translate([cx, tileB]).extrude(EP_H_MALE))
+          if (wallFemale) toAdd.push(maleS(cx))
           else            toSub.push(femaleSouth.translate([cx, tileB]).extrude(EP_H_FEMALE))
         }
         if (wallE > 0) for (const cy of cellYC) {
-          if (wallFemale) toAdd.push(maleEast.translate([tileR, cy]).extrude(EP_H_MALE))
+          if (wallFemale) toAdd.push(maleE(cy))
           else            toSub.push(femaleEast.translate([tileR, cy]).extrude(EP_H_FEMALE))
         }
         if (wallW > 0) for (const cy of cellYC) {
-          if (wallFemale) toAdd.push(maleWest.translate([tileL, cy]).extrude(EP_H_MALE))
+          if (wallFemale) toAdd.push(maleW(cy))
           else            toSub.push(femaleWest.translate([tileL, cy]).extrude(EP_H_FEMALE))
         }
       }
@@ -364,7 +373,7 @@ export default defineModel({
         for (const cx of cellXC) {
           if (cx < x0 + CELL / 2 || cx > x1 - CELL / 2) continue
           if (wallFemale) toSub.push(femaleSouth.translate([cx, tileT]).extrude(EP_H_FEMALE))
-          else            toAdd.push(maleSouth.translate([cx, tileT]).extrude(EP_H_MALE))
+          else            toAdd.push(maleSouth.translate([cx, tileT]).extrude(EP_H_MALE).intersect(adjCellSolid(cx, tileT - CELL / 2)))
         }
       } else if (side === 'S') {
         let x0 = tileL, x1 = tileR
@@ -379,7 +388,7 @@ export default defineModel({
         for (const cx of cellXC) {
           if (cx < x0 + CELL / 2 || cx > x1 - CELL / 2) continue
           if (wallFemale) toSub.push(femaleNorth.translate([cx, tileB]).extrude(EP_H_FEMALE))
-          else            toAdd.push(maleNorth.translate([cx, tileB]).extrude(EP_H_MALE))
+          else            toAdd.push(maleNorth.translate([cx, tileB]).extrude(EP_H_MALE).intersect(adjCellSolid(cx, tileB + CELL / 2)))
         }
       } else if (side === 'E') {
         let y0 = tileB, y1 = tileT
@@ -394,7 +403,7 @@ export default defineModel({
         for (const cy of cellYC) {
           if (cy < y0 + CELL / 2 || cy > y1 - CELL / 2) continue
           if (wallFemale) toSub.push(femaleWest.translate([tileR, cy]).extrude(EP_H_FEMALE))
-          else            toAdd.push(maleWest.translate([tileR, cy]).extrude(EP_H_MALE))
+          else            toAdd.push(maleWest.translate([tileR, cy]).extrude(EP_H_MALE).intersect(adjCellSolid(tileR - CELL / 2, cy)))
         }
       } else {
         let y0 = tileB, y1 = tileT
@@ -409,7 +418,7 @@ export default defineModel({
         for (const cy of cellYC) {
           if (cy < y0 + CELL / 2 || cy > y1 - CELL / 2) continue
           if (wallFemale) toSub.push(femaleEast.translate([tileL, cy]).extrude(EP_H_FEMALE))
-          else            toAdd.push(maleEast.translate([tileL, cy]).extrude(EP_H_MALE))
+          else            toAdd.push(maleEast.translate([tileL, cy]).extrude(EP_H_MALE).intersect(adjCellSolid(tileL + CELL / 2, cy)))
         }
       }
 
@@ -433,13 +442,13 @@ export default defineModel({
       const tileB = cellYC[0]     - CELL / 2
       const tileT = cellYC[nY-1]  + CELL / 2
       const toAdd: any[] = [], toSub: any[] = []
-      const connNS = (female: any, male: any, cx: number, y: number) => {
+      const connNS = (female: any, male: any, cx: number, y: number, adjCy: number) => {
         if (wallFemale) toSub.push(female.translate([cx, y]).extrude(EP_H_FEMALE))
-        else            toAdd.push(male.translate([cx, y]).extrude(EP_H_MALE))
+        else            toAdd.push(male.translate([cx, y]).extrude(EP_H_MALE).intersect(adjCellSolid(cx, adjCy)))
       }
-      const connEW = (female: any, male: any, x: number, cy: number) => {
+      const connEW = (female: any, male: any, x: number, cy: number, adjCx: number) => {
         if (wallFemale) toSub.push(female.translate([x, cy]).extrude(EP_H_FEMALE))
-        else            toAdd.push(male.translate([x, cy]).extrude(EP_H_MALE))
+        else            toAdd.push(male.translate([x, cy]).extrude(EP_H_MALE).intersect(adjCellSolid(adjCx, cy)))
       }
       let piece: any
       // Each corner is an L: hBar spans armW along the N/S wall face; vArm spans armH down/up the E/W wall face.
@@ -447,26 +456,26 @@ export default defineModel({
         const hBar = selRRect(tileL - wallW, tileT, tileL + armW, tileT + wallN, false, false, false, true)
         const vArm = CrossSection.square([wallW, armH]).translate([tileL - wallW, tileT - armH])
         piece = hBar.add(vArm).extrude(BASE_H)
-        for (const cx of cellXC.filter(cx => cx < tileL + armW)) connNS(femaleSouth, maleSouth, cx, tileT)
-        for (const cy of cellYC.filter(cy => cy >= tileT - armH))  connEW(femaleEast, maleEast, tileL, cy)
+        for (const cx of cellXC.filter(cx => cx < tileL + armW)) connNS(femaleSouth, maleSouth, cx, tileT, tileT - CELL / 2)
+        for (const cy of cellYC.filter(cy => cy >= tileT - armH))  connEW(femaleEast, maleEast, tileL, cy, tileL + CELL / 2)
       } else if (corner === 'NE') {
         const hBar = selRRect(tileR - armW, tileT, tileR + wallE, tileT + wallN, false, false, true, false)
         const vArm = CrossSection.square([wallE, armH]).translate([tileR, tileT - armH])
         piece = hBar.add(vArm).extrude(BASE_H)
-        for (const cx of cellXC.filter(cx => cx >= tileR - armW)) connNS(femaleSouth, maleSouth, cx, tileT)
-        for (const cy of cellYC.filter(cy => cy >= tileT - armH))  connEW(femaleWest, maleWest, tileR, cy)
+        for (const cx of cellXC.filter(cx => cx >= tileR - armW)) connNS(femaleSouth, maleSouth, cx, tileT, tileT - CELL / 2)
+        for (const cy of cellYC.filter(cy => cy >= tileT - armH))  connEW(femaleWest, maleWest, tileR, cy, tileR - CELL / 2)
       } else if (corner === 'SW') {
         const hBar = selRRect(tileL - wallW, tileB - wallS, tileL + armW, tileB, true, false, false, false)
         const vArm = CrossSection.square([wallW, armH]).translate([tileL - wallW, tileB])
         piece = hBar.add(vArm).extrude(BASE_H)
-        for (const cx of cellXC.filter(cx => cx < tileL + armW)) connNS(femaleNorth, maleNorth, cx, tileB)
-        for (const cy of cellYC.filter(cy => cy < tileB + armH))   connEW(femaleEast, maleEast, tileL, cy)
+        for (const cx of cellXC.filter(cx => cx < tileL + armW)) connNS(femaleNorth, maleNorth, cx, tileB, tileB + CELL / 2)
+        for (const cy of cellYC.filter(cy => cy < tileB + armH))   connEW(femaleEast, maleEast, tileL, cy, tileL + CELL / 2)
       } else {
         const hBar = selRRect(tileR - armW, tileB - wallS, tileR + wallE, tileB, false, true, false, false)
         const vArm = CrossSection.square([wallE, armH]).translate([tileR, tileB])
         piece = hBar.add(vArm).extrude(BASE_H)
-        for (const cx of cellXC.filter(cx => cx >= tileR - armW)) connNS(femaleNorth, maleNorth, cx, tileB)
-        for (const cy of cellYC.filter(cy => cy < tileB + armH))   connEW(femaleWest, maleWest, tileR, cy)
+        for (const cx of cellXC.filter(cx => cx >= tileR - armW)) connNS(femaleNorth, maleNorth, cx, tileB, tileB + CELL / 2)
+        for (const cy of cellYC.filter(cy => cy < tileB + armH))   connEW(femaleWest, maleWest, tileR, cy, tileR - CELL / 2)
       }
       if (toAdd.length > 0) piece = piece.add(Manifold.union(toAdd))
       if (toSub.length > 0) piece = piece.subtract(Manifold.union(toSub))
@@ -488,9 +497,9 @@ export default defineModel({
       const armH = armCells * CELL
       const armW = armCells * CELL
       const toAdd: any[] = [], toSub: any[] = []
-      const conn = (female: any, male: any, x: number, y: number) => {
+      const conn = (female: any, male: any, x: number, y: number, adjCx: number, adjCy: number) => {
         if (wallFemale) toSub.push(female.translate([x, y]).extrude(EP_H_FEMALE))
-        else            toAdd.push(male.translate([x, y]).extrude(EP_H_MALE))
+        else            toAdd.push(male.translate([x, y]).extrude(EP_H_MALE).intersect(adjCellSolid(adjCx, adjCy)))
       }
       let piece: any
       if (side === 'W') {
@@ -498,33 +507,33 @@ export default defineModel({
         const hBarN = selRRect(tileL - wallW, tileT, tileL + armW, tileT + wallN, false, false, false, true)
         const hBarS = selRRect(tileL - wallW, tileB - wallS, tileL + armW, tileB, true, false, false, false)
         piece = spine.add(hBarN).add(hBarS).extrude(BASE_H)
-        for (const cy of cellYC) conn(femaleEast, maleEast, tileL, cy)
-        for (const cx of cellXC.filter(cx => cx < tileL + armW)) conn(femaleSouth, maleSouth, cx, tileT)
-        for (const cx of cellXC.filter(cx => cx < tileL + armW)) conn(femaleNorth, maleNorth, cx, tileB)
+        for (const cy of cellYC) conn(femaleEast, maleEast, tileL, cy, tileL + CELL / 2, cy)
+        for (const cx of cellXC.filter(cx => cx < tileL + armW)) conn(femaleSouth, maleSouth, cx, tileT, cx, tileT - CELL / 2)
+        for (const cx of cellXC.filter(cx => cx < tileL + armW)) conn(femaleNorth, maleNorth, cx, tileB, cx, tileB + CELL / 2)
       } else if (side === 'E') {
         const spine = CrossSection.square([wallE, tileT - tileB]).translate([tileR, tileB])
         const hBarN = selRRect(tileR - armW, tileT, tileR + wallE, tileT + wallN, false, false, true, false)
         const hBarS = selRRect(tileR - armW, tileB - wallS, tileR + wallE, tileB, false, true, false, false)
         piece = spine.add(hBarN).add(hBarS).extrude(BASE_H)
-        for (const cy of cellYC) conn(femaleWest, maleWest, tileR, cy)
-        for (const cx of cellXC.filter(cx => cx > tileR - armW)) conn(femaleSouth, maleSouth, cx, tileT)
-        for (const cx of cellXC.filter(cx => cx > tileR - armW)) conn(femaleNorth, maleNorth, cx, tileB)
+        for (const cy of cellYC) conn(femaleWest, maleWest, tileR, cy, tileR - CELL / 2, cy)
+        for (const cx of cellXC.filter(cx => cx > tileR - armW)) conn(femaleSouth, maleSouth, cx, tileT, cx, tileT - CELL / 2)
+        for (const cx of cellXC.filter(cx => cx > tileR - armW)) conn(femaleNorth, maleNorth, cx, tileB, cx, tileB + CELL / 2)
       } else if (side === 'N') {
         const spine = CrossSection.square([tileR - tileL, wallN]).translate([tileL, tileT])
         const vArmW = selRRect(tileL - wallW, tileT - armH, tileL, tileT + wallN, false, false, false, true)
         const vArmE = selRRect(tileR, tileT - armH, tileR + wallE, tileT + wallN, false, false, true, false)
         piece = spine.add(vArmW).add(vArmE).extrude(BASE_H)
-        for (const cx of cellXC) conn(femaleSouth, maleSouth, cx, tileT)
-        for (const cy of cellYC.filter(cy => cy > tileT - armH)) conn(femaleEast, maleEast, tileL, cy)
-        for (const cy of cellYC.filter(cy => cy > tileT - armH)) conn(femaleWest, maleWest, tileR, cy)
+        for (const cx of cellXC) conn(femaleSouth, maleSouth, cx, tileT, cx, tileT - CELL / 2)
+        for (const cy of cellYC.filter(cy => cy > tileT - armH)) conn(femaleEast, maleEast, tileL, cy, tileL + CELL / 2, cy)
+        for (const cy of cellYC.filter(cy => cy > tileT - armH)) conn(femaleWest, maleWest, tileR, cy, tileR - CELL / 2, cy)
       } else {
         const spine = CrossSection.square([tileR - tileL, wallS]).translate([tileL, tileB - wallS])
         const vArmW = selRRect(tileL - wallW, tileB - wallS, tileL, tileB + armH, true, false, false, false)
         const vArmE = selRRect(tileR, tileB - wallS, tileR + wallE, tileB + armH, false, true, false, false)
         piece = spine.add(vArmW).add(vArmE).extrude(BASE_H)
-        for (const cx of cellXC) conn(femaleNorth, maleNorth, cx, tileB)
-        for (const cy of cellYC.filter(cy => cy < tileB + armH)) conn(femaleEast, maleEast, tileL, cy)
-        for (const cy of cellYC.filter(cy => cy < tileB + armH)) conn(femaleWest, maleWest, tileR, cy)
+        for (const cx of cellXC) conn(femaleNorth, maleNorth, cx, tileB, cx, tileB + CELL / 2)
+        for (const cy of cellYC.filter(cy => cy < tileB + armH)) conn(femaleEast, maleEast, tileL, cy, tileL + CELL / 2, cy)
+        for (const cy of cellYC.filter(cy => cy < tileB + armH)) conn(femaleWest, maleWest, tileR, cy, tileR - CELL / 2, cy)
       }
       if (toAdd.length > 0) piece = piece.add(Manifold.union(toAdd))
       if (toSub.length > 0) piece = piece.subtract(Manifold.union(toSub))
@@ -542,17 +551,17 @@ export default defineModel({
       const inner = CrossSection.square([tileR - tileL, tileT - tileB]).translate([tileL, tileB])
       let piece = outer.subtract(inner).extrude(BASE_H)
       const toAdd: any[] = [], toSub: any[] = []
-      const conn = (female: any, male: any, x: number, y: number) => {
+      const conn = (female: any, male: any, x: number, y: number, adjCx: number, adjCy: number) => {
         if (wallFemale) toSub.push(female.translate([x, y]).extrude(EP_H_FEMALE))
-        else            toAdd.push(male.translate([x, y]).extrude(EP_H_MALE))
+        else            toAdd.push(male.translate([x, y]).extrude(EP_H_MALE).intersect(adjCellSolid(adjCx, adjCy)))
       }
       for (const cx of cellXC) {
-        conn(femaleSouth, maleSouth, cx, tileT)
-        conn(femaleNorth, maleNorth, cx, tileB)
+        conn(femaleSouth, maleSouth, cx, tileT, cx, tileT - CELL / 2)
+        conn(femaleNorth, maleNorth, cx, tileB, cx, tileB + CELL / 2)
       }
       for (const cy of cellYC) {
-        conn(femaleWest, maleWest, tileR, cy)
-        conn(femaleEast, maleEast, tileL, cy)
+        conn(femaleWest, maleWest, tileR, cy, tileR - CELL / 2, cy)
+        conn(femaleEast, maleEast, tileL, cy, tileL + CELL / 2, cy)
       }
       if (toAdd.length > 0) piece = piece.add(Manifold.union(toAdd))
       if (toSub.length > 0) piece = piece.subtract(Manifold.union(toSub))
@@ -587,13 +596,13 @@ export default defineModel({
 
       const toAdd: any[] = [], toSub: any[] = []
 
-      if (eN === 'male')   for (const cx of cellXC) toAdd.push(maleNorth.translate([cx, tileT]).extrude(EP_H_MALE))
+      if (eN === 'male')   for (const cx of cellXC) toAdd.push(maleNorth.translate([cx, tileT]).extrude(EP_H_MALE).intersect(adjCellSolid(cx, tileT + CELL / 2)))
       if (eN === 'female') for (const cx of cellXC) toSub.push(femaleNorth.translate([cx, tileT]).extrude(EP_H_FEMALE))
-      if (eS === 'male')   for (const cx of cellXC) toAdd.push(maleSouth.translate([cx, tileB]).extrude(EP_H_MALE))
+      if (eS === 'male')   for (const cx of cellXC) toAdd.push(maleSouth.translate([cx, tileB]).extrude(EP_H_MALE).intersect(adjCellSolid(cx, tileB - CELL / 2)))
       if (eS === 'female') for (const cx of cellXC) toSub.push(femaleSouth.translate([cx, tileB]).extrude(EP_H_FEMALE))
-      if (eE === 'male')   for (const cy of cellYC) toAdd.push(maleEast.translate([tileR, cy]).extrude(EP_H_MALE))
+      if (eE === 'male')   for (const cy of cellYC) toAdd.push(maleEast.translate([tileR, cy]).extrude(EP_H_MALE).intersect(adjCellSolid(tileR + CELL / 2, cy)))
       if (eE === 'female') for (const cy of cellYC) toSub.push(femaleEast.translate([tileR, cy]).extrude(EP_H_FEMALE))
-      if (eW === 'male')   for (const cy of cellYC) toAdd.push(maleWest.translate([tileL, cy]).extrude(EP_H_MALE))
+      if (eW === 'male')   for (const cy of cellYC) toAdd.push(maleWest.translate([tileL, cy]).extrude(EP_H_MALE).intersect(adjCellSolid(tileL - CELL / 2, cy)))
       if (eW === 'female') for (const cy of cellYC) toSub.push(femaleWest.translate([tileL, cy]).extrude(EP_H_FEMALE))
 
       if (toAdd.length > 0) tile = tile.add(Manifold.union(toAdd))
