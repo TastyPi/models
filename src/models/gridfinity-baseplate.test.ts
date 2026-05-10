@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import baseplate from './gridfinity-baseplate'
+import type { NumberParameter } from '../types'
 
 const CELL = 42
 
@@ -109,7 +110,7 @@ describe('parameter visibility', () => {
   })
 
   describe('wall_n min (dynamic, respects wall_connector)', () => {
-    const minFn = baseplate.parameters.wall_n.min!
+    const minFn = (baseplate.parameters.wall_n as NumberParameter).min!
 
     it('returns 0 when separate_walls is false', () => {
       const p = params({ separate_walls: false, wall_connector: 'wall_female' })
