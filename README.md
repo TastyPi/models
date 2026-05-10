@@ -6,16 +6,25 @@ Parametric 3D-printable models, configurable in the browser and exported as STL.
 
 ## Licence
 
-Released under the [MIT licence](LICENSE).
+The source code is released under the [MIT licence](LICENSE).
+Generated 3D model designs are released under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
+## Attribution
+
+Some models are derived from or inspired by third-party open-source projects:
+
+- **[Gridfinity](https://gridfinity.xyz/)** by Zachary Freedman / Voidstar Lab LLC — the Gridfinity specification (MIT)
+- **[gridfinity-rebuilt-openscad](https://github.com/kennetek/gridfinity-rebuilt-openscad)** by Kenneth Hodson — baseplate profile geometry (MIT)
+- **[GridFlock](https://github.com/yawkat/GridFlock)** by Jonas Konrad — edge puzzle connector design (MIT, CC BY 4.0)
 
 ## Development
 
 ```bash
 yarn install
-yarn dev
+yarn dev    # http://localhost:5173
+yarn test   # unit tests
+yarn build  # production build
 ```
-
-Open http://localhost:5173 to view the app.
 
 ### Adding a model
 
