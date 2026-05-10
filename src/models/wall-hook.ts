@@ -63,6 +63,7 @@ export default defineModel({
   presets: [
     {
       label: "Joseph Joseph Tota lid",
+      printablesUrl: "https://www.printables.com/model/1716282-joseph-joseph-tota-lid-wall-hook",
       values: {
         wall_side_height: 20, depth: 10, width: 50,
         lip_height: 25, lip_thickness: 5, lip_edge_radius: 2.5,

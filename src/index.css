@@ -10,3 +10,13 @@ html, body, #root {
 input[type='range'] {
   display: block;
 }
+
+.printables-link { opacity: 0.75; transition: opacity 0.15s; }
+.printables-link:hover { opacity: 1; }
+.printables-link .tooltip {
+  position: absolute; top: calc(100% + 6px); right: 0;
+  background: #2a2a40; color: #ccc; font-size: 0.7rem;
+  padding: 4px 8px; border-radius: 4px; white-space: nowrap;
+  opacity: 0; transition: opacity 0.15s; pointer-events: none; z-index: 10;
+}
+.printables-link:hover .tooltip { opacity: 1; }
