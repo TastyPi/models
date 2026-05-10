@@ -196,13 +196,13 @@ function GridfinityBaseplatePage() {
             description="Recommended when designing a plate for a new product — if measurements are off, only the walls need reprinting."
           />
         </Show>
-        <Show when={separateWalls() && hasWalls()}>
+        <Show when={restrictBed() && separateWalls() && hasWalls()}>
           <SelectField label="Wall connector" value={wallConnector()} onChange={setWallConnector} options={[
             { value: 'wall_male',   label: 'Male on wall' },
             { value: 'wall_female', label: 'Female on wall' },
           ]} />
         </Show>
-        <Show when={separateWalls() && hasCorner()}>
+        <Show when={restrictBed() && separateWalls() && hasCorner()}>
           <SelectField label="Corner style" value={cornerStyle()} onChange={setCornerStyle} options={[
             { value: 'corner_l',   label: 'L-shaped' },
             { value: 'corner_cw',  label: 'Clockwise' },
