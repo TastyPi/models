@@ -49,7 +49,7 @@ const MODELS: { slug: string; label: string; description: string; generate: () =
   {
     slug: 'magnet-test',
     label: 'Magnet Press-Fit Test',
-    description: 'Compare crush ribs vs plain bore sizes (6.0–6.4 mm) for 6×2 mm magnets. Centre push-out hole in each pocket.',
+    description: 'Six pockets left to right: crush ribs, then plain bores at 6.0, 6.1, 6.2, 6.3, 6.4 mm. Centre push-out hole in each.',
     generate: () => magnetTest.generate({}).rotate(-90, 0, 0),
   },
 ]
