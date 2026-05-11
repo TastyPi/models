@@ -6,6 +6,7 @@ import { isPieced, type GeomResult } from '../types'
 import * as wallHook from '../models/wall-hook'
 import * as gridfinityBaseplate from '../models/gridfinity-baseplate'
 import * as cornerRadiusGauge from '../models/corner-radius-gauge'
+import * as magnetTest from '../models/magnet-test'
 
 function extractMerged(result: GeomResult): Manifold {
   return isPieced(result) ? result.merged : result
@@ -43,6 +44,12 @@ const MODELS: { slug: string; label: string; description: string; generate: () =
     generate: () => extractMerged(cornerRadiusGauge.generate(
       { text_style: 'debossed', text_top: true, text_bottom: false }
     )).rotate(-90, 0, 0),
+  },
+  {
+    slug: 'magnet-test',
+    label: 'Magnet Press-Fit Test',
+    description: 'Compare crush ribs vs plain bore sizes (6.0–6.4 mm) for 6×2 mm magnets. Centre push-out hole in each pocket.',
+    generate: () => magnetTest.generate({}).rotate(-90, 0, 0),
   },
 ]
 

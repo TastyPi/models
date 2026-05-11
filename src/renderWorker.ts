@@ -3,6 +3,8 @@ import type { Manifold } from 'manifold-3d'
 import * as wallHook from './models/wall-hook'
 import * as gridfinityBaseplate from './models/gridfinity-baseplate'
 import * as cornerRadiusGauge from './models/corner-radius-gauge'
+import * as gridfinityBin from './models/gridfinity-bin'
+import * as magnetTest from './models/magnet-test'
 import type { RawMesh, PieceMesh, GeomResult, PieceGeom } from './types'
 import { isPieced } from './types'
 
@@ -14,6 +16,8 @@ const MODELS: Record<string, {
   'wall-hook':             { generate: wallHook.generate,             exportTransform: wallHook.exportTransform },
   'gridfinity-baseplate':  { generate: gridfinityBaseplate.generate,  flatModel: gridfinityBaseplate.flatModel },
   'corner-radius-gauge':   { generate: cornerRadiusGauge.generate,    flatModel: cornerRadiusGauge.flatModel },
+  'gridfinity-bin':        { generate: gridfinityBin.generate },
+  'magnet-test':           { generate: magnetTest.generate, flatModel: magnetTest.flatModel },
 }
 
 type InMsg =
