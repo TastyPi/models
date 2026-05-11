@@ -1,26 +1,42 @@
-import { Show } from 'solid-js'
+import { createEffect, Show, useContext } from 'solid-js'
+import { UrlSyncContext } from '../hooks/urlSync'
+import styles from './BooleanField.module.css'
 
 interface Props {
   label: string
   value: boolean
   onChange: (v: boolean) => void
   description?: string
+  default?: boolean | null
+  urlKey?: string
 }
 
 export function BooleanField(props: Props) {
+  const setUrl = useContext(UrlSyncContext)
+  createEffect(() => {
+    if (!props.urlKey || !setUrl) return
+    const atDefault = props.default != null && props.value === props.default
+    setUrl(props.urlKey, atDefault ? null : String(props.value))
+  })
+
   return (
     <div>
-      <label style={{ display: 'flex', 'justify-content': 'space-between', 'align-items': 'center' }}>
-        <span style={{ 'font-size': '0.8rem', color: '#aaa' }}>{props.label}</span>
-        <input
-          type="checkbox"
-          checked={props.value}
-          onChange={(e) => props.onChange(e.currentTarget.checked)}
-          style={{ 'accent-color': '#6688cc' }}
-        />
+      <label class={styles.label}>
+        <span class={styles.labelText}>{props.label}</span>
+        <span class={styles.right}>
+          <input
+            type="checkbox"
+            checked={props.value}
+            onChange={(e) => props.onChange(e.currentTarget.checked)}
+            class={styles.checkbox}
+          />
+          <Show when={props.default != null}>
+            <button disabled={props.value === props.default} onClick={() => props.onChange(props.default!)} title="Reset to default" class={styles.resetBtn}>↺</button>
+          </Show>
+        </span>
       </label>
       <Show when={props.description}>
-        <p style={{ margin: '3px 0 0', 'font-size': '0.72rem', color: '#555', 'line-height': '1.4' }}>{props.description}</p>
+        <p class={styles.description}>{props.description}</p>
       </Show>
     </div>
   )

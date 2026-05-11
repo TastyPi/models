@@ -1,0 +1,44 @@
+.labelRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.labelText { display: block; font-size: 0.8rem; color: #aaa; }
+
+.labelRight {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.resetBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: #6688cc;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.resetBtn:disabled { opacity: 0.35; cursor: default; }
+
+.select {
+  width: 100%;
+  background: #1a1a2e;
+  color: #e0e0e0;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.description {
+  margin: 3px 0 0;
+  font-size: 0.72rem;
+  color: #555;
+  line-height: 1.4;
+}

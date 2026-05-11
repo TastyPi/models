@@ -1,4 +1,6 @@
-import { createEffect, createSignal, Show } from 'solid-js'
+import { createEffect, createSignal, Show, useContext } from 'solid-js'
+import { UrlSyncContext } from '../hooks/urlSync'
+import styles from './NumberSlider.module.css'
 
 interface Props {
   label: string
@@ -8,14 +10,28 @@ interface Props {
   max?: number
   step?: number
   description?: string
+  default?: number | null
+  urlKey?: string
 }
 
 export function NumberSlider(props: Props) {
+  const setUrl = useContext(UrlSyncContext)
+  createEffect(() => {
+    if (!props.urlKey || !setUrl) return
+    const atDefault = props.default != null && props.value === props.default
+    setUrl(props.urlKey, atDefault ? null : String(props.value))
+  })
+
   return (
     <div>
-      <label style={{ display: 'flex', 'justify-content': 'space-between', 'align-items': 'center', 'margin-bottom': '4px' }}>
-        <span style={{ 'font-size': '0.8rem', color: '#aaa' }}>{props.label}</span>
-        <span style={{ 'font-size': '0.8rem', color: '#fff' }}>{props.value}</span>
+      <label class={styles.label}>
+        <span class={styles.labelText}>{props.label}</span>
+        <span class={styles.labelRight}>
+          <Show when={props.default != null}>
+            <button disabled={props.value === props.default} onClick={() => props.onChange(props.default!)} title="Reset to default" class={styles.resetBtn}>↺</button>
+          </Show>
+          <span class={styles.value}>{props.value}</span>
+        </span>
       </label>
       <input
         type="range"
@@ -24,10 +40,10 @@ export function NumberSlider(props: Props) {
         step={props.step ?? 1}
         value={props.value}
         onInput={(e) => props.onChange(parseFloat(e.currentTarget.value))}
-        style={{ width: '100%', 'accent-color': '#6688cc' }}
+        class={styles.slider}
       />
       <Show when={props.description}>
-        <p style={{ margin: '3px 0 0', 'font-size': '0.72rem', color: '#555', 'line-height': '1.4' }}>{props.description}</p>
+        <p class={styles.description}>{props.description}</p>
       </Show>
     </div>
   )
@@ -41,31 +57,46 @@ interface OptionalProps {
   max?: number
   step?: number
   description?: string
+  default?: number | null
+  urlKey?: string
 }
 
 export function OptionalNumberSlider(props: OptionalProps) {
+  const setUrl = useContext(UrlSyncContext)
+  createEffect(() => {
+    if (!props.urlKey || !setUrl) return
+    const atDefault = props.default !== undefined && props.value === props.default
+    setUrl(props.urlKey, atDefault ? null : (props.value === null ? 'null' : String(props.value)))
+  })
+
   const [lastValue, setLastValue] = createSignal<number>(props.value ?? props.min ?? 0)
   createEffect(() => { if (props.value !== null) setLastValue(props.value) })
 
   const enabled = () => props.value !== null
   const enable = () => props.onChange(lastValue())
   const disable = () => props.onChange(null)
+  const isDefault = () => props.default === undefined || props.value === props.default
 
   return (
     <div>
-      <div style={{ display: 'flex', 'justify-content': 'space-between', 'align-items': 'center', 'margin-bottom': enabled() ? '4px' : '0' }}>
-        <label style={{ display: 'flex', 'align-items': 'center', gap: '6px' }}>
-          <span style={{ 'font-size': '0.8rem', color: '#aaa' }}>{props.label}</span>
+      <div classList={{ [styles.optHeader]: true, [styles.optHeaderEnabled]: enabled() }}>
+        <label class={styles.optLabel}>
+          <span class={styles.labelText}>{props.label}</span>
           <input
             type="checkbox"
             checked={enabled()}
             onChange={(e) => e.currentTarget.checked ? enable() : disable()}
-            style={{ 'accent-color': '#6688cc' }}
+            class={styles.checkbox}
           />
         </label>
-        <Show when={enabled()}>
-          <span style={{ 'font-size': '0.8rem', color: '#fff' }}>{props.value}</span>
-        </Show>
+        <span class={styles.labelRight}>
+          <Show when={props.default !== undefined}>
+            <button disabled={isDefault()} onClick={() => props.onChange(props.default as number | null)} title="Reset to default" class={styles.resetBtn}>↺</button>
+          </Show>
+          <Show when={enabled()}>
+            <span class={styles.value}>{props.value}</span>
+          </Show>
+        </span>
       </div>
       <Show when={enabled()}>
         <input
@@ -75,11 +106,11 @@ export function OptionalNumberSlider(props: OptionalProps) {
           step={props.step ?? 1}
           value={props.value as number}
           onInput={(e) => props.onChange(parseFloat(e.currentTarget.value))}
-          style={{ width: '100%', 'accent-color': '#6688cc' }}
+          class={styles.slider}
         />
       </Show>
       <Show when={props.description}>
-        <p style={{ margin: '3px 0 0', 'font-size': '0.72rem', color: '#555', 'line-height': '1.4' }}>{props.description}</p>
+        <p class={styles.description}>{props.description}</p>
       </Show>
     </div>
   )

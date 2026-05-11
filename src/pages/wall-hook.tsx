@@ -117,31 +117,31 @@ function WallHookPage() {
       }
     >
       <SidebarSection label="Shape" defaultOpen>
-        <NumberSlider label="Wall Side Height (mm)" value={wallHeight()} onChange={setWallHeight} min={20} max={150} />
-        <NumberSlider label="Depth (mm)" value={depth()} onChange={setDepth} min={5} max={150} />
-        <NumberSlider label="Width (mm)" value={width()} onChange={setWidth} min={10} max={100} />
+        <NumberSlider label="Wall Side Height (mm)" value={wallHeight()} onChange={setWallHeight} min={20} max={150} default={PRESET.wall_side_height} />
+        <NumberSlider label="Depth (mm)" value={depth()} onChange={setDepth} min={5} max={150} default={PRESET.depth} />
+        <NumberSlider label="Width (mm)" value={width()} onChange={setWidth} min={10} max={100} default={PRESET.width} />
       </SidebarSection>
       <SidebarSection label="Lip" defaultOpen>
-        <NumberSlider label="Lip Height (mm)" value={lipHeight()} onChange={setLipHeight} min={5} max={50} />
-        <NumberSlider label="Lip Thickness (mm)" value={lipThickness()} onChange={setLipThickness} min={2} max={20} step={0.5} />
-        <NumberSlider label="Lip Edge Radius (mm)" value={lipEdgeRadius()} onChange={setLipEdgeRadius} min={0} max={maxEdgeRadius()} step={0.5} />
+        <NumberSlider label="Lip Height (mm)" value={lipHeight()} onChange={setLipHeight} min={5} max={50} default={PRESET.lip_height} />
+        <NumberSlider label="Lip Thickness (mm)" value={lipThickness()} onChange={setLipThickness} min={2} max={20} step={0.5} default={PRESET.lip_thickness} />
+        <NumberSlider label="Lip Edge Radius (mm)" value={lipEdgeRadius()} onChange={setLipEdgeRadius} min={0} max={maxEdgeRadius()} step={0.5} default={PRESET.lip_edge_radius} />
       </SidebarSection>
       <SidebarSection label="Screws" defaultOpen>
-        <NumberSlider label="Screw Holes" value={screwHoles()} onChange={setScrewHoles} min={0} max={6} />
+        <NumberSlider label="Screw Holes" value={screwHoles()} onChange={setScrewHoles} min={0} max={6} default={PRESET.screw_holes} />
         <Show when={screwHoles() >= 2}>
-          <NumberSlider label="Hole Spacing (mm)" value={screwSpacing()} onChange={setScrewSpacing} min={minScrewSpacing()} max={maxScrewSpacing()} />
+          <NumberSlider label="Hole Spacing (mm)" value={screwSpacing()} onChange={setScrewSpacing} min={minScrewSpacing()} max={maxScrewSpacing()} default={PRESET.screw_spacing} />
         </Show>
         <Show when={screwHoles() > 0}>
-          <SelectField label="Screw Type" value={screwType()} onChange={setScrewType} options={SCREW_OPTIONS} />
+          <SelectField label="Screw Type" value={screwType()} onChange={setScrewType} default={PRESET.screw_type} options={SCREW_OPTIONS} />
           <Show when={screwType() === 'custom'}>
-            <NumberSlider label="Shaft Diameter (mm)" value={screwShaft()} onChange={setScrewShaft} min={2} max={12} step={0.5} />
-            <NumberSlider label="Head Diameter (mm)" value={screwHead()} onChange={setScrewHead} min={4} max={24} step={0.5} />
+            <NumberSlider label="Shaft Diameter (mm)" value={screwShaft()} onChange={setScrewShaft} min={2} max={12} step={0.5} default={PRESET.screw_shaft} />
+            <NumberSlider label="Head Diameter (mm)" value={screwHead()} onChange={setScrewHead} min={4} max={24} step={0.5} default={PRESET.screw_head} />
           </Show>
-          <SelectField label="Driver Diameter" value={driverType()} onChange={setDriverType} options={DRIVER_OPTIONS} />
+          <SelectField label="Driver Diameter" value={driverType()} onChange={setDriverType} default={PRESET.driver_type} options={DRIVER_OPTIONS} />
           <Show when={driverType() === 'custom'}>
-            <NumberSlider label="Driver Diameter (mm)" value={driverDiameter()} onChange={setDriverDiameter} min={5} max={16} step={0.5} description="Bore diameter through side (c). Must be at least the screw head diameter." />
+            <NumberSlider label="Driver Diameter (mm)" value={driverDiameter()} onChange={setDriverDiameter} min={5} max={16} step={0.5} default={PRESET.driver_diameter} description="Bore diameter through side (c). Must be at least the screw head diameter." />
           </Show>
-          <BooleanField label="Countersunk" value={countersunk()} onChange={setCountersunk} />
+          <BooleanField label="Countersunk" value={countersunk()} onChange={setCountersunk} default={PRESET.countersunk} />
         </Show>
       </SidebarSection>
     </PageLayout>

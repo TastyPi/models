@@ -1,0 +1,40 @@
+.info {
+  margin: 6px 0 0;
+  font-size: 0.78rem;
+  color: #5a8a6a;
+  font-variant-numeric: tabular-nums;
+}
+
+.cornerLabel {
+  margin: 0 0 4px;
+  font-size: 0.8rem;
+  color: #aaa;
+}
+
+.cornerGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 8px;
+}
+
+.downloadBtn {
+  padding: 10px;
+  background: #6688cc;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  width: 100%;
+}
+
+.downloadBtnOutline {
+  padding: 8px;
+  background: none;
+  color: #6688cc;
+  border: 1px solid #6688cc;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  width: 100%;
+}

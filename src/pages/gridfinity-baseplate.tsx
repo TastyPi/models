@@ -1,14 +1,17 @@
-import { createEffect, createMemo, createSignal, Show } from 'solid-js'
+import { createMemo, createSignal, Show } from 'solid-js'
 import { render } from 'solid-js/web'
 import '../index.css'
 import { PageLayout } from '../components/PageLayout'
 import { BooleanField } from '../components/BooleanField'
 import { NumberSlider, OptionalNumberSlider } from '../components/NumberSlider'
+import { PresetSelect } from '../components/PresetSelect'
 import { SelectField } from '../components/SelectField'
 import { SidebarSection } from '../components/SidebarSection'
 import { useGeometry } from '../hooks/useGeometry'
+import { createUrlSync, UrlSyncContext } from '../hooks/urlSync'
 import { attribution, EP_WALL_MIN, OUTER_R } from '../models/gridfinity-baseplate'
 import { BED_OPTIONS } from '../printBed'
+import styles from './gridfinity-baseplate.module.css'
 
 const CELL = 42
 
@@ -18,15 +21,6 @@ function readLS<T>(key: string, def: T): T {
 }
 function writeLS(key: string, value: unknown) {
   try { const s = JSON.parse(localStorage.getItem(LS_KEY) ?? '{}'); localStorage.setItem(LS_KEY, JSON.stringify({ ...s, [key]: value })) } catch {}
-}
-
-const PRESET = {
-  cells_x: 13, cells_y: 9,
-  edge_n: 'wall', edge_s: 'wall', edge_e: 'wall', edge_w: 'wall',
-  wall_n: 12.5, wall_s: 12.5, wall_e: 11, wall_w: 11,
-  separate_walls: false, wall_connector: 'wall_male', corner_style: 'corner_l',
-  corner_radius_sw: 0, corner_radius_se: 0, corner_radius_ne: 0, corner_radius_nw: 0,
-  base_style: 'open', magnets: false,
 }
 
 const sp = new URLSearchParams(window.location.search)
@@ -41,25 +35,34 @@ function urlOptNum(key: string, def: number | null) {
 }
 
 function GridfinityBaseplatePage() {
-  const [cellsX, setCellsX] = createSignal(urlNum('cells_x', PRESET.cells_x))
-  const [cellsY, setCellsY] = createSignal(urlNum('cells_y', PRESET.cells_y))
-  const [wallN, setWallN] = createSignal<number | null>(urlOptNum('wall_n', PRESET.wall_n))
-  const [wallS, setWallS] = createSignal<number | null>(urlOptNum('wall_s', PRESET.wall_s))
-  const [wallE, setWallE] = createSignal<number | null>(urlOptNum('wall_e', PRESET.wall_e))
-  const [wallW, setWallW] = createSignal<number | null>(urlOptNum('wall_w', PRESET.wall_w))
-  const [edgeN, setEdgeN] = createSignal(urlStr('edge_n', PRESET.edge_n))
-  const [edgeS, setEdgeS] = createSignal(urlStr('edge_s', PRESET.edge_s))
-  const [edgeE, setEdgeE] = createSignal(urlStr('edge_e', PRESET.edge_e))
-  const [edgeW, setEdgeW] = createSignal(urlStr('edge_w', PRESET.edge_w))
-  const [separateWalls, setSeparateWalls] = createSignal(urlBool('separate_walls', PRESET.separate_walls))
-  const [wallConnector, setWallConnector] = createSignal(urlStr('wall_connector', PRESET.wall_connector))
-  const [cornerStyle, setCornerStyle] = createSignal(urlStr('corner_style', PRESET.corner_style))
-  const [cornerSW, setCornerSW] = createSignal(urlNum('corner_radius_sw', PRESET.corner_radius_sw))
-  const [cornerSE, setCornerSE] = createSignal(urlNum('corner_radius_se', PRESET.corner_radius_se))
-  const [cornerNE, setCornerNE] = createSignal(urlNum('corner_radius_ne', PRESET.corner_radius_ne))
-  const [cornerNW, setCornerNW] = createSignal(urlNum('corner_radius_nw', PRESET.corner_radius_nw))
-  const [baseStyle, setBaseStyle] = createSignal(urlStr('base_style', PRESET.base_style))
-  const [magnets, setMagnets] = createSignal(urlBool('magnets', PRESET.magnets))
+  const halfords = {
+    cells_x: 13, cells_y: 9,
+    edge_n: 'wall', edge_s: 'wall', edge_e: 'wall', edge_w: 'wall',
+    wall_n: 12.5, wall_s: 12.5, wall_e: 11, wall_w: 11,
+    separate_walls: false, wall_connector: 'wall_male', corner_style: 'corner_l',
+    corner_radius_sw: 2.5, corner_radius_se: 2.5, corner_radius_ne: 0, corner_radius_nw: 0,
+    base_style: 'open', magnets: false,
+  }
+
+  const [cellsX, setCellsX] = createSignal(urlNum('cells_x', halfords.cells_x))
+  const [cellsY, setCellsY] = createSignal(urlNum('cells_y', halfords.cells_y))
+  const [wallN, setWallN] = createSignal<number | null>(urlOptNum('wall_n', halfords.wall_n))
+  const [wallS, setWallS] = createSignal<number | null>(urlOptNum('wall_s', halfords.wall_s))
+  const [wallE, setWallE] = createSignal<number | null>(urlOptNum('wall_e', halfords.wall_e))
+  const [wallW, setWallW] = createSignal<number | null>(urlOptNum('wall_w', halfords.wall_w))
+  const [edgeN, setEdgeN] = createSignal(urlStr('edge_n', halfords.edge_n))
+  const [edgeS, setEdgeS] = createSignal(urlStr('edge_s', halfords.edge_s))
+  const [edgeE, setEdgeE] = createSignal(urlStr('edge_e', halfords.edge_e))
+  const [edgeW, setEdgeW] = createSignal(urlStr('edge_w', halfords.edge_w))
+  const [separateWalls, setSeparateWalls] = createSignal(urlBool('separate_walls', halfords.separate_walls))
+  const [wallConnector, setWallConnector] = createSignal(urlStr('wall_connector', halfords.wall_connector))
+  const [cornerStyle, setCornerStyle] = createSignal(urlStr('corner_style', halfords.corner_style))
+  const [cornerSW, setCornerSW] = createSignal(urlNum('corner_radius_sw', halfords.corner_radius_sw))
+  const [cornerSE, setCornerSE] = createSignal(urlNum('corner_radius_se', halfords.corner_radius_se))
+  const [cornerNE, setCornerNE] = createSignal(urlNum('corner_radius_ne', halfords.corner_radius_ne))
+  const [cornerNW, setCornerNW] = createSignal(urlNum('corner_radius_nw', halfords.corner_radius_nw))
+  const [baseStyle, setBaseStyle] = createSignal(urlStr('base_style', halfords.base_style))
+  const [magnets, setMagnets] = createSignal(urlBool('magnets', halfords.magnets))
 
   // Print bed params — stored in localStorage, not URL
   const [restrictBed, _setRestrictBed] = createSignal(readLS('restrict_bed', false))
@@ -102,163 +105,158 @@ function GridfinityBaseplatePage() {
 
   const { geometry, pieces, rendering, selectedPiece, setSelectedPiece, download } = useGeometry('gridfinity-baseplate', params)
 
-  createEffect(() => {
-    const urlParams = new URLSearchParams()
-    if (cellsX() !== PRESET.cells_x) urlParams.set('cells_x', String(cellsX()))
-    if (cellsY() !== PRESET.cells_y) urlParams.set('cells_y', String(cellsY()))
-    if (edgeN() !== PRESET.edge_n) urlParams.set('edge_n', edgeN())
-    if (edgeS() !== PRESET.edge_s) urlParams.set('edge_s', edgeS())
-    if (edgeE() !== PRESET.edge_e) urlParams.set('edge_e', edgeE())
-    if (edgeW() !== PRESET.edge_w) urlParams.set('edge_w', edgeW())
-    if (wallN() !== PRESET.wall_n) urlParams.set('wall_n', wallN() === null ? 'null' : String(wallN()))
-    if (wallS() !== PRESET.wall_s) urlParams.set('wall_s', wallS() === null ? 'null' : String(wallS()))
-    if (wallE() !== PRESET.wall_e) urlParams.set('wall_e', wallE() === null ? 'null' : String(wallE()))
-    if (wallW() !== PRESET.wall_w) urlParams.set('wall_w', wallW() === null ? 'null' : String(wallW()))
-    if (separateWalls() !== PRESET.separate_walls) urlParams.set('separate_walls', String(separateWalls()))
-    if (wallConnector() !== PRESET.wall_connector) urlParams.set('wall_connector', wallConnector())
-    if (cornerStyle() !== PRESET.corner_style) urlParams.set('corner_style', cornerStyle())
-    if (cornerSW() !== PRESET.corner_radius_sw) urlParams.set('corner_radius_sw', String(cornerSW()))
-    if (cornerSE() !== PRESET.corner_radius_se) urlParams.set('corner_radius_se', String(cornerSE()))
-    if (cornerNE() !== PRESET.corner_radius_ne) urlParams.set('corner_radius_ne', String(cornerNE()))
-    if (cornerNW() !== PRESET.corner_radius_nw) urlParams.set('corner_radius_nw', String(cornerNW()))
-    if (baseStyle() !== PRESET.base_style) urlParams.set('base_style', baseStyle())
-    if (magnets() !== PRESET.magnets) urlParams.set('magnets', String(magnets()))
-    const qs = urlParams.toString()
-    history.replaceState(null, '', qs ? '?' + qs : window.location.pathname)
-  })
+  const setUrl = createUrlSync()
 
   const [presetSel, setPresetSel] = createSignal('halfords')
+  const [presetParams, setPresetParams] = createSignal<typeof halfords | null>(halfords)
+  const isDirty = createMemo(() => {
+    const p = presetParams()
+    if (!p) return false
+    return cellsX() !== p.cells_x || cellsY() !== p.cells_y ||
+      edgeN() !== p.edge_n || edgeS() !== p.edge_s || edgeE() !== p.edge_e || edgeW() !== p.edge_w ||
+      wallN() !== p.wall_n || wallS() !== p.wall_s || wallE() !== p.wall_e || wallW() !== p.wall_w ||
+      separateWalls() !== p.separate_walls || wallConnector() !== p.wall_connector || cornerStyle() !== p.corner_style ||
+      cornerSW() !== p.corner_radius_sw || cornerSE() !== p.corner_radius_se ||
+      cornerNE() !== p.corner_radius_ne || cornerNW() !== p.corner_radius_nw ||
+      baseStyle() !== p.base_style || magnets() !== p.magnets
+  })
+  const applyPreset = (p: typeof halfords) => {
+    setCellsX(p.cells_x); setCellsY(p.cells_y)
+    setEdgeN(p.edge_n); setEdgeS(p.edge_s); setEdgeE(p.edge_e); setEdgeW(p.edge_w)
+    setWallN(p.wall_n); setWallS(p.wall_s); setWallE(p.wall_e); setWallW(p.wall_w)
+    setSeparateWalls(p.separate_walls); setWallConnector(p.wall_connector); setCornerStyle(p.corner_style)
+    setCornerSW(p.corner_radius_sw); setCornerSE(p.corner_radius_se)
+    setCornerNE(p.corner_radius_ne); setCornerNW(p.corner_radius_nw)
+    setBaseStyle(p.base_style); setMagnets(p.magnets)
+  }
   const onPresetChange = (v: string) => {
     setPresetSel(v)
-    if (v === 'halfords') {
-      setCellsX(PRESET.cells_x); setCellsY(PRESET.cells_y)
-      setEdgeN(PRESET.edge_n); setEdgeS(PRESET.edge_s); setEdgeE(PRESET.edge_e); setEdgeW(PRESET.edge_w)
-      setWallN(PRESET.wall_n); setWallS(PRESET.wall_s); setWallE(PRESET.wall_e); setWallW(PRESET.wall_w)
-      setSeparateWalls(PRESET.separate_walls); setWallConnector(PRESET.wall_connector); setCornerStyle(PRESET.corner_style)
-      setCornerSW(PRESET.corner_radius_sw); setCornerSE(PRESET.corner_radius_se)
-      setCornerNE(PRESET.corner_radius_ne); setCornerNW(PRESET.corner_radius_nw)
-      setBaseStyle(PRESET.base_style); setMagnets(PRESET.magnets)
-    }
+    const p = v === 'halfords' ? halfords : null
+    setPresetParams(p)
+    if (p) applyPreset(p)
   }
 
   return (
-    <PageLayout
-      title="Gridfinity Baseplate"
-      attribution={attribution}
-      geometry={geometry}
-      pieces={pieces}
-      selectedPiece={selectedPiece}
-      onPieceClick={setSelectedPiece}
-      rendering={rendering}
-      header={
-        <div>
-          <SelectField
-            label="Preset"
-            value={presetSel()}
-            onChange={onPresetChange}
-            options={[
-              { value: 'halfords', label: 'Halfords 3 Drawer Middle Chest (13×9)' },
-            ]}
-          />
-          <p style={{ margin: '6px 0 0', 'font-size': '0.78rem', color: '#5a8a6a', 'font-variant-numeric': 'tabular-nums' }}>{info()}</p>
-        </div>
-      }
-      footer={
-        <Show
-          when={selectedPiece() >= 0 && pieces()}
-          fallback={
-            <button onClick={() => download()} style={btnStyle}>Download STL</button>
-          }
-        >
-          <button onClick={() => download(selectedPiece())} style={btnStyle}>
-            Download {pieces()?.[selectedPiece()]?.label} STL
-          </button>
-          <button onClick={() => download()} style={btnStyleOutline}>Download all STL</button>
-        </Show>
-      }
-    >
-      <SidebarSection label="Print bed" defaultOpen checked={restrictBed} onCheckedChange={setRestrictBed}>
-        <SelectField label="Printer" value={bedType()} onChange={setBedType} options={BED_OPTIONS} />
-        <Show when={bedType() === 'custom'}>
-          <NumberSlider label="Bed X (mm)" value={bedX()} onChange={setBedX} min={42} max={500} />
-          <NumberSlider label="Bed Y (mm)" value={bedY()} onChange={setBedY} min={42} max={500} />
-        </Show>
-      </SidebarSection>
-      <SidebarSection label="Style" defaultOpen>
-        <SelectField label="Base style" value={baseStyle()} onChange={setBaseStyle} options={[
-          { value: 'solid', label: 'Solid' },
-          { value: 'open', label: 'Open' },
-        ]} />
-        <Show when={baseStyle() === 'solid'}>
-          <BooleanField label="Magnet pockets" value={magnets()} onChange={setMagnets} />
-        </Show>
-        <div style={{ display: 'grid', 'grid-template-columns': '1fr 1fr', gap: '0 8px' }}>
-          <NumberSlider label="NW radius (mm)" value={cornerNW()} onChange={setCornerNW} min={0} max={OUTER_R} step={0.5} />
-          <NumberSlider label="NE radius (mm)" value={cornerNE()} onChange={setCornerNE} min={0} max={OUTER_R} step={0.5} />
-          <NumberSlider label="SW radius (mm)" value={cornerSW()} onChange={setCornerSW} min={0} max={OUTER_R} step={0.5} />
-          <NumberSlider label="SE radius (mm)" value={cornerSE()} onChange={setCornerSE} min={0} max={OUTER_R} step={0.5} />
-        </div>
-      </SidebarSection>
-      <SidebarSection label="Size" defaultOpen>
-        <NumberSlider label="Width (cells)" value={cellsX()} onChange={setCellsX} min={1} max={20} />
-        <NumberSlider label="Depth (cells)" value={cellsY()} onChange={setCellsY} min={1} max={20} />
-      </SidebarSection>
-      <SidebarSection label="Walls" defaultOpen>
-        <Show when={restrictBed() && hasWalls()}>
-          <BooleanField
-            label="Print walls separately"
-            value={separateWalls()}
-            onChange={setSeparateWalls}
-            description="Recommended when designing a plate for a new product — if measurements are off, only the walls need reprinting."
-          />
-        </Show>
-        <Show when={restrictBed() && separateWalls() && hasWalls()}>
-          <SelectField label="Wall connector" value={wallConnector()} onChange={setWallConnector} options={[
-            { value: 'wall_male',   label: 'Male on wall' },
-            { value: 'wall_female', label: 'Female on wall' },
+    <UrlSyncContext.Provider value={setUrl}>
+      <PageLayout
+        title="Gridfinity Baseplate"
+        attribution={attribution}
+        geometry={geometry}
+        pieces={pieces}
+        selectedPiece={selectedPiece}
+        onPieceClick={setSelectedPiece}
+        rendering={rendering}
+        header={
+          <div>
+            <PresetSelect
+              value={presetSel()}
+              onChange={onPresetChange}
+              options={[{ value: 'halfords', label: 'Halfords 3 Drawer Middle Chest (13×9)' }]}
+              dirty={!!presetParams() && isDirty()}
+              onResetAll={() => applyPreset(presetParams()!)}
+            />
+            <p class={styles.info}>{info()}</p>
+          </div>
+        }
+        footer={
+          <Show
+            when={selectedPiece() >= 0 && pieces()}
+            fallback={
+              <button onClick={() => download()} class={styles.downloadBtn}>Download STL</button>
+            }
+          >
+            <button onClick={() => download(selectedPiece())} class={styles.downloadBtn}>
+              Download {pieces()?.[selectedPiece()]?.label} STL
+            </button>
+            <button onClick={() => download()} class={styles.downloadBtnOutline}>Download all STL</button>
+          </Show>
+        }
+      >
+        <SidebarSection label="Print bed" defaultOpen checked={restrictBed} onCheckedChange={setRestrictBed}>
+          <SelectField label="Printer" value={bedType()} onChange={setBedType} options={BED_OPTIONS} />
+          <Show when={bedType() === 'custom'}>
+            <NumberSlider label="Bed X (mm)" value={bedX()} onChange={setBedX} min={42} max={500} />
+            <NumberSlider label="Bed Y (mm)" value={bedY()} onChange={setBedY} min={42} max={500} />
+          </Show>
+        </SidebarSection>
+        <SidebarSection label="Style" defaultOpen>
+          <SelectField label="Base style" value={baseStyle()} onChange={setBaseStyle} default={presetParams()?.base_style} urlKey="base_style" options={[
+            { value: 'solid', label: 'Solid' },
+            { value: 'open', label: 'Open' },
           ]} />
-        </Show>
-        <Show when={restrictBed() && separateWalls() && hasCorner()}>
-          <SelectField label="Corner style" value={cornerStyle()} onChange={setCornerStyle} options={[
-            { value: 'corner_l',   label: 'L-shaped' },
-            { value: 'corner_cw',  label: 'Clockwise' },
-            { value: 'corner_ccw', label: 'Anti-clockwise' },
-            { value: 'corner_ns',  label: 'Included in N/S walls' },
-            { value: 'corner_ew',  label: 'Included in E/W walls' },
-          ]} />
-        </Show>
-        <Show when={!restrictBed()}>
-          <SelectField label="North edge" value={edgeN()} onChange={setEdgeN} options={[
-            { value: 'wall', label: 'Wall' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' },
-          ]} />
-          <SelectField label="South edge" value={edgeS()} onChange={setEdgeS} options={[
-            { value: 'wall', label: 'Wall' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' },
-          ]} />
-          <SelectField label="East edge" value={edgeE()} onChange={setEdgeE} options={[
-            { value: 'wall', label: 'Wall' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' },
-          ]} />
-          <SelectField label="West edge" value={edgeW()} onChange={setEdgeW} options={[
-            { value: 'wall', label: 'Wall' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' },
-          ]} />
-        </Show>
-        <Show when={restrictBed() || edgeN() === 'wall'}>
-          <OptionalNumberSlider label="North (mm)" value={wallN()} onChange={setWallN} min={wallMin()} max={40} step={0.5} />
-        </Show>
-        <Show when={restrictBed() || edgeS() === 'wall'}>
-          <OptionalNumberSlider label="South (mm)" value={wallS()} onChange={setWallS} min={wallMin()} max={40} step={0.5} />
-        </Show>
-        <Show when={restrictBed() || edgeE() === 'wall'}>
-          <OptionalNumberSlider label="East (mm)"  value={wallE()} onChange={setWallE} min={wallMin()} max={40} step={0.5} />
-        </Show>
-        <Show when={restrictBed() || edgeW() === 'wall'}>
-          <OptionalNumberSlider label="West (mm)"  value={wallW()} onChange={setWallW} min={wallMin()} max={40} step={0.5} />
-        </Show>
-      </SidebarSection>
-    </PageLayout>
+          <Show when={baseStyle() === 'solid'}>
+            <BooleanField label="Magnet pockets" value={magnets()} onChange={setMagnets} default={presetParams()?.magnets} urlKey="magnets" />
+          </Show>
+        </SidebarSection>
+        <SidebarSection label="Size" defaultOpen>
+          <NumberSlider label="Width (cells)" value={cellsX()} onChange={setCellsX} min={1} max={20} default={presetParams()?.cells_x} urlKey="cells_x" />
+          <NumberSlider label="Depth (cells)" value={cellsY()} onChange={setCellsY} min={1} max={20} default={presetParams()?.cells_y} urlKey="cells_y" />
+        </SidebarSection>
+        <SidebarSection label="Corners" defaultOpen>
+          <p class={styles.cornerLabel}>Radius (mm)</p>
+          <div class={styles.cornerGrid}>
+            <NumberSlider label="NW" value={cornerNW()} onChange={setCornerNW} min={0} max={OUTER_R} step={0.5} default={presetParams()?.corner_radius_nw} urlKey="corner_radius_nw" />
+            <NumberSlider label="NE" value={cornerNE()} onChange={setCornerNE} min={0} max={OUTER_R} step={0.5} default={presetParams()?.corner_radius_ne} urlKey="corner_radius_ne" />
+            <NumberSlider label="SW" value={cornerSW()} onChange={setCornerSW} min={0} max={OUTER_R} step={0.5} default={presetParams()?.corner_radius_sw} urlKey="corner_radius_sw" />
+            <NumberSlider label="SE" value={cornerSE()} onChange={setCornerSE} min={0} max={OUTER_R} step={0.5} default={presetParams()?.corner_radius_se} urlKey="corner_radius_se" />
+          </div>
+        </SidebarSection>
+        <SidebarSection label="Walls" defaultOpen>
+          <Show when={restrictBed() && hasWalls()}>
+            <BooleanField
+              label="Print walls separately"
+              value={separateWalls()}
+              onChange={setSeparateWalls}
+              default={presetParams()?.separate_walls}
+              urlKey="separate_walls"
+              description="Recommended when designing a plate for a new product — if measurements are off, only the walls need reprinting."
+            />
+          </Show>
+          <Show when={restrictBed() && separateWalls() && hasWalls()}>
+            <SelectField label="Wall connector" value={wallConnector()} onChange={setWallConnector} default={presetParams()?.wall_connector} urlKey="wall_connector" options={[
+              { value: 'wall_male',   label: 'Male on wall' },
+              { value: 'wall_female', label: 'Female on wall' },
+            ]} />
+          </Show>
+          <Show when={restrictBed() && separateWalls() && hasCorner()}>
+            <SelectField label="Corner style" value={cornerStyle()} onChange={setCornerStyle} default={presetParams()?.corner_style} urlKey="corner_style" options={[
+              { value: 'corner_l',   label: 'L-shaped' },
+              { value: 'corner_cw',  label: 'Clockwise' },
+              { value: 'corner_ccw', label: 'Anti-clockwise' },
+              { value: 'corner_ns',  label: 'Included in N/S walls' },
+              { value: 'corner_ew',  label: 'Included in E/W walls' },
+            ]} />
+          </Show>
+          <Show when={!restrictBed()}>
+            <SelectField label="North edge" value={edgeN()} onChange={setEdgeN} default={presetParams()?.edge_n} urlKey="edge_n" options={[
+              { value: 'wall', label: 'Wall' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' },
+            ]} />
+            <SelectField label="South edge" value={edgeS()} onChange={setEdgeS} default={presetParams()?.edge_s} urlKey="edge_s" options={[
+              { value: 'wall', label: 'Wall' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' },
+            ]} />
+            <SelectField label="East edge" value={edgeE()} onChange={setEdgeE} default={presetParams()?.edge_e} urlKey="edge_e" options={[
+              { value: 'wall', label: 'Wall' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' },
+            ]} />
+            <SelectField label="West edge" value={edgeW()} onChange={setEdgeW} default={presetParams()?.edge_w} urlKey="edge_w" options={[
+              { value: 'wall', label: 'Wall' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' },
+            ]} />
+          </Show>
+          <Show when={restrictBed() || edgeN() === 'wall'}>
+            <OptionalNumberSlider label="North (mm)" value={wallN()} onChange={setWallN} min={wallMin()} max={40} step={0.5} default={presetParams()?.wall_n} urlKey="wall_n" />
+          </Show>
+          <Show when={restrictBed() || edgeS() === 'wall'}>
+            <OptionalNumberSlider label="South (mm)" value={wallS()} onChange={setWallS} min={wallMin()} max={40} step={0.5} default={presetParams()?.wall_s} urlKey="wall_s" />
+          </Show>
+          <Show when={restrictBed() || edgeE() === 'wall'}>
+            <OptionalNumberSlider label="East (mm)"  value={wallE()} onChange={setWallE} min={wallMin()} max={40} step={0.5} default={presetParams()?.wall_e} urlKey="wall_e" />
+          </Show>
+          <Show when={restrictBed() || edgeW() === 'wall'}>
+            <OptionalNumberSlider label="West (mm)"  value={wallW()} onChange={setWallW} min={wallMin()} max={40} step={0.5} default={presetParams()?.wall_w} urlKey="wall_w" />
+          </Show>
+        </SidebarSection>
+      </PageLayout>
+    </UrlSyncContext.Provider>
   )
 }
-
-const btnStyle = { padding: '10px', background: '#6688cc', color: '#fff', border: 'none', 'border-radius': '6px', cursor: 'pointer', 'font-size': '0.875rem', width: '100%' } as const
-const btnStyleOutline = { padding: '8px', background: 'none', color: '#6688cc', border: '1px solid #6688cc', 'border-radius': '6px', cursor: 'pointer', 'font-size': '0.8rem', width: '100%' } as const
 
 render(() => <GridfinityBaseplatePage />, document.getElementById('root')!)
