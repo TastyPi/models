@@ -88,7 +88,10 @@ export interface Params {
   separate_walls: boolean
   wall_connector: string
   corner_style: string
-  corner_radius: number
+  corner_radius_sw: number
+  corner_radius_se: number
+  corner_radius_ne: number
+  corner_radius_nw: number
   base_style: string
   magnets: boolean
   restrict_bed: boolean
@@ -102,7 +105,7 @@ export interface Params {
 }
 
 export function generate(params: Params) {
-  const { cells_x, cells_y, separate_walls, wall_connector, corner_style, corner_radius, base_style, magnets, restrict_bed, bed_type, bed_x, bed_y, edge_n, edge_s, edge_e, edge_w } = params
+  const { cells_x, cells_y, separate_walls, wall_connector, corner_style, corner_radius_sw, corner_radius_se, corner_radius_ne, corner_radius_nw, base_style, magnets, restrict_bed, bed_type, bed_x, bed_y, edge_n, edge_s, edge_e, edge_w } = params
   const wall_n = params.wall_n ?? 0
   const wall_s = params.wall_s ?? 0
   const wall_e = params.wall_e ?? 0
@@ -110,16 +113,18 @@ export function generate(params: Params) {
     const { Manifold, CrossSection } = getManifold()
     const wallFemale = wall_connector === 'wall_female'
     const cStyle = corner_style
-    const cornerR = corner_radius
+    const rSW = corner_radius_sw, rSE = corner_radius_se, rNE = corner_radius_ne, rNW = corner_radius_nw
 
-    // Selective corner rounding: sw/se/ne/nw flags indicate which corners get radius r.
+    // Selective corner rounding: per-corner radii (0 = sharp).
     // Builds an explicit polygon so sharp corners are exact and only one CrossSection is created.
-    const selRRect = (x0: number, y0: number, x1: number, y1: number, sw: boolean, se: boolean, ne: boolean, nw: boolean): any => {
-      if (cornerR <= 0 || !(sw || se || ne || nw)) {
-        return CrossSection.square([x1 - x0, y1 - y0]).translate([x0, y0])
+    const selRRect = (x0: number, y0: number, x1: number, y1: number, sw: number, se: number, ne: number, nw: number): any => {
+      const w = x1 - x0, h = y1 - y0
+      const clamp = (r: number) => r > 0 ? Math.min(r, w / 2 - 0.01, h / 2 - 0.01) : 0
+      const cSW = clamp(sw), cSE = clamp(se), cNE = clamp(ne), cNW = clamp(nw)
+      if (cSW <= 0 && cSE <= 0 && cNE <= 0 && cNW <= 0) {
+        return CrossSection.square([w, h]).translate([x0, y0])
       }
-      const r = Math.min(cornerR, (x1 - x0) / 2 - 0.01, (y1 - y0) / 2 - 0.01)
-      const arc = (cx: number, cy: number, a0: number, a1: number): [number, number][] => {
+      const arc = (cx: number, cy: number, r: number, a0: number, a1: number): [number, number][] => {
         const pts: [number, number][] = []
         for (let i = 0; i <= 8; i++) {
           const a = a0 + (a1 - a0) * i / 8
@@ -128,10 +133,10 @@ export function generate(params: Params) {
         return pts
       }
       const pts: [number, number][] = [
-        ...(sw ? arc(x0 + r, y0 + r, Math.PI, Math.PI * 1.5)      : [[x0, y0] satisfies [number, number]]),
-        ...(se ? arc(x1 - r, y0 + r, Math.PI * 1.5, Math.PI * 2)  : [[x1, y0] satisfies [number, number]]),
-        ...(ne ? arc(x1 - r, y1 - r, 0, Math.PI * 0.5)            : [[x1, y1] satisfies [number, number]]),
-        ...(nw ? arc(x0 + r, y1 - r, Math.PI * 0.5, Math.PI)      : [[x0, y1] satisfies [number, number]]),
+        ...(cSW > 0 ? arc(x0 + cSW, y0 + cSW, cSW, Math.PI, Math.PI * 1.5)      : [[x0, y0] satisfies [number, number]]),
+        ...(cSE > 0 ? arc(x1 - cSE, y0 + cSE, cSE, Math.PI * 1.5, Math.PI * 2)  : [[x1, y0] satisfies [number, number]]),
+        ...(cNE > 0 ? arc(x1 - cNE, y1 - cNE, cNE, 0, Math.PI * 0.5)            : [[x1, y1] satisfies [number, number]]),
+        ...(cNW > 0 ? arc(x0 + cNW, y1 - cNW, cNW, Math.PI * 0.5, Math.PI)      : [[x0, y1] satisfies [number, number]]),
       ]
       return new CrossSection(pts, 'NonZero')
     }
@@ -221,16 +226,16 @@ export function generate(params: Params) {
       // Fused piece: round only corners where this piece reaches the outer plate boundary.
       const fpCS = wallsSep
         ? selRRect(fpX0, fpY0, fpX1, fpY1,
-            !hasSConn && !hasWConn && !(wallS > 0) && !(wallW > 0),
-            !hasSConn && !hasEConn && !(wallS > 0) && !(wallE > 0),
-            !hasNConn && !hasEConn && !(wallN > 0) && !(wallE > 0),
-            !hasNConn && !hasWConn && !(wallN > 0) && !(wallW > 0),
+            !hasSConn && !hasWConn && !(wallS > 0) && !(wallW > 0) ? rSW : 0,
+            !hasSConn && !hasEConn && !(wallS > 0) && !(wallE > 0) ? rSE : 0,
+            !hasNConn && !hasEConn && !(wallN > 0) && !(wallE > 0) ? rNE : 0,
+            !hasNConn && !hasWConn && !(wallN > 0) && !(wallW > 0) ? rNW : 0,
           )
         : selRRect(fpX0, fpY0, fpX1, fpY1,
-            !hasSConn && !hasWConn,
-            !hasSConn && !hasEConn,
-            !hasNConn && !hasEConn,
-            !hasNConn && !hasWConn,
+            !hasSConn && !hasWConn ? rSW : 0,
+            !hasSConn && !hasEConn ? rSE : 0,
+            !hasNConn && !hasEConn ? rNE : 0,
+            !hasNConn && !hasWConn ? rNW : 0,
           )
       let piece = fpCS.extrude(BASE_H)
 
@@ -327,7 +332,7 @@ export function generate(params: Params) {
         const { min: x0, max: x1 } = ext
         const nNW = outerL && (cStyle === 'corner_ns' || cStyle === 'corner_ccw' || (cStyle === 'corner_l' ? armL === 0 : !(wallW > 0)))
         const nNE = outerR && (cStyle === 'corner_ns' || cStyle === 'corner_cw'  || (cStyle === 'corner_l' ? armR === 0 : !(wallE > 0)))
-        strip = selRRect(x0, tileT, x1, tileT + wallN, false, false, nNE, nNW).extrude(BASE_H)
+        strip = selRRect(x0, tileT, x1, tileT + wallN, 0, 0, nNE ? rNE : 0, nNW ? rNW : 0).extrude(BASE_H)
         for (const cx of cellXC) {
           if (cx < x0 + CELL / 2 || cx > x1 - CELL / 2) continue
           if (wallFemale) toSub.push(femaleSouth.translate([cx, tileT]).extrude(EP_H_FEMALE))
@@ -337,7 +342,7 @@ export function generate(params: Params) {
         const { min: x0, max: x1 } = ext
         const sSW = outerL && (cStyle === 'corner_ns' || cStyle === 'corner_cw'  || (cStyle === 'corner_l' ? armL === 0 : !(wallW > 0)))
         const sSE = outerR && (cStyle === 'corner_ns' || cStyle === 'corner_ccw' || (cStyle === 'corner_l' ? armR === 0 : !(wallE > 0)))
-        strip = selRRect(x0, tileB - wallS, x1, tileB, sSW, sSE, false, false).extrude(BASE_H)
+        strip = selRRect(x0, tileB - wallS, x1, tileB, sSW ? rSW : 0, sSE ? rSE : 0, 0, 0).extrude(BASE_H)
         for (const cx of cellXC) {
           if (cx < x0 + CELL / 2 || cx > x1 - CELL / 2) continue
           if (wallFemale) toSub.push(femaleNorth.translate([cx, tileB]).extrude(EP_H_FEMALE))
@@ -347,7 +352,7 @@ export function generate(params: Params) {
         const { min: y0, max: y1 } = ext
         const eSE = outerL && (cStyle === 'corner_ew' || cStyle === 'corner_cw'  || (cStyle === 'corner_l' ? armL === 0 : !(wallS > 0)))
         const eNE = outerR && (cStyle === 'corner_ew' || cStyle === 'corner_ccw' || (cStyle === 'corner_l' ? armR === 0 : !(wallN > 0)))
-        strip = selRRect(tileR, y0, tileR + wallE, y1, false, eSE, eNE, false).extrude(BASE_H)
+        strip = selRRect(tileR, y0, tileR + wallE, y1, 0, eSE ? rSE : 0, eNE ? rNE : 0, 0).extrude(BASE_H)
         for (const cy of cellYC) {
           if (cy < y0 + CELL / 2 || cy > y1 - CELL / 2) continue
           if (wallFemale) toSub.push(femaleWest.translate([tileR, cy]).extrude(EP_H_FEMALE))
@@ -357,7 +362,7 @@ export function generate(params: Params) {
         const { min: y0, max: y1 } = ext
         const wSW = outerL && (cStyle === 'corner_ew' || cStyle === 'corner_ccw' || (cStyle === 'corner_l' ? armL === 0 : !(wallS > 0)))
         const wNW = outerR && (cStyle === 'corner_ew' || cStyle === 'corner_cw'  || (cStyle === 'corner_l' ? armR === 0 : !(wallN > 0)))
-        strip = selRRect(tileL - wallW, y0, tileL, y1, wSW, false, false, wNW).extrude(BASE_H)
+        strip = selRRect(tileL - wallW, y0, tileL, y1, wSW ? rSW : 0, 0, 0, wNW ? rNW : 0).extrude(BASE_H)
         for (const cy of cellYC) {
           if (cy < y0 + CELL / 2 || cy > y1 - CELL / 2) continue
           if (wallFemale) toSub.push(femaleEast.translate([tileL, cy]).extrude(EP_H_FEMALE))
@@ -396,25 +401,25 @@ export function generate(params: Params) {
       let piece: any
       // Each corner is an L: hBar spans armW along the N/S wall face; vArm spans armH down/up the E/W wall face.
       if (corner === 'NW') {
-        const hBar = selRRect(tileL - wallW, tileT, tileL + armW, tileT + wallN, false, false, false, true)
+        const hBar = selRRect(tileL - wallW, tileT, tileL + armW, tileT + wallN, 0, 0, 0, rNW)
         const vArm = CrossSection.square([wallW, armH]).translate([tileL - wallW, tileT - armH])
         piece = hBar.add(vArm).extrude(BASE_H)
         for (const cx of cellXC.filter(cx => cx < tileL + armW)) connNS(femaleSouth, maleSouth, cx, tileT, tileT - CELL / 2)
         for (const cy of cellYC.filter(cy => cy >= tileT - armH))  connEW(femaleEast, maleEast, tileL, cy, tileL + CELL / 2)
       } else if (corner === 'NE') {
-        const hBar = selRRect(tileR - armW, tileT, tileR + wallE, tileT + wallN, false, false, true, false)
+        const hBar = selRRect(tileR - armW, tileT, tileR + wallE, tileT + wallN, 0, 0, rNE, 0)
         const vArm = CrossSection.square([wallE, armH]).translate([tileR, tileT - armH])
         piece = hBar.add(vArm).extrude(BASE_H)
         for (const cx of cellXC.filter(cx => cx >= tileR - armW)) connNS(femaleSouth, maleSouth, cx, tileT, tileT - CELL / 2)
         for (const cy of cellYC.filter(cy => cy >= tileT - armH))  connEW(femaleWest, maleWest, tileR, cy, tileR - CELL / 2)
       } else if (corner === 'SW') {
-        const hBar = selRRect(tileL - wallW, tileB - wallS, tileL + armW, tileB, true, false, false, false)
+        const hBar = selRRect(tileL - wallW, tileB - wallS, tileL + armW, tileB, rSW, 0, 0, 0)
         const vArm = CrossSection.square([wallW, armH]).translate([tileL - wallW, tileB])
         piece = hBar.add(vArm).extrude(BASE_H)
         for (const cx of cellXC.filter(cx => cx < tileL + armW)) connNS(femaleNorth, maleNorth, cx, tileB, tileB + CELL / 2)
         for (const cy of cellYC.filter(cy => cy < tileB + armH))   connEW(femaleEast, maleEast, tileL, cy, tileL + CELL / 2)
       } else {
-        const hBar = selRRect(tileR - armW, tileB - wallS, tileR + wallE, tileB, false, true, false, false)
+        const hBar = selRRect(tileR - armW, tileB - wallS, tileR + wallE, tileB, 0, rSE, 0, 0)
         const vArm = CrossSection.square([wallE, armH]).translate([tileR, tileB])
         piece = hBar.add(vArm).extrude(BASE_H)
         for (const cx of cellXC.filter(cx => cx >= tileR - armW)) connNS(femaleNorth, maleNorth, cx, tileB, tileB + CELL / 2)
@@ -447,32 +452,32 @@ export function generate(params: Params) {
       let piece: any
       if (side === 'W') {
         const spine = CrossSection.square([wallW, tileT - tileB]).translate([tileL - wallW, tileB])
-        const hBarN = selRRect(tileL - wallW, tileT, tileL + armW, tileT + wallN, false, false, false, true)
-        const hBarS = selRRect(tileL - wallW, tileB - wallS, tileL + armW, tileB, true, false, false, false)
+        const hBarN = selRRect(tileL - wallW, tileT, tileL + armW, tileT + wallN, 0, 0, 0, rNW)
+        const hBarS = selRRect(tileL - wallW, tileB - wallS, tileL + armW, tileB, rSW, 0, 0, 0)
         piece = spine.add(hBarN).add(hBarS).extrude(BASE_H)
         for (const cy of cellYC) conn(femaleEast, maleEast, tileL, cy, tileL + CELL / 2, cy)
         for (const cx of cellXC.filter(cx => cx < tileL + armW)) conn(femaleSouth, maleSouth, cx, tileT, cx, tileT - CELL / 2)
         for (const cx of cellXC.filter(cx => cx < tileL + armW)) conn(femaleNorth, maleNorth, cx, tileB, cx, tileB + CELL / 2)
       } else if (side === 'E') {
         const spine = CrossSection.square([wallE, tileT - tileB]).translate([tileR, tileB])
-        const hBarN = selRRect(tileR - armW, tileT, tileR + wallE, tileT + wallN, false, false, true, false)
-        const hBarS = selRRect(tileR - armW, tileB - wallS, tileR + wallE, tileB, false, true, false, false)
+        const hBarN = selRRect(tileR - armW, tileT, tileR + wallE, tileT + wallN, 0, 0, rNE, 0)
+        const hBarS = selRRect(tileR - armW, tileB - wallS, tileR + wallE, tileB, 0, rSE, 0, 0)
         piece = spine.add(hBarN).add(hBarS).extrude(BASE_H)
         for (const cy of cellYC) conn(femaleWest, maleWest, tileR, cy, tileR - CELL / 2, cy)
         for (const cx of cellXC.filter(cx => cx > tileR - armW)) conn(femaleSouth, maleSouth, cx, tileT, cx, tileT - CELL / 2)
         for (const cx of cellXC.filter(cx => cx > tileR - armW)) conn(femaleNorth, maleNorth, cx, tileB, cx, tileB + CELL / 2)
       } else if (side === 'N') {
         const spine = CrossSection.square([tileR - tileL, wallN]).translate([tileL, tileT])
-        const vArmW = selRRect(tileL - wallW, tileT - armH, tileL, tileT + wallN, false, false, false, true)
-        const vArmE = selRRect(tileR, tileT - armH, tileR + wallE, tileT + wallN, false, false, true, false)
+        const vArmW = selRRect(tileL - wallW, tileT - armH, tileL, tileT + wallN, 0, 0, 0, rNW)
+        const vArmE = selRRect(tileR, tileT - armH, tileR + wallE, tileT + wallN, 0, 0, rNE, 0)
         piece = spine.add(vArmW).add(vArmE).extrude(BASE_H)
         for (const cx of cellXC) conn(femaleSouth, maleSouth, cx, tileT, cx, tileT - CELL / 2)
         for (const cy of cellYC.filter(cy => cy > tileT - armH)) conn(femaleEast, maleEast, tileL, cy, tileL + CELL / 2, cy)
         for (const cy of cellYC.filter(cy => cy > tileT - armH)) conn(femaleWest, maleWest, tileR, cy, tileR - CELL / 2, cy)
       } else {
         const spine = CrossSection.square([tileR - tileL, wallS]).translate([tileL, tileB - wallS])
-        const vArmW = selRRect(tileL - wallW, tileB - wallS, tileL, tileB + armH, true, false, false, false)
-        const vArmE = selRRect(tileR, tileB - wallS, tileR + wallE, tileB + armH, false, true, false, false)
+        const vArmW = selRRect(tileL - wallW, tileB - wallS, tileL, tileB + armH, rSW, 0, 0, 0)
+        const vArmE = selRRect(tileR, tileB - wallS, tileR + wallE, tileB + armH, 0, rSE, 0, 0)
         piece = spine.add(vArmW).add(vArmE).extrude(BASE_H)
         for (const cx of cellXC) conn(femaleNorth, maleNorth, cx, tileB, cx, tileB + CELL / 2)
         for (const cy of cellYC.filter(cy => cy < tileB + armH)) conn(femaleEast, maleEast, tileL, cy, tileL + CELL / 2, cy)
@@ -490,7 +495,7 @@ export function generate(params: Params) {
       const nX = cellXC.length, nY = cellYC.length
       const tileL = cellXC[0] - CELL / 2, tileR = cellXC[nX - 1] + CELL / 2
       const tileB = cellYC[0] - CELL / 2, tileT = cellYC[nY - 1] + CELL / 2
-      const outer = selRRect(tileL - wallW, tileB - wallS, tileR + wallE, tileT + wallN, true, true, true, true)
+      const outer = selRRect(tileL - wallW, tileB - wallS, tileR + wallE, tileT + wallN, rSW, rSE, rNE, rNW)
       const inner = CrossSection.square([tileR - tileL, tileT - tileB]).translate([tileL, tileB])
       let piece = outer.subtract(inner).extrude(BASE_H)
       const toAdd: any[] = [], toSub: any[] = []

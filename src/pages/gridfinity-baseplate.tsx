@@ -25,7 +25,8 @@ const PRESET = {
   edge_n: 'wall', edge_s: 'wall', edge_e: 'wall', edge_w: 'wall',
   wall_n: 12.5, wall_s: 12.5, wall_e: 11, wall_w: 11,
   separate_walls: false, wall_connector: 'wall_male', corner_style: 'corner_l',
-  corner_radius: 0, base_style: 'open', magnets: false,
+  corner_radius_sw: 0, corner_radius_se: 0, corner_radius_ne: 0, corner_radius_nw: 0,
+  base_style: 'open', magnets: false,
 }
 
 const sp = new URLSearchParams(window.location.search)
@@ -53,7 +54,10 @@ function GridfinityBaseplatePage() {
   const [separateWalls, setSeparateWalls] = createSignal(urlBool('separate_walls', PRESET.separate_walls))
   const [wallConnector, setWallConnector] = createSignal(urlStr('wall_connector', PRESET.wall_connector))
   const [cornerStyle, setCornerStyle] = createSignal(urlStr('corner_style', PRESET.corner_style))
-  const [cornerRadius, setCornerRadius] = createSignal(urlNum('corner_radius', PRESET.corner_radius))
+  const [cornerSW, setCornerSW] = createSignal(urlNum('corner_radius_sw', PRESET.corner_radius_sw))
+  const [cornerSE, setCornerSE] = createSignal(urlNum('corner_radius_se', PRESET.corner_radius_se))
+  const [cornerNE, setCornerNE] = createSignal(urlNum('corner_radius_ne', PRESET.corner_radius_ne))
+  const [cornerNW, setCornerNW] = createSignal(urlNum('corner_radius_nw', PRESET.corner_radius_nw))
   const [baseStyle, setBaseStyle] = createSignal(urlStr('base_style', PRESET.base_style))
   const [magnets, setMagnets] = createSignal(urlBool('magnets', PRESET.magnets))
 
@@ -89,7 +93,9 @@ function GridfinityBaseplatePage() {
     edge_n: edgeN(), edge_s: edgeS(), edge_e: edgeE(), edge_w: edgeW(),
     wall_n: wallN(), wall_s: wallS(), wall_e: wallE(), wall_w: wallW(),
     separate_walls: separateWalls(), wall_connector: wallConnector(),
-    corner_style: cornerStyle(), corner_radius: cornerRadius(),
+    corner_style: cornerStyle(),
+    corner_radius_sw: cornerSW(), corner_radius_se: cornerSE(),
+    corner_radius_ne: cornerNE(), corner_radius_nw: cornerNW(),
     base_style: baseStyle(), magnets: magnets(),
     restrict_bed: restrictBed(), bed_type: bedType(), bed_x: bedX(), bed_y: bedY(),
   }))
@@ -111,7 +117,10 @@ function GridfinityBaseplatePage() {
     if (separateWalls() !== PRESET.separate_walls) urlParams.set('separate_walls', String(separateWalls()))
     if (wallConnector() !== PRESET.wall_connector) urlParams.set('wall_connector', wallConnector())
     if (cornerStyle() !== PRESET.corner_style) urlParams.set('corner_style', cornerStyle())
-    if (cornerRadius() !== PRESET.corner_radius) urlParams.set('corner_radius', String(cornerRadius()))
+    if (cornerSW() !== PRESET.corner_radius_sw) urlParams.set('corner_radius_sw', String(cornerSW()))
+    if (cornerSE() !== PRESET.corner_radius_se) urlParams.set('corner_radius_se', String(cornerSE()))
+    if (cornerNE() !== PRESET.corner_radius_ne) urlParams.set('corner_radius_ne', String(cornerNE()))
+    if (cornerNW() !== PRESET.corner_radius_nw) urlParams.set('corner_radius_nw', String(cornerNW()))
     if (baseStyle() !== PRESET.base_style) urlParams.set('base_style', baseStyle())
     if (magnets() !== PRESET.magnets) urlParams.set('magnets', String(magnets()))
     const qs = urlParams.toString()
@@ -126,7 +135,9 @@ function GridfinityBaseplatePage() {
       setEdgeN(PRESET.edge_n); setEdgeS(PRESET.edge_s); setEdgeE(PRESET.edge_e); setEdgeW(PRESET.edge_w)
       setWallN(PRESET.wall_n); setWallS(PRESET.wall_s); setWallE(PRESET.wall_e); setWallW(PRESET.wall_w)
       setSeparateWalls(PRESET.separate_walls); setWallConnector(PRESET.wall_connector); setCornerStyle(PRESET.corner_style)
-      setCornerRadius(PRESET.corner_radius); setBaseStyle(PRESET.base_style); setMagnets(PRESET.magnets)
+      setCornerSW(PRESET.corner_radius_sw); setCornerSE(PRESET.corner_radius_se)
+      setCornerNE(PRESET.corner_radius_ne); setCornerNW(PRESET.corner_radius_nw)
+      setBaseStyle(PRESET.base_style); setMagnets(PRESET.magnets)
     }
   }
 
@@ -181,7 +192,12 @@ function GridfinityBaseplatePage() {
         <Show when={baseStyle() === 'solid'}>
           <BooleanField label="Magnet pockets" value={magnets()} onChange={setMagnets} />
         </Show>
-        <NumberSlider label="Outer corner radius (mm)" value={cornerRadius()} onChange={setCornerRadius} min={0} max={OUTER_R} step={0.5} />
+        <div style={{ display: 'grid', 'grid-template-columns': '1fr 1fr', gap: '0 8px' }}>
+          <NumberSlider label="NW radius (mm)" value={cornerNW()} onChange={setCornerNW} min={0} max={OUTER_R} step={0.5} />
+          <NumberSlider label="NE radius (mm)" value={cornerNE()} onChange={setCornerNE} min={0} max={OUTER_R} step={0.5} />
+          <NumberSlider label="SW radius (mm)" value={cornerSW()} onChange={setCornerSW} min={0} max={OUTER_R} step={0.5} />
+          <NumberSlider label="SE radius (mm)" value={cornerSE()} onChange={setCornerSE} min={0} max={OUTER_R} step={0.5} />
+        </div>
       </SidebarSection>
       <SidebarSection label="Size" defaultOpen>
         <NumberSlider label="Width (cells)" value={cellsX()} onChange={setCellsX} min={1} max={20} />
