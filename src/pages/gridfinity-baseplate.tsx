@@ -23,7 +23,7 @@ function writeLS(key: string, value: unknown) {
 const PRESET = {
   cells_x: 13, cells_y: 9,
   edge_n: 'wall', edge_s: 'wall', edge_e: 'wall', edge_w: 'wall',
-  wall_n: 12.5, wall_s: 12.5, wall_e: 9, wall_w: 9,
+  wall_n: 12.5, wall_s: 12.5, wall_e: 11, wall_w: 11,
   separate_walls: false, wall_connector: 'wall_male', corner_style: 'corner_l',
   corner_radius: 0, base_style: 'open', magnets: false,
 }
