@@ -15,7 +15,7 @@ export default defineConfig({
         'wall-hook': resolve(__dirname, 'wall-hook/index.html'),
         'gridfinity-baseplate': resolve(__dirname, 'gridfinity-baseplate/index.html'),
         'corner-radius-gauge': resolve(__dirname, 'corner-radius-gauge/index.html'),
-        'gridfinity-box': resolve(__dirname, 'gridfinity-box/index.html'),
+        'gridfinity-bin': resolve(__dirname, 'gridfinity-bin/index.html'),
         'magnet-test': resolve(__dirname, 'magnet-test/index.html'),
       },
     },

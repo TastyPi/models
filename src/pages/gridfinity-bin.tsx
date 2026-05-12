@@ -1,7 +1,7 @@
 import { createEffect, createMemo, createSignal, Show } from 'solid-js'
 import { render } from 'solid-js/web'
 import '../index.css'
-import styles from './gridfinity-box.module.css'
+import styles from './gridfinity-bin.module.css'
 import { PageLayout } from '../components/PageLayout'
 import { BooleanField } from '../components/BooleanField'
 import { NumberSlider } from '../components/NumberSlider'
