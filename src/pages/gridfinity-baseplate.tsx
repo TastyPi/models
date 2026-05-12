@@ -168,7 +168,6 @@ function GridfinityBaseplatePage() {
             <button onClick={() => download(selectedPiece())} class={styles.downloadBtn}>
               Download {pieces()?.[selectedPiece()]?.label} STL
             </button>
-            <button onClick={() => download()} class={styles.downloadBtnOutline}>Download all STL</button>
           </Show>
         }
       >

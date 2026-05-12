@@ -27,14 +27,3 @@
   font-size: 0.875rem;
   width: 100%;
 }
-
-.downloadBtnOutline {
-  padding: 8px;
-  background: none;
-  color: #6688cc;
-  border: 1px solid #6688cc;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.8rem;
-  width: 100%;
-}

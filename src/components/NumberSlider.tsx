@@ -27,10 +27,10 @@ export function NumberSlider(props: Props) {
       <label class={styles.label}>
         <span class={styles.labelText}>{props.label}</span>
         <span class={styles.labelRight}>
+          <span class={styles.value}>{props.value}</span>
           <Show when={props.default != null}>
             <button disabled={props.value === props.default} onClick={() => props.onChange(props.default!)} title="Reset to default" class={styles.resetBtn}>↺</button>
           </Show>
-          <span class={styles.value}>{props.value}</span>
         </span>
       </label>
       <input
@@ -90,11 +90,11 @@ export function OptionalNumberSlider(props: OptionalProps) {
           />
         </label>
         <span class={styles.labelRight}>
-          <Show when={props.default !== undefined}>
-            <button disabled={isDefault()} onClick={() => props.onChange(props.default as number | null)} title="Reset to default" class={styles.resetBtn}>↺</button>
-          </Show>
           <Show when={enabled()}>
             <span class={styles.value}>{props.value}</span>
+          </Show>
+          <Show when={props.default !== undefined}>
+            <button disabled={isDefault()} onClick={() => props.onChange(props.default as number | null)} title="Reset to default" class={styles.resetBtn}>↺</button>
           </Show>
         </span>
       </div>
