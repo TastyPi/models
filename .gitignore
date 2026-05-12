@@ -16,6 +16,10 @@ dist-ssr
 .yarn/*
 .pnp.*
 
+# Claude Code
+.claude/worktrees/
+.claude/settings.local.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
