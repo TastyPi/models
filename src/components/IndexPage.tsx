@@ -5,9 +5,10 @@ import { initManifold } from '../manifold'
 import { isPieced, type GeomResult } from '../types'
 import * as wallHook from '../models/wall-hook'
 import * as gridfinityBaseplate from '../models/gridfinity-baseplate'
-import * as cornerRadiusGauge from '../models/corner-radius-gauge'
 import * as gridfinityBin from '../models/gridfinity-bin'
+import * as cornerRadiusGauge from '../models/corner-radius-gauge'
 import * as magnetTest from '../models/magnet-test'
+import styles from './IndexPage.module.css'
 
 function extractMerged(result: GeomResult): Manifold {
   return isPieced(result) ? result.merged : result
@@ -15,14 +16,21 @@ function extractMerged(result: GeomResult): Manifold {
 
 const MODELS: { slug: string; label: string; description: string; generate: () => Manifold }[] = [
   {
-    slug: 'wall-hook',
-    label: 'Wall Hook',
-    description: 'Triangular prism hook. Side (a) mounts against the wall with screw holes, side (b) is the hook arm with a retention lip, side (c) is the hypotenuse — print flat on side (c), no supports needed.',
-    generate: () => wallHook.generate({
-      wall_side_height: 20, depth: 10, width: 50,
-      lip_height: 25, lip_thickness: 5, lip_edge_radius: 2.5,
-      screw_holes: 2, screw_spacing: 20, screw_type: 'wood4', screw_shaft: 4, screw_head: 8,
-      driver_type: 'ltt', driver_diameter: 10, countersunk: true,
+    slug: 'corner-radius-gauge',
+    label: 'Corner Radius Gauge',
+    description: 'Set of 10 gauge tiles for corner radii from 0.5 to 5 mm in 0.5 mm steps.',
+    generate: () => extractMerged(cornerRadiusGauge.generate(
+      { text_style: 'debossed', text_top: true, text_bottom: false }
+    )).rotate(-90, 0, 0),
+  },
+  {
+    slug: 'gridfinity-bin',
+    label: 'Gridfinity Bin',
+    description: 'Parametric Gridfinity bin with optional magnets, stacking lip, and X/Y dividers.',
+    generate: () => gridfinityBin.generate({
+      cells_x: 2, cells_y: 2, height_units: 3, stacking_lip: true,
+      magnets: false, magnet_style: 'smooth', magnet_size: 6.2,
+      chamfer: false, supportless: false, dividers_x: 0, dividers_y: 0,
     }),
   },
   {
@@ -40,28 +48,21 @@ const MODELS: { slug: string; label: string; description: string; generate: () =
     })).rotate(-90, 0, 0),
   },
   {
-    slug: 'corner-radius-gauge',
-    label: 'Corner Radius Gauge',
-    description: 'Set of 10 gauge tiles for corner radii from 0.5 to 5 mm in 0.5 mm steps.',
-    generate: () => extractMerged(cornerRadiusGauge.generate(
-      { text_style: 'debossed', text_top: true, text_bottom: false }
-    )).rotate(-90, 0, 0),
-  },
-  {
-    slug: 'gridfinity-box',
-    label: 'Gridfinity Bin',
-    description: 'Parametric Gridfinity bin with optional magnets, stacking lip, and X/Y dividers.',
-    generate: () => gridfinityBin.generate({
-      cells_x: 2, cells_y: 2, height_units: 3, stacking_lip: true,
-      magnets: false, magnet_style: 'smooth', magnet_size: 6.2,
-      chamfer: false, supportless: false, dividers_x: 0, dividers_y: 0,
-    }),
-  },
-  {
     slug: 'magnet-test',
     label: 'Magnet Press-Fit Test',
     description: 'Six pockets left to right: crush ribs, then plain bores at 6.0, 6.1, 6.2, 6.3, 6.4 mm. Centre push-out hole in each.',
     generate: () => magnetTest.generate({}).rotate(-90, 0, 0),
+  },
+  {
+    slug: 'wall-hook',
+    label: 'Wall Hook',
+    description: 'Triangular prism hook. Side (a) mounts against the wall with screw holes, side (b) is the hook arm with a retention lip, side (c) is the hypotenuse — print flat on side (c), no supports needed.',
+    generate: () => wallHook.generate({
+      wall_side_height: 20, depth: 10, width: 50,
+      lip_height: 25, lip_thickness: 5, lip_edge_radius: 2.5,
+      screw_holes: 2, screw_spacing: 20, screw_type: 'wood4', screw_shaft: 4, screw_head: 8,
+      driver_type: 'ltt', driver_diameter: 10, countersunk: true,
+    }),
   },
 ]
 
@@ -133,65 +134,37 @@ export function IndexPage() {
   })
 
   return (
-    <div style={{
-      'min-height': '100vh', background: '#0e0e1a', color: '#e0e0e0',
-      'font-family': 'system-ui, sans-serif', padding: '48px 32px',
-      display: 'flex', 'flex-direction': 'column',
-    }}>
-      <h1 style={{ margin: '0 0 8px', 'font-size': '1.5rem', color: '#fff' }}>Models</h1>
-      <p style={{ margin: '0 0 40px', 'font-size': '0.875rem', color: '#555' }}>
-        Parametric 3D-printable models
-      </p>
-      <div style={{ display: 'grid', 'grid-template-columns': 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px', 'max-width': '960px' }}>
+    <div class={styles.page}>
+      <h1 class={styles.heading}>Models</h1>
+      <p class={styles.subheading}>Parametric 3D-printable models</p>
+      <div class={styles.grid}>
         <For each={MODELS}>
           {(entry) => (
-            <a
-              href={`${entry.slug}/`}
-              style={{
-                display: 'block', background: '#12121f',
-                'border-radius': '8px', border: '1px solid #1e1e30',
-                'text-decoration': 'none', color: 'inherit',
-                transition: 'border-color 0.15s', overflow: 'hidden',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#6688cc')}
-              onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#1e1e30')}
-            >
+            <a href={`${entry.slug}/`} class={styles.card}>
               <Show
                 when={thumbnails()[entry.slug]}
                 fallback={
-                  <div style={{ height: '160px', background: '#0e0e1a', display: 'flex', 'align-items': 'center', 'justify-content': 'center' }}>
-                    <span style={{ color: '#333', 'font-size': '0.75rem' }}>{ready() ? '—' : 'Loading…'}</span>
+                  <div class={styles.thumbnailPlaceholder}>
+                    <span class={styles.thumbnailPlaceholderText}>{ready() ? '—' : 'Loading…'}</span>
                   </div>
                 }
               >
-                {(src) => <img src={src()} alt={entry.label} style={{ display: 'block', width: '100%', height: '160px', 'object-fit': 'cover' }} />}
+                {(src) => <img src={src()} alt={entry.label} class={styles.thumbnail} />}
               </Show>
-              <div style={{ padding: '16px' }}>
-                <div style={{ 'font-size': '1rem', 'font-weight': '600', color: '#fff', 'margin-bottom': '6px' }}>
-                  {entry.label}
-                </div>
-                <div style={{ 'font-size': '0.8rem', color: '#666', 'line-height': '1.5' }}>
-                  {entry.description}
-                </div>
+              <div class={styles.cardBody}>
+                <div class={styles.cardTitle}>{entry.label}</div>
+                <div class={styles.cardDescription}>{entry.description}</div>
               </div>
             </a>
           )}
         </For>
       </div>
-      <footer style={{ 'font-size': '0.72rem', color: '#555', 'line-height': '1.7', 'margin-top': 'auto', 'padding-top': '48px' }}>
+      <footer class={styles.footer}>
         <div>© 2026 Graham Rogers</div>
         <div>
-          <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer"
-            style={{ color: '#666', 'text-decoration': 'none' }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = '#aabbdd')}
-            onMouseLeave={(e) => (e.currentTarget.style.color = '#666')}
-          >MIT</a>
+          <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer" class={styles.footerLink}>MIT</a>
           {' '}(code) ·{' '}
-          <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer"
-            style={{ color: '#666', 'text-decoration': 'none' }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = '#aabbdd')}
-            onMouseLeave={(e) => (e.currentTarget.style.color = '#666')}
-          >CC BY 4.0</a>
+          <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer" class={styles.footerLink}>CC BY 4.0</a>
           {' '}(designs)
         </div>
       </footer>
