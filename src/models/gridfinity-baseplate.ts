@@ -258,9 +258,9 @@ export function generate(params: Params) {
       const maleE = (cy: number) => maleEast.translate([tileR, cy]).extrude(EP_H_MALE).intersect(adjCellSolid(tileR + CELL / 2, cy))
       const maleW = (cy: number) => maleWest.translate([tileL, cy]).extrude(EP_H_MALE).intersect(adjCellSolid(tileL - CELL / 2, cy))
 
-      // Inner split connectors (N/E faces get male, S/W get female)
-      if (hasNConn) for (const cx of cellXC) toAdd.push(maleN(cx))
-      if (hasSConn) for (const cx of cellXC) toSub.push(femaleSouth.translate([cx, tileB]).extrude(EP_H_FEMALE))
+      // Inner split connectors (E/S faces get male, N/W get female)
+      if (hasNConn) for (const cx of cellXC) toSub.push(femaleNorth.translate([cx, tileT]).extrude(EP_H_FEMALE))
+      if (hasSConn) for (const cx of cellXC) toAdd.push(maleS(cx))
       if (hasEConn) for (const cy of cellYC) toAdd.push(maleE(cy))
       if (hasWConn) for (const cy of cellYC) toSub.push(femaleWest.translate([tileL, cy]).extrude(EP_H_FEMALE))
 
