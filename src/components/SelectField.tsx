@@ -1,4 +1,6 @@
-import { For, Show } from 'solid-js'
+import { createEffect, For, Show, useContext, type JSX } from 'solid-js'
+import { UrlSyncContext } from '../hooks/urlSync'
+import styles from './SelectField.module.css'
 
 interface Props {
   label?: string
@@ -6,30 +8,39 @@ interface Props {
   onChange: (v: string) => void
   options: { value: string; label: string }[]
   description?: string
+  default?: string | null
+  urlKey?: string
+  labelAction?: JSX.Element
 }
 
 export function SelectField(props: Props) {
+  const setUrl = useContext(UrlSyncContext)
+  createEffect(() => {
+    if (!props.urlKey || !setUrl) return
+    const atDefault = props.default != null && props.value === props.default
+    setUrl(props.urlKey, atDefault ? null : props.value)
+  })
+
   return (
     <div>
       <Show when={props.label}>
-        <label style={{ display: 'block', 'font-size': '0.8rem', color: '#aaa', 'margin-bottom': '4px' }}>{props.label}</label>
+        <div class={styles.labelRow}>
+          <label class={styles.labelText}>{props.label}</label>
+          <div class={styles.labelRight}>
+            {props.labelAction}
+            <Show when={props.default != null}>
+              <button disabled={props.value === props.default} onClick={() => props.onChange(props.default!)} title="Reset to default" class={styles.resetBtn}>↺</button>
+            </Show>
+          </div>
+        </div>
       </Show>
-      <select
-        value={props.value}
-        onChange={(e) => props.onChange(e.currentTarget.value)}
-        style={{
-          width: '100%', background: '#1a1a2e', color: '#e0e0e0',
-          border: '1px solid #333', 'border-radius': '4px',
-          padding: '5px 8px', 'font-size': '0.8rem', cursor: 'pointer',
-          'text-overflow': 'ellipsis', overflow: 'hidden',
-        }}
-      >
+      <select value={props.value} onChange={(e) => props.onChange(e.currentTarget.value)} class={styles.select}>
         <For each={props.options}>
           {(opt) => <option value={opt.value}>{opt.label}</option>}
         </For>
       </select>
       <Show when={props.description}>
-        <p style={{ margin: '3px 0 0', 'font-size': '0.72rem', color: '#555', 'line-height': '1.4' }}>{props.description}</p>
+        <p class={styles.description}>{props.description}</p>
       </Show>
     </div>
   )

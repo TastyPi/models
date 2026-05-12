@@ -59,13 +59,14 @@ function CornerRadiusGaugePage() {
           label="Style"
           value={textStyle()}
           onChange={setTextStyle}
+          default={DEFAULTS.text_style}
           options={[
             { value: 'debossed', label: 'Debossed' },
             { value: 'multicolour', label: 'Multi-colour' },
           ]}
         />
-        <BooleanField label="On top face" value={textTop()} onChange={setTextTop} />
-        <BooleanField label="On bottom face" value={textBottom()} onChange={setTextBottom} />
+        <BooleanField label="On top face" value={textTop()} onChange={setTextTop} default={DEFAULTS.text_top} />
+        <BooleanField label="On bottom face" value={textBottom()} onChange={setTextBottom} default={DEFAULTS.text_bottom} />
       </SidebarSection>
     </PageLayout>
   )

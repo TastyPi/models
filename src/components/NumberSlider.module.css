@@ -1,0 +1,54 @@
+.label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.labelText { font-size: 0.8rem; color: #aaa; }
+
+.labelRight {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.value { font-size: 0.8rem; color: #fff; }
+
+.slider { width: 100%; accent-color: #6688cc; }
+
+.description {
+  margin: 3px 0 0;
+  font-size: 0.72rem;
+  color: #555;
+  line-height: 1.4;
+}
+
+.resetBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: #6688cc;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.resetBtn:disabled { opacity: 0.35; cursor: default; }
+
+/* OptionalNumberSlider */
+.optHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.optHeaderEnabled { margin-bottom: 4px; }
+
+.optLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.checkbox { accent-color: #6688cc; }

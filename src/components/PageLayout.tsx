@@ -1,6 +1,7 @@
 import { Show, For, type JSX } from 'solid-js'
 import { ModelViewer } from './ModelViewer'
 import type { RawMesh, PieceMesh, Attribution } from '../types'
+import styles from './PageLayout.module.css'
 
 interface Props {
   title: string
@@ -18,55 +19,36 @@ interface Props {
 
 export function PageLayout(props: Props) {
   return (
-    <div style={{ display: 'flex', height: '100vh', 'font-family': 'system-ui, sans-serif', color: '#e0e0e0' }}>
-      <aside style={{ width: '260px', 'flex-shrink': '0', background: '#12121f', display: 'flex', 'flex-direction': 'column', overflow: 'hidden' }}>
-        <div style={{ 'padding-top': '20px', 'padding-left': '20px', 'padding-right': '20px', 'padding-bottom': '16px', 'flex-shrink': '0' }}>
-          <a href="../" style={{ 'font-size': '0.75rem', color: '#555', 'text-decoration': 'none', display: 'inline-block', 'margin-bottom': '12px' }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = '#6688cc')}
-            onMouseLeave={(e) => (e.currentTarget.style.color = '#555')}
-          >← All models</a>
-          <h2 style={{ margin: '0 0 4px', 'font-size': '1.1rem', color: '#fff' }}>{props.title}</h2>
+    <div class={styles.layout}>
+      <aside class={styles.sidebar}>
+        <div class={styles.sidebarHeader}>
+          <a href="../" class={styles.backLink}>← All models</a>
+          <h2 class={styles.title}>{props.title}</h2>
           <Show when={props.description}>
-            <p style={{ margin: '0 0 8px', 'font-size': '0.8rem', color: '#777' }}>{props.description}</p>
+            <p class={styles.description}>{props.description}</p>
           </Show>
           <Show when={props.header}>
             {props.header}
           </Show>
         </div>
 
-        <div style={{ flex: '1', 'overflow-y': 'auto', padding: '12px 20px', 'border-top': '1px solid #2a2a3a' }}>
+        <div class={styles.sidebarBody}>
           {props.children}
         </div>
 
-        <div style={{ padding: '12px 20px 20px', 'flex-shrink': '0', display: 'flex', 'flex-direction': 'column', gap: '8px', 'border-top': '1px solid #2a2a3a' }}>
+        <div class={styles.sidebarFooter}>
           <Show when={props.footer}>
             {props.footer}
           </Show>
-          <div style={{
-            'border-top': props.footer ? '1px solid #2a2a3a' : 'none',
-            'padding-top': props.footer ? '12px' : '0',
-            'font-size': '0.68rem', color: '#666', 'line-height': '1.5',
-          }}>
+          <div classList={{ [styles.attribution]: true, [styles.attributionDivider]: !!props.footer }}>
             <div>
               {'© 2026 Graham Rogers · '}
-              <a href="https://github.com/TastyPi/models" target="_blank" rel="noopener noreferrer"
-                style={{ color: '#778', 'text-decoration': 'none' }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = '#aabbdd')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = '#778')}
-              >GitHub</a>
+              <a href="https://github.com/TastyPi/models" target="_blank" rel="noopener noreferrer" class={styles.attrLink}>GitHub</a>
             </div>
             <div>
-              <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer" title="MIT licence (source code)"
-                style={{ color: '#778', 'text-decoration': 'none' }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = '#aabbdd')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = '#778')}
-              >MIT</a>
+              <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer" title="MIT licence (source code)" class={styles.attrLink}>MIT</a>
               {' (code) · '}
-              <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer" title="CC BY 4.0 (generated designs)"
-                style={{ color: '#778', 'text-decoration': 'none' }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = '#aabbdd')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = '#778')}
-              >CC BY 4.0</a>
+              <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer" title="CC BY 4.0 (generated designs)" class={styles.attrLink}>CC BY 4.0</a>
               {' (designs)'}
             </div>
             <Show when={props.attribution && props.attribution!.length > 0}>
@@ -78,9 +60,7 @@ export function PageLayout(props: Props) {
                       {i() > 0 && ' · '}
                       <a href={credit.url} target="_blank" rel="noopener noreferrer"
                         title={`${credit.name} by ${credit.author} (${credit.license})`}
-                        style={{ color: '#778', 'text-decoration': 'none', 'white-space': 'nowrap' }}
-                        onMouseEnter={(e) => (e.currentTarget.style.color = '#aabbdd')}
-                        onMouseLeave={(e) => (e.currentTarget.style.color = '#778')}
+                        classList={{ [styles.attrLink]: true, [styles.attrLinkNowrap]: true }}
                       >{credit.name}</a>
                     </>
                   )}
@@ -91,7 +71,7 @@ export function PageLayout(props: Props) {
         </div>
       </aside>
 
-      <main style={{ flex: '1', position: 'relative' }}>
+      <main class={styles.main}>
         <ModelViewer
           geometry={props.geometry}
           pieces={props.pieces}
@@ -99,11 +79,7 @@ export function PageLayout(props: Props) {
           onPieceClick={props.onPieceClick}
         />
         <Show when={props.rendering?.()}>
-          <div style={{
-            position: 'absolute', bottom: '16px', right: '16px',
-            background: 'rgba(18,18,31,0.85)', color: '#666',
-            padding: '5px 12px', 'border-radius': '4px', 'font-size': '0.75rem',
-          }}>Rendering…</div>
+          <div class={styles.rendering}>Rendering…</div>
         </Show>
       </main>
     </div>

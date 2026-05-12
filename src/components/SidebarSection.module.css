@@ -1,0 +1,40 @@
+.section { border-bottom: 1px solid #222; }
+
+.header {
+  padding: 8px 0;
+  cursor: default;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #666;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+}
+
+.headerClickable { cursor: pointer; }
+
+.headerLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkbox {
+  cursor: pointer;
+  margin: 0;
+  accent-color: #6688cc;
+}
+
+.chevron {
+  font-size: 1.1rem;
+  color: #555;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 0 12px;
+}

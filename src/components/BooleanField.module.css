@@ -1,0 +1,34 @@
+.label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.labelText { font-size: 0.8rem; color: #aaa; }
+
+.right {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.checkbox { accent-color: #6688cc; }
+
+.resetBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: #6688cc;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.resetBtn:disabled { opacity: 0.35; cursor: default; }
+
+.description {
+  margin: 3px 0 0;
+  font-size: 0.72rem;
+  color: #555;
+  line-height: 1.4;
+}

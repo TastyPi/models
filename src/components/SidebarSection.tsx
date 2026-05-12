@@ -1,4 +1,5 @@
 import { createMemo, createSignal, Show, type JSX } from 'solid-js'
+import styles from './SidebarSection.module.css'
 
 const GS_KEY = 'group-open'
 
@@ -34,36 +35,28 @@ export function SidebarSection(props: Props) {
   }
 
   return (
-    <div style={{ 'border-bottom': '1px solid #222' }}>
-      <div
-        onClick={toggle}
-        style={{
-          padding: '8px 0', cursor: canExpand() ? 'pointer' : 'default', 'font-size': '0.75rem',
-          'text-transform': 'uppercase', 'letter-spacing': '0.08em',
-          color: '#666', display: 'flex', 'justify-content': 'space-between',
-          'align-items': 'center', 'user-select': 'none',
-        }}
-      >
-        <div style={{ display: 'flex', 'align-items': 'center', gap: '8px' }}>
+    <div class={styles.section}>
+      <div onClick={toggle} classList={{ [styles.header]: true, [styles.headerClickable]: canExpand() }}>
+        <div class={styles.headerLabel}>
           {props.label}
           <Show when={props.checked !== undefined}>
             <input
               type="checkbox"
               checked={props.checked?.()}
-              style={{ cursor: 'pointer', margin: '0', 'accent-color': '#6688cc' }}
+              class={styles.checkbox}
               onClick={(e) => e.stopPropagation()}
               onChange={(e) => props.onCheckedChange?.(e.currentTarget.checked)}
             />
           </Show>
         </div>
-        <span class="material-icons" style={{ 'font-size': '1.1rem', color: '#555', visibility: canExpand() ? 'visible' : 'hidden' }}>
-          {effectiveOpen() ? 'expand_more' : 'chevron_right'}
-        </span>
+        <Show when={canExpand()}>
+          <span class={`material-icons ${styles.chevron}`}>
+            {effectiveOpen() ? 'expand_more' : 'chevron_right'}
+          </span>
+        </Show>
       </div>
       <Show when={effectiveOpen()}>
-        <div style={{ display: 'flex', 'flex-direction': 'column', gap: '12px', padding: '4px 0 12px' }}>
-          {props.children}
-        </div>
+        <div class={styles.body}>{props.children}</div>
       </Show>
     </div>
   )
