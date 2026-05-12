@@ -1,9 +1,11 @@
 import { createEffect, createMemo, createSignal, Show } from 'solid-js'
 import { render } from 'solid-js/web'
 import '../index.css'
+import styles from './gridfinity-box.module.css'
 import { PageLayout } from '../components/PageLayout'
 import { BooleanField } from '../components/BooleanField'
 import { NumberSlider } from '../components/NumberSlider'
+import { SelectField } from '../components/SelectField'
 import { SidebarSection } from '../components/SidebarSection'
 import { useGeometry } from '../hooks/useGeometry'
 import { attribution, info } from '../models/gridfinity-bin'
@@ -18,7 +20,10 @@ function GridfinityBinPage() {
   const [heightUnits, setHeightUnits] = createSignal(urlNum('height_units', 3))
   const [stackingLip, setStackingLip] = createSignal(urlBool('stacking_lip', true))
   const [magnets, setMagnets] = createSignal(urlBool('magnets', true))
-  const [crushRibs, setCrushRibs] = createSignal(urlBool('crush_ribs', false))
+  const [magnetStyle, setMagnetStyle] = createSignal<'ribs' | 'smooth'>(
+    sp.get('magnet_style') === 'ribs' ? 'ribs' : 'smooth'
+  )
+  const [magnetSize, setMagnetSize] = createSignal(urlNum('magnet_size', 6.2))
   const [chamfer, setChamfer] = createSignal(urlBool('chamfer', false))
   const [supportless, setSupportless] = createSignal(urlBool('supportless', false))
   const [dividersX, setDividersX] = createSignal(urlNum('dividers_x', 0))
@@ -29,7 +34,8 @@ function GridfinityBinPage() {
   const params = createMemo(() => ({
     cells_x: cellsX(), cells_y: cellsY(), height_units: heightUnits(),
     stacking_lip: stackingLip(),
-    magnets: magnets(), crush_ribs: crushRibs(), chamfer: chamfer(), supportless: supportless(),
+    magnets: magnets(), magnet_style: magnetStyle(), magnet_size: magnetSize(),
+    chamfer: chamfer(), supportless: supportless(),
     dividers_x: dividersX(), dividers_y: dividersY(),
   }))
 
@@ -44,7 +50,8 @@ function GridfinityBinPage() {
     url.set('stacking_lip', String(p.stacking_lip))
     url.set('magnets', String(p.magnets))
     if (p.magnets) {
-      url.set('crush_ribs', String(p.crush_ribs))
+      url.set('magnet_style', p.magnet_style)
+      if (p.magnet_style === 'smooth') url.set('magnet_size', String(p.magnet_size))
       url.set('chamfer', String(p.chamfer))
       url.set('supportless', String(p.supportless))
     }
@@ -58,20 +65,10 @@ function GridfinityBinPage() {
       title="Gridfinity Bin"
       description="Gridfinity bin with configurable width, depth, and height."
       attribution={attribution}
-      header={<p style={{ margin: '0', 'font-size': '0.8rem', color: '#777' }}>{infoStr()}</p>}
+      header={<p class={styles.infoHeader}>{infoStr()}</p>}
       geometry={geometry}
       rendering={rendering}
-      footer={
-        <button
-          onClick={() => download()}
-          style={{
-            background: '#6688cc', color: '#fff', border: 'none', 'border-radius': '4px',
-            padding: '8px 12px', cursor: 'pointer', 'font-size': '0.85rem', width: '100%',
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = '#7799dd')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = '#6688cc')}
-        >Download STL</button>
-      }
+      footer={<button onClick={() => download()} class={styles.downloadBtn}>Download STL</button>}
     >
       <SidebarSection label="Size" defaultOpen>
         <NumberSlider label="Width (cells)" value={cellsX()} onChange={setCellsX} min={1} max={10} />
@@ -82,9 +79,19 @@ function GridfinityBinPage() {
 
       <SidebarSection label="Magnets" defaultOpen checked={magnets} onCheckedChange={setMagnets}>
         <Show when={magnets()}>
-          <BooleanField label="Crush ribs" value={crushRibs()} onChange={setCrushRibs} />
-          <BooleanField label="Chamfer" value={chamfer()} onChange={setChamfer} />
-          <BooleanField label="Supportless" value={supportless()} onChange={setSupportless} />
+          <p class={styles.magnetNote}>
+            Smooth 6.2 mm gave the best press-fit in testing. Try the{' '}
+            <a href="../magnet-test/" class={styles.testerLink}>magnet tester</a>
+            {' '}to find your ideal size.
+          </p>
+          <SelectField label="Style" value={magnetStyle()} onChange={(v) => setMagnetStyle(v as 'ribs' | 'smooth')}
+            options={[{ value: 'smooth', label: 'Smooth bore' }, { value: 'ribs', label: 'Crush ribs' }]}
+            default="smooth" />
+          <Show when={magnetStyle() === 'smooth'}>
+            <NumberSlider label="Diameter (mm)" value={magnetSize()} onChange={(v) => setMagnetSize(Math.round(v * 100) / 100)} min={6.0} max={6.5} step={0.05} default={6.2} />
+          </Show>
+          <BooleanField label="Chamfer" value={chamfer()} onChange={setChamfer} default={false} />
+          <BooleanField label="Supportless" value={supportless()} onChange={setSupportless} default={false} />
         </Show>
       </SidebarSection>
 

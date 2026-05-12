@@ -6,6 +6,7 @@ import { isPieced, type GeomResult } from '../types'
 import * as wallHook from '../models/wall-hook'
 import * as gridfinityBaseplate from '../models/gridfinity-baseplate'
 import * as cornerRadiusGauge from '../models/corner-radius-gauge'
+import * as gridfinityBin from '../models/gridfinity-bin'
 import * as magnetTest from '../models/magnet-test'
 
 function extractMerged(result: GeomResult): Manifold {
@@ -45,6 +46,16 @@ const MODELS: { slug: string; label: string; description: string; generate: () =
     generate: () => extractMerged(cornerRadiusGauge.generate(
       { text_style: 'debossed', text_top: true, text_bottom: false }
     )).rotate(-90, 0, 0),
+  },
+  {
+    slug: 'gridfinity-box',
+    label: 'Gridfinity Bin',
+    description: 'Parametric Gridfinity bin with optional magnets, stacking lip, and X/Y dividers.',
+    generate: () => gridfinityBin.generate({
+      cells_x: 2, cells_y: 2, height_units: 3, stacking_lip: true,
+      magnets: false, magnet_style: 'smooth', magnet_size: 6.2,
+      chamfer: false, supportless: false, dividers_x: 0, dividers_y: 0,
+    }),
   },
   {
     slug: 'magnet-test',
