@@ -127,24 +127,24 @@ export function generate({ cells_x, cells_y, base_style, magnets, restrict_bed, 
         tile = tile.subtract(Manifold.union(openCuts))
       }
 
-      const northConnectors = cellXCenters.map(cx =>
-        malePiece.translate([cx, pieceTop]).extrude(EP_H_MALE)
-          .intersect(adjCellSolid(cx, pieceTop + CELL / 2))
+      const southConnectors = cellXCenters.map(cx =>
+        malePiece.mirror([0, 1]).translate([cx, pieceBottom]).extrude(EP_H_MALE)
+          .intersect(adjCellSolid(cx, pieceBottom - CELL / 2))
       )
       const eastConnectors = cellYCenters.map(cy =>
         maleEast.translate([pieceRight, cy]).extrude(EP_H_MALE)
           .intersect(adjCellSolid(pieceRight + CELL / 2, cy))
       )
-      const southCuts = cellXCenters.map(cx =>
-        femalePiece.translate([cx, pieceBottom]).extrude(EP_H_FEMALE)
+      const northCuts = cellXCenters.map(cx =>
+        femalePiece.mirror([0, 1]).translate([cx, pieceTop]).extrude(EP_H_FEMALE)
       )
       const westCuts = cellYCenters.map(cy =>
         femaleWest.translate([pieceLeft, cy]).extrude(EP_H_FEMALE)
       )
 
       tile = tile
-        .add(Manifold.union([...northConnectors, ...eastConnectors]))
-        .subtract(Manifold.union([...southCuts, ...westCuts]))
+        .add(Manifold.union([...southConnectors, ...eastConnectors]))
+        .subtract(Manifold.union([...northCuts, ...westCuts]))
 
       if (base_style === 'solid' && magnets) {
         const magnetHoles = cellXCenters.flatMap(cx =>
