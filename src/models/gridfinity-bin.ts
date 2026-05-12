@@ -45,10 +45,11 @@ export function info(cells_x: number, cells_y: number, height_units: number, sta
 export function generate(p: {
   cells_x: number; cells_y: number; height_units: number
   stacking_lip: boolean
-  magnets: boolean; crush_ribs: boolean; chamfer: boolean; supportless: boolean
+  magnets: boolean; magnet_style: 'ribs' | 'smooth'; magnet_size: number
+  chamfer: boolean; supportless: boolean
   dividers_x: number; dividers_y: number
 }) {
-  const { cells_x, cells_y, height_units, stacking_lip, magnets, crush_ribs, chamfer, supportless, dividers_x, dividers_y } = p
+  const { cells_x, cells_y, height_units, stacking_lip, magnets, magnet_style, magnet_size, chamfer, supportless, dividers_x, dividers_y } = p
   const { Manifold, CrossSection } = getManifold()
 
   const nominalH = height_units * HEIGHT_UNIT
@@ -91,10 +92,9 @@ export function generate(p: {
         [cx - MAG_OFFSET, cy - MAG_OFFSET], [cx + MAG_OFFSET, cy - MAG_OFFSET],
       ]
       for (const [mx, my] of corners) {
-        let magCS: any
-        if (crush_ribs) {
-          magCS = crushRibCrossSection(CrossSection)
-        }
+        const useRibs = magnet_style === 'ribs'
+        const holeR = useRibs ? MAGNET_HOLE_R : magnet_size / 2
+        const magCS: any = useRibs ? crushRibCrossSection(CrossSection) : null
 
         if (supportless) {
           const nSteps = 4
@@ -102,10 +102,10 @@ export function generate(p: {
           for (let i = 0; i < nSteps; i++) {
             const stepCyl = magCS
               ? magCS.extrude(stepH + 0.01).translate([mx, my, i * stepH - 0.005])
-              : Manifold.cylinder(stepH + 0.01, MAGNET_HOLE_R, MAGNET_HOLE_R, 32)
+              : Manifold.cylinder(stepH + 0.01, holeR, holeR, 32)
                   .translate([mx, my, i * stepH - 0.005])
-            const bridge = Manifold.cube([MAGNET_HOLE_R * 2 + 0.02, MAGNET_HOLE_R + 0.01, stepH + 0.02])
-              .translate([-MAGNET_HOLE_R - 0.01, -0.005, -0.01])
+            const bridge = Manifold.cube([holeR * 2 + 0.02, holeR + 0.01, stepH + 0.02])
+              .translate([-holeR - 0.01, -0.005, -0.01])
               .rotate([0, 0, i * 90])
               .translate([mx, my, i * stepH])
             holeShapes.push(stepCyl.subtract(bridge))
@@ -114,14 +114,14 @@ export function generate(p: {
           holeShapes.push(
             magCS
               ? magCS.extrude(MAGNET_HOLE_DEPTH + 0.01).translate([mx, my, -0.005])
-              : Manifold.cylinder(MAGNET_HOLE_DEPTH + 0.01, MAGNET_HOLE_R, MAGNET_HOLE_R, 32)
+              : Manifold.cylinder(MAGNET_HOLE_DEPTH + 0.01, holeR, holeR, 32)
                   .translate([mx, my, -0.005])
           )
         }
 
         if (chamfer) {
           holeShapes.push(
-            Manifold.cylinder(CHAMFER_R + 0.01, MAGNET_HOLE_R + CHAMFER_R, MAGNET_HOLE_R, 32)
+            Manifold.cylinder(CHAMFER_R + 0.01, holeR + CHAMFER_R, holeR, 32)
               .translate([mx, my, -0.01])
           )
         }
