@@ -78,6 +78,89 @@ export function wallStripExtent(
   }
 }
 
+export interface TilePlan {
+  label: string
+  col: number
+  row: number
+  startX: number
+  nX: number
+  startY: number
+  nY: number
+  wallN: number
+  wallS: number
+  wallE: number
+  wallW: number
+  hasNConn: boolean
+  hasSConn: boolean
+  hasEConn: boolean
+  hasWConn: boolean
+}
+
+function computeSplits(
+  cells_x: number, cells_y: number,
+  wall_n: number, wall_s: number, wall_e: number, wall_w: number,
+  separate_walls: boolean,
+  bedX: number, bedY: number,
+): { sizesX: number[]; sizesY: number[] } {
+  if (separate_walls) {
+    return {
+      sizesX: splitSizes(cells_x, Math.max(1, Math.floor(bedX / CELL))),
+      sizesY: splitSizes(cells_y, Math.max(1, Math.floor(bedY / CELL))),
+    }
+  }
+  return {
+    sizesX: splitMaxInterior(cells_x, Math.floor(bedX / CELL),
+      Math.max(1, Math.floor((bedX - wall_w) / CELL)),
+      Math.max(1, Math.floor((bedX - wall_e) / CELL)),
+      Math.max(1, Math.floor((bedX - wall_w - wall_e) / CELL))),
+    sizesY: splitMaxInterior(cells_y, Math.floor(bedY / CELL),
+      Math.max(1, Math.floor((bedY - wall_s) / CELL)),
+      Math.max(1, Math.floor((bedY - wall_n) / CELL)),
+      Math.max(1, Math.floor((bedY - wall_s - wall_n) / CELL))),
+  }
+}
+
+export function planTiles(p: {
+  cells_x: number; cells_y: number
+  wall_n: number; wall_s: number; wall_e: number; wall_w: number
+  separate_walls: boolean
+  bed: { x: number; y: number }
+}): { tiles: TilePlan[]; sizesX: number[]; sizesY: number[]; bed: { x: number; y: number } } {
+  const { cells_x, cells_y, wall_n, wall_s, wall_e, wall_w, separate_walls, bed: rawBed } = p
+
+  const standard = computeSplits(cells_x, cells_y, wall_n, wall_s, wall_e, wall_w, separate_walls, rawBed.x, rawBed.y)
+  const swapped  = computeSplits(cells_x, cells_y, wall_n, wall_s, wall_e, wall_w, separate_walls, rawBed.y, rawBed.x)
+  const useSwap = swapped.sizesX.length * swapped.sizesY.length < standard.sizesX.length * standard.sizesY.length
+  const { sizesX, sizesY } = useSwap ? swapped : standard
+  const bed = useSwap ? { x: rawBed.y, y: rawBed.x } : rawBed
+
+  const cols = sizesX.length, rows = sizesY.length
+  const tileLabel = (pi: number, pj: number) =>
+    cols === 1 && rows === 1 ? 'Tile' : `Tile C${pi + 1}-R${pj + 1}`
+
+  const tiles: TilePlan[] = []
+  let startX = 0
+  for (let pi = 0; pi < cols; pi++) {
+    let startY = 0
+    for (let pj = 0; pj < rows; pj++) {
+      const isN = pj === rows - 1, isS = pj === 0
+      const isE = pi === cols - 1, isW = pi === 0
+      tiles.push({
+        label: tileLabel(pi, pj),
+        col: pi, row: pj,
+        startX, nX: sizesX[pi],
+        startY, nY: sizesY[pj],
+        wallN: isN ? wall_n : 0, wallS: isS ? wall_s : 0,
+        wallE: isE ? wall_e : 0, wallW: isW ? wall_w : 0,
+        hasNConn: !isN, hasSConn: !isS, hasEConn: !isE, hasWConn: !isW,
+      })
+      startY += sizesY[pj]
+    }
+    startX += sizesX[pi]
+  }
+  return { tiles, sizesX, sizesY, bed, swapped: useSwap }
+}
+
 export interface Params {
   cells_x: number
   cells_y: number
@@ -523,6 +606,8 @@ export function generate(params: Params) {
       if (strip) labeled.push({ label, geom: strip.translate([dx, dy, 0]) })
     }
 
+    let downloadRotation: [number, number, number] = [0, 0, 0]
+
     if (!restrict_bed) {
       const cellXC = Array.from({ length: cells_x }, (_, i) => (i - (cells_x - 1) / 2) * CELL)
       const cellYC = Array.from({ length: cells_y }, (_, j) => (j - (cells_y - 1) / 2) * CELL)
@@ -558,50 +643,27 @@ export function generate(params: Params) {
 
       labeled.push({ label: 'Tile', geom: tile })
     } else {
-      const bed = resolveBed(bed_type, bed_x, bed_y)
+      const rawBed = resolveBed(bed_type, bed_x, bed_y)
+      const { tiles, sizesX, sizesY, bed, swapped } = planTiles({ cells_x, cells_y, wall_n, wall_s, wall_e, wall_w, separate_walls, bed: rawBed })
+      if (swapped) downloadRotation = [0, 0, 90]
       const maxCellsX = Math.max(1, Math.floor(bed.x / CELL))
       const maxCellsY = Math.max(1, Math.floor(bed.y / CELL))
-      let sizesX: number[], sizesY: number[]
-      if (separate_walls) {
-        sizesX = splitSizes(cells_x, maxCellsX)
-        sizesY = splitSizes(cells_y, maxCellsY)
-      } else {
-        sizesX = splitMaxInterior(cells_x, Math.floor(bed.x / CELL),
-          Math.max(1, Math.floor((bed.x - wall_w) / CELL)),
-          Math.max(1, Math.floor((bed.x - wall_e) / CELL)),
-          Math.max(1, Math.floor((bed.x - wall_w - wall_e) / CELL)),
-        )
-        sizesY = splitMaxInterior(cells_y, Math.floor(bed.y / CELL),
-          Math.max(1, Math.floor((bed.y - wall_s) / CELL)),
-          Math.max(1, Math.floor((bed.y - wall_n) / CELL)),
-          Math.max(1, Math.floor((bed.y - wall_s - wall_n) / CELL)),
-        )
-      }
       const cols = sizesX.length, rows = sizesY.length
       const baseX = cells_x * CELL / 2 + wall_w
       const baseY = cells_y * CELL / 2 + wall_s
-      const tileLabel = (pi: number, pj: number) =>
-        cols === 1 && rows === 1 ? 'Tile' : `Tile C${pi + 1}-R${pj + 1}`
       const wallLabel = (dir: string, count: number, idx: number) =>
         count === 1 ? `${dir} wall` : `${dir} wall ${idx + 1}`
 
       // Tiles
-      let startX = 0
-      for (let pi = 0; pi < cols; pi++) {
-        let startY = 0
-        for (let pj = 0; pj < rows; pj++) {
-          const isN = pj === rows - 1, isS = pj === 0
-          const isE = pi === cols - 1, isW = pi === 0
-          const wallN = isN ? wall_n : 0, wallS = isS ? wall_s : 0
-          const wallE = isE ? wall_e : 0, wallW = isW ? wall_w : 0
-          labeled.push({
-            label: tileLabel(pi, pj),
-            geom: buildPiece(startX, sizesX[pi], startY, sizesY[pj], wallN, wallS, wallE, wallW, !isN, !isS, !isE, !isW, separate_walls)
-              .translate([pi * PIECE_GAP + baseX, pj * PIECE_GAP + baseY, 0]),
-          })
-          startY += sizesY[pj]
-        }
-        startX += sizesX[pi]
+      for (const tile of tiles) {
+        labeled.push({
+          label: tile.label,
+          geom: buildPiece(tile.startX, tile.nX, tile.startY, tile.nY,
+            tile.wallN, tile.wallS, tile.wallE, tile.wallW,
+            tile.hasNConn, tile.hasSConn, tile.hasEConn, tile.hasWConn,
+            separate_walls)
+            .translate([tile.col * PIECE_GAP + baseX, tile.row * PIECE_GAP + baseY, 0]),
+        })
       }
 
       if (separate_walls) {
@@ -712,5 +774,6 @@ export function generate(params: Params) {
     return {
       merged,
       pieces: labeled.map(p => ({ label: p.label, geom: p.geom })),
+      downloadRotation,
     }
 }

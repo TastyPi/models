@@ -76,6 +76,7 @@ self.onmessage = async (e: MessageEvent<InMsg>) => {
       } else {
         geom = flatRotate(pieced ? result.merged : result)
       }
+      if (pieced) geom = geom.rotate(result.downloadRotation)
       if (entry.exportTransform) geom = entry.exportTransform(params, geom)
       const mesh = extractMesh(geom)
       self.postMessage({ type: 'result', key, mesh } satisfies OutMsg, { transfer: [mesh.vertProperties.buffer as ArrayBuffer, mesh.triVerts.buffer as ArrayBuffer] })
