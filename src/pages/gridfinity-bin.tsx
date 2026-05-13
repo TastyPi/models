@@ -77,6 +77,11 @@ function GridfinityBinPage() {
         <BooleanField label="Stacking lip" value={stackingLip()} onChange={setStackingLip} />
       </SidebarSection>
 
+      <SidebarSection label="Dividers" defaultOpen>
+        <NumberSlider label="X dividers" value={dividersX()} onChange={setDividersX} min={0} max={5} />
+        <NumberSlider label="Y dividers" value={dividersY()} onChange={setDividersY} min={0} max={5} />
+      </SidebarSection>
+
       <SidebarSection label="Magnets" defaultOpen checked={magnets} onCheckedChange={setMagnets}>
         <Show when={magnets()}>
           <p class={styles.magnetNote}>
@@ -93,11 +98,6 @@ function GridfinityBinPage() {
           <BooleanField label="Chamfer" value={chamfer()} onChange={setChamfer} default={false} />
           <BooleanField label="Supportless" value={supportless()} onChange={setSupportless} default={false} />
         </Show>
-      </SidebarSection>
-
-      <SidebarSection label="Dividers" defaultOpen>
-        <NumberSlider label="X dividers" value={dividersX()} onChange={setDividersX} min={0} max={5} />
-        <NumberSlider label="Y dividers" value={dividersY()} onChange={setDividersY} min={0} max={5} />
       </SidebarSection>
     </PageLayout>
   )
