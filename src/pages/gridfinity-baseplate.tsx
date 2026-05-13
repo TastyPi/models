@@ -4,7 +4,7 @@ import '../index.css'
 import { PageLayout } from '../components/PageLayout'
 import { ModelInfo } from '../components/ModelInfo'
 import { BooleanField } from '../components/BooleanField'
-import { NumberSlider, OptionalNumberSlider } from '../components/NumberSlider'
+import { NumberSlider } from '../components/NumberSlider'
 import { PresetSelect } from '../components/PresetSelect'
 import { SelectField } from '../components/SelectField'
 import { SidebarSection } from '../components/SidebarSection'
@@ -111,10 +111,10 @@ function GridfinityBaseplatePage() {
   const wallMin = createMemo(() => separateWalls() && wallConnector() === 'wall_female' ? EP_WALL_MIN : 0)
 
   const info = createMemo(() => {
-    const wN = restrictBed() || edgeN() === 'wall' ? (wallN() ?? 0) : 0
-    const wS = restrictBed() || edgeS() === 'wall' ? (wallS() ?? 0) : 0
-    const wE = restrictBed() || edgeE() === 'wall' ? (wallE() ?? 0) : 0
-    const wW = restrictBed() || edgeW() === 'wall' ? (wallW() ?? 0) : 0
+    const wN = edgeN() === 'wall' ? (wallN() ?? 0) : 0
+    const wS = edgeS() === 'wall' ? (wallS() ?? 0) : 0
+    const wE = edgeE() === 'wall' ? (wallE() ?? 0) : 0
+    const wW = edgeW() === 'wall' ? (wallW() ?? 0) : 0
     const w = cellsX() * CELL + wW + wE
     const d = cellsY() * CELL + wN + wS
     return `${w} × ${d} mm`
@@ -139,6 +139,7 @@ function GridfinityBaseplatePage() {
   const [presetSel, setPresetSel] = createSignal(initialPresetKey)
   const [presetParams, setPresetParams] = createSignal<Preset | null>(initialPreset)
   const activeBase = createMemo(() => presetParams() ?? DEFAULTS)
+  const presetBase = createMemo(() => presetParams() != null ? activeBase() : null)
 
   const isDirty = createMemo(() => {
     const p = presetParams()
@@ -211,25 +212,25 @@ function GridfinityBaseplatePage() {
           </Show>
         </SidebarSection>
         <SidebarSection label="Style" defaultOpen>
-          <SelectField label="Base style" value={baseStyle()} onChange={setBaseStyle} default={activeBase().base_style} urlKey="base_style" options={[
+          <SelectField label="Base style" value={baseStyle()} onChange={setBaseStyle} default={presetBase()?.base_style} urlKey="base_style" options={[
             { value: 'solid', label: 'Solid' },
             { value: 'open', label: 'Open' },
           ]} />
           <Show when={baseStyle() === 'solid'}>
-            <BooleanField label="Magnet pockets" value={magnets()} onChange={setMagnets} default={activeBase().magnets} urlKey="magnets" />
+            <BooleanField label="Magnet pockets" value={magnets()} onChange={setMagnets} default={presetBase()?.magnets} urlKey="magnets" />
           </Show>
         </SidebarSection>
         <SidebarSection label="Size" defaultOpen>
-          <NumberSlider label="Width (cells)" value={cellsX()} onChange={setCellsX} min={1} max={20} default={activeBase().cells_x} urlKey="cells_x" />
-          <NumberSlider label="Depth (cells)" value={cellsY()} onChange={setCellsY} min={1} max={20} default={activeBase().cells_y} urlKey="cells_y" />
+          <NumberSlider label="Width (cells)" value={cellsX()} onChange={setCellsX} min={1} max={20} default={presetBase()?.cells_x} urlKey="cells_x" />
+          <NumberSlider label="Depth (cells)" value={cellsY()} onChange={setCellsY} min={1} max={20} default={presetBase()?.cells_y} urlKey="cells_y" />
         </SidebarSection>
         <SidebarSection label="Corners" defaultOpen>
           <p class={styles.cornerLabel}>Radius (mm)</p>
           <div class={styles.cornerGrid}>
-            <NumberSlider label="NW" value={cornerNW()} onChange={setCornerNW} min={0} max={OUTER_R} step={0.5} default={activeBase().corner_radius_nw} urlKey="corner_radius_nw" />
-            <NumberSlider label="NE" value={cornerNE()} onChange={setCornerNE} min={0} max={OUTER_R} step={0.5} default={activeBase().corner_radius_ne} urlKey="corner_radius_ne" />
-            <NumberSlider label="SW" value={cornerSW()} onChange={setCornerSW} min={0} max={OUTER_R} step={0.5} default={activeBase().corner_radius_sw} urlKey="corner_radius_sw" />
-            <NumberSlider label="SE" value={cornerSE()} onChange={setCornerSE} min={0} max={OUTER_R} step={0.5} default={activeBase().corner_radius_se} urlKey="corner_radius_se" />
+            <NumberSlider label="NW" value={cornerNW()} onChange={setCornerNW} min={0} max={OUTER_R} step={0.5} default={presetBase()?.corner_radius_nw} urlKey="corner_radius_nw" />
+            <NumberSlider label="NE" value={cornerNE()} onChange={setCornerNE} min={0} max={OUTER_R} step={0.5} default={presetBase()?.corner_radius_ne} urlKey="corner_radius_ne" />
+            <NumberSlider label="SW" value={cornerSW()} onChange={setCornerSW} min={0} max={OUTER_R} step={0.5} default={presetBase()?.corner_radius_sw} urlKey="corner_radius_sw" />
+            <NumberSlider label="SE" value={cornerSE()} onChange={setCornerSE} min={0} max={OUTER_R} step={0.5} default={presetBase()?.corner_radius_se} urlKey="corner_radius_se" />
           </div>
         </SidebarSection>
         <SidebarSection label="Walls" defaultOpen>
@@ -238,19 +239,19 @@ function GridfinityBaseplatePage() {
               label="Print walls separately"
               value={separateWalls()}
               onChange={setSeparateWalls}
-              default={activeBase().separate_walls}
+              default={presetBase()?.separate_walls}
               urlKey="separate_walls"
               description="Recommended when designing a plate for a new product — if measurements are off, only the walls need reprinting."
             />
           </Show>
           <Show when={restrictBed() && separateWalls() && hasWalls()}>
-            <SelectField label="Wall connector" value={wallConnector()} onChange={setWallConnector} default={activeBase().wall_connector} urlKey="wall_connector" options={[
+            <SelectField label="Wall connector" value={wallConnector()} onChange={setWallConnector} default={presetBase()?.wall_connector} urlKey="wall_connector" options={[
               { value: 'wall_male',   label: 'Male on wall' },
               { value: 'wall_female', label: 'Female on wall' },
             ]} />
           </Show>
           <Show when={restrictBed() && separateWalls() && hasCorner()}>
-            <SelectField label="Corner style" value={cornerStyle()} onChange={setCornerStyle} default={activeBase().corner_style} urlKey="corner_style" options={[
+            <SelectField label="Corner style" value={cornerStyle()} onChange={setCornerStyle} default={presetBase()?.corner_style} urlKey="corner_style" options={[
               { value: 'corner_l',   label: 'L-shaped' },
               { value: 'corner_cw',  label: 'Clockwise' },
               { value: 'corner_ccw', label: 'Anti-clockwise' },
@@ -258,37 +259,29 @@ function GridfinityBaseplatePage() {
               { value: 'corner_ew',  label: 'Included in E/W walls' },
             ]} />
           </Show>
-          <Show when={!restrictBed()}>
-            <SelectField label="North edge" value={edgeN()} onChange={setEdgeN} default={activeBase().edge_n} urlKey="edge_n" options={[
-              { value: 'wall', label: 'Wall' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' },
-            ]} />
+          <SelectField label="North edge" value={edgeN()} onChange={setEdgeN} default={presetBase()?.edge_n} urlKey="edge_n" options={[
+            { value: 'wall', label: 'Wall' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' },
+          ]} />
+          <Show when={edgeN() === 'wall'}>
+            <NumberSlider label="Thickness (mm)" value={wallN() ?? 0} onChange={setWallN} min={wallMin()} max={40} step={0.5} default={presetBase() != null ? presetBase()!.wall_n ?? 0 : undefined} urlKey="wall_n" />
           </Show>
-          <Show when={restrictBed() || edgeN() === 'wall'}>
-            <OptionalNumberSlider label="North (mm)" value={wallN()} onChange={setWallN} min={wallMin()} max={40} step={0.5} default={activeBase().wall_n} urlKey="wall_n" />
+          <SelectField label="South edge" value={edgeS()} onChange={setEdgeS} default={presetBase()?.edge_s} urlKey="edge_s" options={[
+            { value: 'wall', label: 'Wall' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' },
+          ]} />
+          <Show when={edgeS() === 'wall'}>
+            <NumberSlider label="Thickness (mm)" value={wallS() ?? 0} onChange={setWallS} min={wallMin()} max={40} step={0.5} default={presetBase() != null ? presetBase()!.wall_s ?? 0 : undefined} urlKey="wall_s" />
           </Show>
-          <Show when={!restrictBed()}>
-            <SelectField label="South edge" value={edgeS()} onChange={setEdgeS} default={activeBase().edge_s} urlKey="edge_s" options={[
-              { value: 'wall', label: 'Wall' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' },
-            ]} />
+          <SelectField label="East edge" value={edgeE()} onChange={setEdgeE} default={presetBase()?.edge_e} urlKey="edge_e" options={[
+            { value: 'wall', label: 'Wall' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' },
+          ]} />
+          <Show when={edgeE() === 'wall'}>
+            <NumberSlider label="Thickness (mm)" value={wallE() ?? 0} onChange={setWallE} min={wallMin()} max={40} step={0.5} default={presetBase() != null ? presetBase()!.wall_e ?? 0 : undefined} urlKey="wall_e" />
           </Show>
-          <Show when={restrictBed() || edgeS() === 'wall'}>
-            <OptionalNumberSlider label="South (mm)" value={wallS()} onChange={setWallS} min={wallMin()} max={40} step={0.5} default={activeBase().wall_s} urlKey="wall_s" />
-          </Show>
-          <Show when={!restrictBed()}>
-            <SelectField label="East edge" value={edgeE()} onChange={setEdgeE} default={activeBase().edge_e} urlKey="edge_e" options={[
-              { value: 'wall', label: 'Wall' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' },
-            ]} />
-          </Show>
-          <Show when={restrictBed() || edgeE() === 'wall'}>
-            <OptionalNumberSlider label="East (mm)" value={wallE()} onChange={setWallE} min={wallMin()} max={40} step={0.5} default={activeBase().wall_e} urlKey="wall_e" />
-          </Show>
-          <Show when={!restrictBed()}>
-            <SelectField label="West edge" value={edgeW()} onChange={setEdgeW} default={activeBase().edge_w} urlKey="edge_w" options={[
-              { value: 'wall', label: 'Wall' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' },
-            ]} />
-          </Show>
-          <Show when={restrictBed() || edgeW() === 'wall'}>
-            <OptionalNumberSlider label="West (mm)" value={wallW()} onChange={setWallW} min={wallMin()} max={40} step={0.5} default={activeBase().wall_w} urlKey="wall_w" />
+          <SelectField label="West edge" value={edgeW()} onChange={setEdgeW} default={presetBase()?.edge_w} urlKey="edge_w" options={[
+            { value: 'wall', label: 'Wall' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' },
+          ]} />
+          <Show when={edgeW() === 'wall'}>
+            <NumberSlider label="Thickness (mm)" value={wallW() ?? 0} onChange={setWallW} min={wallMin()} max={40} step={0.5} default={presetBase() != null ? presetBase()!.wall_w ?? 0 : undefined} urlKey="wall_w" />
           </Show>
         </SidebarSection>
       </PageLayout>
