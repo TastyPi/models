@@ -2,6 +2,7 @@ import { createMemo, createSignal, Show } from 'solid-js'
 import { render } from 'solid-js/web'
 import '../index.css'
 import { PageLayout } from '../components/PageLayout'
+import { ModelInfo } from '../components/ModelInfo'
 import { BooleanField } from '../components/BooleanField'
 import { NumberSlider, OptionalNumberSlider } from '../components/NumberSlider'
 import { PresetSelect } from '../components/PresetSelect'
@@ -116,7 +117,7 @@ function GridfinityBaseplatePage() {
     const wW = restrictBed() || edgeW() === 'wall' ? (wallW() ?? 0) : 0
     const w = cellsX() * CELL + wW + wE
     const d = cellsY() * CELL + wN + wS
-    return `${w} × ${d} mm assembled`
+    return `${w} × ${d} mm`
   })
 
   const params = createMemo(() => ({
@@ -178,7 +179,7 @@ function GridfinityBaseplatePage() {
         onPieceClick={setSelectedPiece}
         rendering={rendering}
         header={
-          <div>
+          <>
             <PresetSelect
               value={presetSel()}
               onChange={onPresetChange}
@@ -186,8 +187,8 @@ function GridfinityBaseplatePage() {
               dirty={!!presetParams() && isDirty()}
               onResetAll={() => applyPreset(presetParams()!)}
             />
-            <p class={styles.info}>{info()}</p>
-          </div>
+            <ModelInfo>{info()}</ModelInfo>
+          </>
         }
         footer={
           <Show
@@ -261,27 +262,33 @@ function GridfinityBaseplatePage() {
             <SelectField label="North edge" value={edgeN()} onChange={setEdgeN} default={activeBase().edge_n} urlKey="edge_n" options={[
               { value: 'wall', label: 'Wall' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' },
             ]} />
-            <SelectField label="South edge" value={edgeS()} onChange={setEdgeS} default={activeBase().edge_s} urlKey="edge_s" options={[
-              { value: 'wall', label: 'Wall' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' },
-            ]} />
-            <SelectField label="East edge" value={edgeE()} onChange={setEdgeE} default={activeBase().edge_e} urlKey="edge_e" options={[
-              { value: 'wall', label: 'Wall' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' },
-            ]} />
-            <SelectField label="West edge" value={edgeW()} onChange={setEdgeW} default={activeBase().edge_w} urlKey="edge_w" options={[
-              { value: 'wall', label: 'Wall' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' },
-            ]} />
           </Show>
           <Show when={restrictBed() || edgeN() === 'wall'}>
             <OptionalNumberSlider label="North (mm)" value={wallN()} onChange={setWallN} min={wallMin()} max={40} step={0.5} default={activeBase().wall_n} urlKey="wall_n" />
           </Show>
+          <Show when={!restrictBed()}>
+            <SelectField label="South edge" value={edgeS()} onChange={setEdgeS} default={activeBase().edge_s} urlKey="edge_s" options={[
+              { value: 'wall', label: 'Wall' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' },
+            ]} />
+          </Show>
           <Show when={restrictBed() || edgeS() === 'wall'}>
             <OptionalNumberSlider label="South (mm)" value={wallS()} onChange={setWallS} min={wallMin()} max={40} step={0.5} default={activeBase().wall_s} urlKey="wall_s" />
           </Show>
+          <Show when={!restrictBed()}>
+            <SelectField label="East edge" value={edgeE()} onChange={setEdgeE} default={activeBase().edge_e} urlKey="edge_e" options={[
+              { value: 'wall', label: 'Wall' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' },
+            ]} />
+          </Show>
           <Show when={restrictBed() || edgeE() === 'wall'}>
-            <OptionalNumberSlider label="East (mm)"  value={wallE()} onChange={setWallE} min={wallMin()} max={40} step={0.5} default={activeBase().wall_e} urlKey="wall_e" />
+            <OptionalNumberSlider label="East (mm)" value={wallE()} onChange={setWallE} min={wallMin()} max={40} step={0.5} default={activeBase().wall_e} urlKey="wall_e" />
+          </Show>
+          <Show when={!restrictBed()}>
+            <SelectField label="West edge" value={edgeW()} onChange={setEdgeW} default={activeBase().edge_w} urlKey="edge_w" options={[
+              { value: 'wall', label: 'Wall' }, { value: 'male', label: 'Male connector' }, { value: 'female', label: 'Female connector' },
+            ]} />
           </Show>
           <Show when={restrictBed() || edgeW() === 'wall'}>
-            <OptionalNumberSlider label="West (mm)"  value={wallW()} onChange={setWallW} min={wallMin()} max={40} step={0.5} default={activeBase().wall_w} urlKey="wall_w" />
+            <OptionalNumberSlider label="West (mm)" value={wallW()} onChange={setWallW} min={wallMin()} max={40} step={0.5} default={activeBase().wall_w} urlKey="wall_w" />
           </Show>
         </SidebarSection>
       </PageLayout>

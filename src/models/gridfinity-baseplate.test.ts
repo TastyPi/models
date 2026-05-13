@@ -92,6 +92,87 @@ describe('planTiles (halfords preset, Prusa Core One)', () => {
   })
 })
 
+describe('planTiles — col/row symmetry for piece centering', () => {
+  // The display layout offsets each piece by (col - (cols-1)/2) * PIECE_GAP in X
+  // and (row - (rows-1)/2) * PIECE_GAP in Y. Correct col/row values are what
+  // makes that formula symmetric around the origin.
+
+  it('2-column split: cols are 0 and 1', () => {
+    // 10 cells wide, bed fits 5 → forced 2-column split
+    const { tiles, sizesX } = planTiles({
+      cells_x: 10, cells_y: 2, ...{ wall_n: 0, wall_s: 0, wall_e: 0, wall_w: 0 },
+      separate_walls: false, bed: { x: 5 * 42, y: 220 },
+    })
+    expect(sizesX).toHaveLength(2)
+    const cols = tiles.map(t => t.col).sort()
+    expect(cols).toEqual([0, 1])
+  })
+
+  it('2-row split: rows are 0 and 1', () => {
+    const { tiles, sizesY } = planTiles({
+      cells_x: 2, cells_y: 10, ...{ wall_n: 0, wall_s: 0, wall_e: 0, wall_w: 0 },
+      separate_walls: false, bed: { x: 220, y: 5 * 42 },
+    })
+    expect(sizesY).toHaveLength(2)
+    const rows = tiles.map(t => t.row).sort()
+    expect(rows).toEqual([0, 1])
+  })
+
+  it('2×2 split: all four (col,row) combinations present', () => {
+    const { tiles } = planTiles({
+      cells_x: 10, cells_y: 10, ...{ wall_n: 0, wall_s: 0, wall_e: 0, wall_w: 0 },
+      separate_walls: false, bed: { x: 5 * 42, y: 5 * 42 },
+    })
+    expect(tiles).toHaveLength(4)
+    const coords = new Set(tiles.map(t => `${t.col},${t.row}`))
+    expect(coords).toEqual(new Set(['0,0', '1,0', '0,1', '1,1']))
+  })
+
+  it('startX is cumulative across columns', () => {
+    const { tiles, sizesX } = planTiles({
+      cells_x: 10, cells_y: 2, ...{ wall_n: 0, wall_s: 0, wall_e: 0, wall_w: 0 },
+      separate_walls: false, bed: { x: 5 * 42, y: 220 },
+    })
+    const col0 = tiles.find(t => t.col === 0)!
+    const col1 = tiles.find(t => t.col === 1)!
+    expect(col0.startX).toBe(0)
+    expect(col1.startX).toBe(sizesX[0])
+  })
+
+  it('startY is cumulative across rows', () => {
+    const { tiles, sizesY } = planTiles({
+      cells_x: 2, cells_y: 10, ...{ wall_n: 0, wall_s: 0, wall_e: 0, wall_w: 0 },
+      separate_walls: false, bed: { x: 220, y: 5 * 42 },
+    })
+    const row0 = tiles.find(t => t.row === 0)!
+    const row1 = tiles.find(t => t.row === 1)!
+    expect(row0.startY).toBe(0)
+    expect(row1.startY).toBe(sizesY[0])
+  })
+
+  it('all nX values sum to cells_x across any row', () => {
+    const cells_x = 10
+    const { tiles, sizesX } = planTiles({
+      cells_x, cells_y: 4, ...{ wall_n: 0, wall_s: 0, wall_e: 0, wall_w: 0 },
+      separate_walls: false, bed: { x: 5 * 42, y: 220 },
+    })
+    const row0tiles = tiles.filter(t => t.row === 0)
+    expect(row0tiles.reduce((s, t) => s + t.nX, 0)).toBe(cells_x)
+    expect(sizesX.reduce((a, b) => a + b, 0)).toBe(cells_x)
+  })
+
+  it('all nY values sum to cells_y across any column', () => {
+    const cells_y = 10
+    const { tiles, sizesY } = planTiles({
+      cells_x: 4, cells_y, ...{ wall_n: 0, wall_s: 0, wall_e: 0, wall_w: 0 },
+      separate_walls: false, bed: { x: 220, y: 5 * 42 },
+    })
+    const col0tiles = tiles.filter(t => t.col === 0)
+    expect(col0tiles.reduce((s, t) => s + t.nY, 0)).toBe(cells_y)
+    expect(sizesY.reduce((a, b) => a + b, 0)).toBe(cells_y)
+  })
+})
+
 describe('EP_WALL_MIN', () => {
   it('is a positive number', () => {
     expect(EP_WALL_MIN).toBeGreaterThan(0)
