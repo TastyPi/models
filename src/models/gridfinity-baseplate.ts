@@ -1,4 +1,5 @@
 import { getManifold } from '../manifold'
+import type { Manifold } from 'manifold-3d'
 import type { Attribution } from '../types'
 import { resolveBed, splitSizes, splitMaxInterior } from '../printBed'
 
@@ -125,7 +126,7 @@ export function planTiles(p: {
   wall_n: number; wall_s: number; wall_e: number; wall_w: number
   separate_walls: boolean
   bed: { x: number; y: number }
-}): { tiles: TilePlan[]; sizesX: number[]; sizesY: number[]; bed: { x: number; y: number } } {
+}): { tiles: TilePlan[]; sizesX: number[]; sizesY: number[]; bed: { x: number; y: number }; swapped: boolean } {
   const { cells_x, cells_y, wall_n, wall_s, wall_e, wall_w, separate_walls, bed: rawBed } = p
 
   const standard = computeSplits(cells_x, cells_y, wall_n, wall_s, wall_e, wall_w, separate_walls, rawBed.x, rawBed.y)
@@ -606,7 +607,7 @@ export function generate(params: Params) {
       if (strip) labeled.push({ label, geom: strip.translate([dx, dy, 0]) })
     }
 
-    let downloadRotation: [number, number, number] = [0, 0, 0]
+    let exportTransform: ((g: Manifold) => Manifold) | undefined
 
     if (!restrict_bed) {
       const cellXC = Array.from({ length: cells_x }, (_, i) => (i - (cells_x - 1) / 2) * CELL)
@@ -645,7 +646,7 @@ export function generate(params: Params) {
     } else {
       const rawBed = resolveBed(bed_type, bed_x, bed_y)
       const { tiles, sizesX, sizesY, bed, swapped } = planTiles({ cells_x, cells_y, wall_n, wall_s, wall_e, wall_w, separate_walls, bed: rawBed })
-      if (swapped) downloadRotation = [0, 0, 90]
+      if (swapped) exportTransform = (g: Manifold) => g.rotate(0, 0, 90)
       const maxCellsX = Math.max(1, Math.floor(bed.x / CELL))
       const maxCellsY = Math.max(1, Math.floor(bed.y / CELL))
       const cols = sizesX.length, rows = sizesY.length
@@ -770,10 +771,13 @@ export function generate(params: Params) {
     }
 
     const merged = Manifold.union(labeled.map(p => p.geom))
-    if (labeled.length <= 1) return merged
+    if (labeled.length <= 1) {
+      if (exportTransform) return { geom: merged, exportTransform }
+      return merged
+    }
     return {
       merged,
       pieces: labeled.map(p => ({ label: p.label, geom: p.geom })),
-      downloadRotation,
+      exportTransform,
     }
 }

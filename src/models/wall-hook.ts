@@ -111,13 +111,12 @@ export function generate({
     return shaft.add(cone).add(bore);
   };
 
-  if (holeCount === 1) return body.subtract(makeHole(0));
-
-  return Array.from({ length: holeCount }, (_, i) => (i - (holeCount - 1) / 2) * screwSpacing)
-    .reduce((acc, x) => acc.subtract(makeHole(x)), body);
-}
-
-export function exportTransform({ wall_side_height: wallHeight, depth }: Pick<Params, 'wall_side_height' | 'depth'>, geom: Manifold) {
   const printAngle = Math.atan2(wallHeight, depth) * (180 / Math.PI)
-  return geom.rotate(printAngle, 0, 0)
+  const exportTransform = (g: Manifold) => g.rotate(printAngle, 0, 0)
+
+  if (holeCount === 1) return { geom: body.subtract(makeHole(0)), exportTransform };
+
+  const geom = Array.from({ length: holeCount }, (_, i) => (i - (holeCount - 1) / 2) * screwSpacing)
+    .reduce((acc, x) => acc.subtract(makeHole(x)), body);
+  return { geom, exportTransform };
 }
