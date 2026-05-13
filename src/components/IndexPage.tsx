@@ -1,43 +1,30 @@
-import { createSignal, createEffect, createResource, Show, For } from 'solid-js'
+import { createSignal, onMount, onCleanup, Show, For } from 'solid-js'
 import * as THREE from 'three'
-import type { Manifold } from 'manifold-3d'
-import { initManifold } from '../manifold'
-import { isPieced, isWrapped, type GeomResult } from '../types'
-import * as wallHook from '../models/wall-hook'
-import * as gridfinityBaseplate from '../models/gridfinity-baseplate'
-import * as gridfinityBin from '../models/gridfinity-bin'
-import * as cornerRadiusGauge from '../models/corner-radius-gauge'
-import * as magnetTest from '../models/magnet-test'
+import type { RawMesh } from '../types'
 import styles from './IndexPage.module.css'
 
-function extractMerged(result: GeomResult): Manifold {
-  return isPieced(result) ? result.merged : isWrapped(result) ? result.geom : result
-}
-
-const MODELS: { slug: string; label: string; description: string; generate: () => Manifold }[] = [
+const MODELS: { slug: string; label: string; description: string; params: Record<string, unknown> }[] = [
   {
     slug: 'corner-radius-gauge',
     label: 'Corner Radius Gauge',
     description: 'Set of 10 gauge tiles for corner radii from 0.5 to 5 mm in 0.5 mm steps.',
-    generate: () => extractMerged(cornerRadiusGauge.generate(
-      { text_style: 'debossed', text_top: true, text_bottom: false }
-    )).rotate(-90, 0, 0),
+    params: { text_style: 'debossed', text_top: true, text_bottom: false },
   },
   {
     slug: 'gridfinity-bin',
     label: 'Gridfinity Bin',
     description: 'Parametric Gridfinity bin with optional magnets, stacking lip, and X/Y dividers.',
-    generate: () => gridfinityBin.generate({
+    params: {
       cells_x: 2, cells_y: 2, height_units: 3, stacking_lip: true,
       magnets: false, magnet_style: 'smooth', magnet_size: 6.2,
       chamfer: false, supportless: false, dividers_x: 0, dividers_y: 0,
-    }),
+    },
   },
   {
     slug: 'gridfinity-baseplate',
     label: 'Gridfinity Baseplate',
     description: 'Parametric Gridfinity baseplate with optional walls, magnet pockets, and print-bed-aware splitting.',
-    generate: () => extractMerged(gridfinityBaseplate.generate({
+    params: {
       cells_x: 3, cells_y: 3,
       edge_n: 'wall', edge_s: 'wall', edge_e: 'wall', edge_w: 'wall',
       wall_n: null, wall_s: null, wall_e: null, wall_w: null,
@@ -45,28 +32,28 @@ const MODELS: { slug: string; label: string; description: string; generate: () =
       corner_radius_sw: 0, corner_radius_se: 0, corner_radius_ne: 0, corner_radius_nw: 0,
       base_style: 'open', magnets: false,
       restrict_bed: false, bed_type: 'prusa_core_one', bed_x: 250, bed_y: 220,
-    })).rotate(-90, 0, 0),
+    },
   },
   {
     slug: 'magnet-test',
     label: 'Magnet Press-Fit Test',
     description: 'Six pockets left to right: crush ribs, then plain bores at 6.0, 6.1, 6.2, 6.3, 6.4 mm. Centre push-out hole in each.',
-    generate: () => magnetTest.generate({}).rotate(-90, 0, 0),
+    params: {},
   },
   {
     slug: 'wall-hook',
     label: 'Wall Hook',
     description: 'Triangular prism hook. Side (a) mounts against the wall with screw holes, side (b) is the hook arm with a retention lip, side (c) is the hypotenuse — print flat on side (c), no supports needed.',
-    generate: () => wallHook.generate({
+    params: {
       wall_side_height: 20, depth: 10, width: 50,
       lip_height: 25, lip_thickness: 5, lip_edge_radius: 2.5,
       screw_holes: 2, screw_spacing: 20, screw_type: 'wood4', screw_shaft: 4, screw_head: 8,
       driver_type: 'ltt', driver_diameter: 10, countersunk: true,
-    }).geom,
+    },
   },
 ]
 
-function renderThumbnail(geom: Manifold): string {
+function renderThumbnail(mesh: RawMesh): string {
   const W = 280, H = 200
   const canvas = document.createElement('canvas')
   canvas.width = W
@@ -78,18 +65,15 @@ function renderThumbnail(geom: Manifold): string {
   const scene = new THREE.Scene()
   scene.background = new THREE.Color(0x1a1a2e)
 
-  const m = geom.getMesh()
   const geo = new THREE.BufferGeometry()
-  geo.setAttribute('position', new THREE.BufferAttribute(m.vertProperties, m.numProp))
-  geo.setIndex(new THREE.BufferAttribute(m.triVerts, 1))
+  geo.setAttribute('position', new THREE.BufferAttribute(mesh.vertProperties, mesh.numProp))
+  geo.setIndex(new THREE.BufferAttribute(mesh.triVerts, 1))
   geo.computeBoundingSphere()
   geo.computeVertexNormals()
 
-  const mesh = new THREE.Mesh(
-    geo,
-    new THREE.MeshStandardMaterial({ color: 0x6688cc, roughness: 0.4, metalness: 0.1, flatShading: true })
-  )
-  scene.add(mesh)
+  const mat = new THREE.MeshStandardMaterial({ color: 0x6688cc, roughness: 0.4, metalness: 0.1, flatShading: true })
+  const obj = new THREE.Mesh(geo, mat)
+  scene.add(obj)
 
   scene.add(new THREE.AmbientLight(0xffffff, 0.5))
   const sun = new THREE.DirectionalLight(0xffffff, 1.2)
@@ -111,26 +95,37 @@ function renderThumbnail(geom: Manifold): string {
 
   renderer.dispose()
   geo.dispose()
-  ;(mesh.material as THREE.MeshStandardMaterial).dispose()
+  mat.dispose()
 
   return dataUrl
 }
 
+type WorkerOutMsg =
+  | { type: 'result'; key: string; mesh: RawMesh }
+  | { type: 'error'; key: string }
+
 export function IndexPage() {
-  const [ready] = createResource(initManifold)
   const [thumbnails, setThumbnails] = createSignal<Record<string, string>>({})
 
-  createEffect(() => {
-    if (!ready()) return
-    const thumbs: Record<string, string> = {}
-    for (const entry of MODELS) {
+  onMount(() => {
+    const worker = new Worker(new URL('../renderWorker.ts', import.meta.url), { type: 'module' })
+
+    worker.onmessage = (e: MessageEvent<WorkerOutMsg>) => {
+      const msg = e.data
+      if (msg.type !== 'result') return
       try {
-        thumbs[entry.slug] = renderThumbnail(entry.generate())
-      } catch (e) {
-        console.error('thumbnail failed for', entry.slug, e)
+        const thumb = renderThumbnail(msg.mesh)
+        setThumbnails(prev => ({ ...prev, [msg.key]: thumb }))
+      } catch (err) {
+        console.error('thumbnail render failed for', msg.key, err)
       }
     }
-    setThumbnails(thumbs)
+
+    for (const entry of MODELS) {
+      worker.postMessage({ type: 'generate', key: entry.slug, slug: entry.slug, params: entry.params })
+    }
+
+    onCleanup(() => worker.terminate())
   })
 
   return (
@@ -145,7 +140,7 @@ export function IndexPage() {
                 when={thumbnails()[entry.slug]}
                 fallback={
                   <div class={styles.thumbnailPlaceholder}>
-                    <span class={styles.thumbnailPlaceholderText}>{ready() ? '—' : 'Loading…'}</span>
+                    <span class={styles.thumbnailPlaceholderText}>Loading…</span>
                   </div>
                 }
               >
