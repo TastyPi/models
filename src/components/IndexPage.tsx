@@ -62,7 +62,7 @@ const MODELS: { slug: string; label: string; description: string; generate: () =
       lip_height: 25, lip_thickness: 5, lip_edge_radius: 2.5,
       screw_holes: 2, screw_spacing: 20, screw_type: 'wood4', screw_shaft: 4, screw_head: 8,
       driver_type: 'ltt', driver_diameter: 10, countersunk: true,
-    }),
+    }).geom,
   },
 ]
 

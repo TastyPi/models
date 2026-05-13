@@ -24,7 +24,7 @@ export function generate({
   lip_edge_radius: edgeRadius, screw_holes: holeCount, screw_spacing: screwSpacing,
   screw_type: screwType, screw_shaft: screwShaft, screw_head: screwHead,
   driver_type: driverType, driver_diameter: driverDiameterCustom, countersunk
-}: Params) {
+}: Params): { geom: Manifold; exportTransform: (g: Manifold) => Manifold } {
   const { Manifold } = getManifold();
 
   const { shaft: shaftDiameter, head: headDiameter } = resolveScrew(screwType, screwShaft, screwHead);
@@ -77,7 +77,10 @@ export function generate({
 
   const body = prism.add(lip);
 
-  if (holeCount === 0) return body;
+  const printAngle = Math.atan2(wallHeight, depth) * (180 / Math.PI)
+  const exportTransform = (g: Manifold) => g.rotate(printAngle, 0, 0)
+
+  if (holeCount === 0) return { geom: body, exportTransform };
 
   const coneRadius = headDiameter / 2;
   const countersinkDepth = coneRadius - shaftDiameter / 2;  // 90 degree countersink depth
@@ -110,9 +113,6 @@ export function generate({
 
     return shaft.add(cone).add(bore);
   };
-
-  const printAngle = Math.atan2(wallHeight, depth) * (180 / Math.PI)
-  const exportTransform = (g: Manifold) => g.rotate(printAngle, 0, 0)
 
   if (holeCount === 1) return { geom: body.subtract(makeHole(0)), exportTransform };
 

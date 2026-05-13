@@ -3,6 +3,7 @@ import { render } from 'solid-js/web'
 import '../index.css'
 import styles from './gridfinity-bin.module.css'
 import { PageLayout } from '../components/PageLayout'
+import { ModelInfo } from '../components/ModelInfo'
 import { BooleanField } from '../components/BooleanField'
 import { NumberSlider } from '../components/NumberSlider'
 import { SelectField } from '../components/SelectField'
@@ -65,7 +66,7 @@ function GridfinityBinPage() {
       title="Gridfinity Bin"
       description="Gridfinity bin with configurable width, depth, and height."
       attribution={attribution}
-      header={<p class={styles.infoHeader}>{infoStr()}</p>}
+      header={<ModelInfo>{infoStr()}</ModelInfo>}
       geometry={geometry}
       rendering={rendering}
       footer={<button onClick={() => download()} class={styles.downloadBtn}>Download STL</button>}

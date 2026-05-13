@@ -650,8 +650,8 @@ export function generate(params: Params) {
       const maxCellsX = Math.max(1, Math.floor(bed.x / CELL))
       const maxCellsY = Math.max(1, Math.floor(bed.y / CELL))
       const cols = sizesX.length, rows = sizesY.length
-      const baseX = cells_x * CELL / 2 + wall_w
-      const baseY = cells_y * CELL / 2 + wall_s
+      const baseX = -(cols - 1) / 2 * PIECE_GAP
+      const baseY = -(rows - 1) / 2 * PIECE_GAP
       const wallLabel = (dir: string, count: number, idx: number) =>
         count === 1 ? `${dir} wall` : `${dir} wall ${idx + 1}`
 
