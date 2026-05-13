@@ -6,14 +6,13 @@ import * as cornerRadiusGauge from './models/corner-radius-gauge'
 import * as gridfinityBin from './models/gridfinity-bin'
 import * as magnetTest from './models/magnet-test'
 import type { RawMesh, PieceMesh, GeomResult, PieceGeom } from './types'
-import { isPieced } from './types'
+import { isPieced, isWrapped } from './types'
 
 const MODELS: Record<string, {
   generate: (p: any) => GeomResult
   flatModel?: boolean
-  exportTransform?: (p: any, g: Manifold) => Manifold
 }> = {
-  'wall-hook':             { generate: wallHook.generate,             exportTransform: wallHook.exportTransform },
+  'wall-hook':             { generate: wallHook.generate },
   'gridfinity-baseplate':  { generate: gridfinityBaseplate.generate,  flatModel: gridfinityBaseplate.flatModel },
   'corner-radius-gauge':   { generate: cornerRadiusGauge.generate,    flatModel: cornerRadiusGauge.flatModel },
   'gridfinity-bin':        { generate: gridfinityBin.generate },
@@ -52,7 +51,8 @@ self.onmessage = async (e: MessageEvent<InMsg>) => {
     const flatRotate = (g: Manifold): Manifold => entry.flatModel ? g.rotate(-90, 0, 0) : g
 
     if (type === 'generate') {
-      const geom = flatRotate(pieced ? result.merged : result)
+      const rawGeom = pieced ? result.merged : (isWrapped(result) ? result.geom : result)
+      const geom = flatRotate(rawGeom)
       const mesh = extractMesh(geom)
       const pieces: PieceMesh[] | undefined = pieced
         ? result.pieces.map((p: PieceGeom) => {
@@ -72,11 +72,18 @@ self.onmessage = async (e: MessageEvent<InMsg>) => {
       const { pieceIndex } = e.data as Extract<InMsg, { type: 'export' }>
       let geom: Manifold
       if (pieced && pieceIndex !== undefined && pieceIndex >= 0) {
-        geom = flatRotate(result.pieces[pieceIndex].geom)
+        geom = result.pieces[pieceIndex].geom
+      } else if (pieced) {
+        geom = result.merged
+      } else if (isWrapped(result)) {
+        geom = result.geom
       } else {
-        geom = flatRotate(pieced ? result.merged : result)
+        geom = result
       }
-      if (entry.exportTransform) geom = entry.exportTransform(params, geom)
+      if (isPieced(result) || isWrapped(result)) {
+        if (result.exportTransform) geom = result.exportTransform(geom)
+      }
+      geom = flatRotate(geom)
       const mesh = extractMesh(geom)
       self.postMessage({ type: 'result', key, mesh } satisfies OutMsg, { transfer: [mesh.vertProperties.buffer as ArrayBuffer, mesh.triVerts.buffer as ArrayBuffer] })
     }

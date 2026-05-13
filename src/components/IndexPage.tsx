@@ -2,7 +2,7 @@ import { createSignal, createEffect, createResource, Show, For } from 'solid-js'
 import * as THREE from 'three'
 import type { Manifold } from 'manifold-3d'
 import { initManifold } from '../manifold'
-import { isPieced, type GeomResult } from '../types'
+import { isPieced, isWrapped, type GeomResult } from '../types'
 import * as wallHook from '../models/wall-hook'
 import * as gridfinityBaseplate from '../models/gridfinity-baseplate'
 import * as gridfinityBin from '../models/gridfinity-bin'
@@ -11,7 +11,7 @@ import * as magnetTest from '../models/magnet-test'
 import styles from './IndexPage.module.css'
 
 function extractMerged(result: GeomResult): Manifold {
-  return isPieced(result) ? result.merged : result
+  return isPieced(result) ? result.merged : isWrapped(result) ? result.geom : result
 }
 
 const MODELS: { slug: string; label: string; description: string; generate: () => Manifold }[] = [
