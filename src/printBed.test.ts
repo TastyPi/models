@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { resolveBed, splitSizes, splitMaxInterior } from './printBed'
+import { resolveBed, splitSizes, splitWallSizes, splitMaxInterior } from './printBed'
 
 describe('resolveBed', () => {
   it('returns known printer bed sizes', () => {
@@ -53,6 +53,84 @@ describe('splitSizes', () => {
     const sizes = splitSizes(13, 5)
     for (let i = 1; i < sizes.length; i++) {
       expect(sizes[i]).toBeLessThanOrEqual(sizes[i - 1])
+    }
+  })
+})
+
+describe('splitWallSizes', () => {
+  it('falls back to splitSizes when no corner preference', () => {
+    expect(splitWallSizes(13, 5, 5, null)).toEqual([5, 4, 4])
+    expect(splitWallSizes(10, 5, 5, null)).toEqual([5, 5])
+  })
+
+  it('places corner piece last when cornerAtEnd=true', () => {
+    expect(splitWallSizes(13, 5, 5, true)).toEqual([5, 5, 3])
+    expect(splitWallSizes(11, 5, 5, true)).toEqual([5, 5, 1])
+    expect(splitWallSizes(10, 5, 5, true)).toEqual([5, 5])
+    expect(splitWallSizes(5, 5, 5, true)).toEqual([5])
+    expect(splitWallSizes(1, 5, 5, true)).toEqual([1])
+  })
+
+  it('places corner piece first when cornerAtEnd=false', () => {
+    expect(splitWallSizes(13, 5, 5, false)).toEqual([3, 5, 5])
+    expect(splitWallSizes(11, 5, 5, false)).toEqual([1, 5, 5])
+    expect(splitWallSizes(10, 5, 5, false)).toEqual([5, 5])
+    expect(splitWallSizes(5, 5, 5, false)).toEqual([5])
+  })
+
+  it('respects maxCorner when smaller than maxInterior', () => {
+    // corner piece extends into perpendicular wall, so it has less room on the bed
+    expect(splitWallSizes(13, 5, 4, true)).toEqual([5, 5, 3])   // 3 ≤ maxCorner=4
+    expect(splitWallSizes(9, 5, 4, true)).toEqual([5, 4])        // 4 = maxCorner exactly
+    expect(splitWallSizes(4, 5, 4, true)).toEqual([4])            // fits as single corner piece
+    expect(splitWallSizes(4, 5, 4, false)).toEqual([4])
+  })
+
+  it('handles case where n is a multiple of maxInterior but corner would be 0', () => {
+    // 8 cells, bed=180mm: maxInterior=4, maxCorner=3 (18mm wall uses floor((180-18)/42)=3)
+    // [4, 4] would overflow: 4*42+18=186 > 180, so must use 3 pieces
+    expect(splitWallSizes(8, 4, 3, true)).toEqual([4, 3, 1])     // corner=1 at end
+    expect(splitWallSizes(8, 4, 3, false)).toEqual([1, 4, 3])   // corner=1 at start
+    const sizes = splitWallSizes(8, 4, 3, true)
+    expect(sizes[sizes.length - 1]).toBeLessThanOrEqual(3)         // corner ≤ maxCorner
+    expect(Math.max(...sizes.slice(0, -1))).toBeLessThanOrEqual(4) // interior ≤ maxInterior
+  })
+
+  it('respects maxCorner: corner piece does not exceed maxCorner', () => {
+    // only test feasible cases: corner = n - ceil((n-mc)/mi)*mi > 0
+    const cases: [number, number, number][] = [
+      [13, 5, 4], [9, 5, 4], [13, 5, 3], [8, 5, 3],
+      [7, 3, 2], [10, 3, 2], [4, 5, 4],
+    ]
+    for (const [n, mi, mc] of cases) {
+      const end = splitWallSizes(n, mi, mc, true)
+      const start = splitWallSizes(n, mi, mc, false)
+      expect(end.reduce((a, b) => a + b, 0)).toBe(n)
+      expect(start.reduce((a, b) => a + b, 0)).toBe(n)
+      if (end.length > 1) expect(end[end.length - 1]).toBeLessThanOrEqual(mc)
+      if (start.length > 1) expect(start[0]).toBeLessThanOrEqual(mc)
+    }
+  })
+
+  it('corner piece is always <= interior pieces', () => {
+    for (const n of [1, 5, 7, 10, 11, 13, 17, 20]) {
+      for (const max of [3, 5, 7]) {
+        const end = splitWallSizes(n, max, max, true)
+        const start = splitWallSizes(n, max, max, false)
+        if (end.length > 1) expect(end[end.length - 1]).toBeLessThanOrEqual(end[0])
+        if (start.length > 1) expect(start[0]).toBeLessThanOrEqual(start[start.length - 1])
+      }
+    }
+  })
+
+  it('always sums to n', () => {
+    for (const n of [1, 5, 10, 13, 17, 20]) {
+      for (const max of [1, 3, 5, 7]) {
+        for (const corner of [true, false, null] as const) {
+          const sizes = splitWallSizes(n, max, max, corner)
+          expect(sizes.reduce((a, b) => a + b, 0)).toBe(n)
+        }
+      }
     }
   })
 })

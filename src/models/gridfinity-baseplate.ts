@@ -1,7 +1,7 @@
 import { getManifold } from '../manifold'
 import type { Manifold } from 'manifold-3d'
 import type { Attribution } from '../types'
-import { resolveBed, splitSizes, splitMaxInterior } from '../printBed'
+import { resolveBed, splitSizes, splitWallSizes, splitMaxInterior } from '../printBed'
 
 // Gridfinity spec constants (from https://gridfinity.xyz/specification/)
 // Profile coordinates sourced from gridfinity-rebuilt-openscad by Kenneth Hodson
@@ -541,25 +541,45 @@ export function generate(params: Params) {
         const fullCellXC = Array.from({ length: cells_x }, (_, i) => (i - (cells_x - 1) / 2) * CELL)
         const fullCellYC = Array.from({ length: cells_y }, (_, j) => (j - (cells_y - 1) / 2) * CELL)
 
-        const wallSizesX = splitSizes(cells_x, maxCellsX)
-        const wallCols = wallSizesX.length
-        let wallStartX = 0
+        // N corner is at right end (NE, adds wall_e width); S corner is at left end (SW, adds wall_w width).
+        const mcNX = Math.max(1, Math.floor((bed.x - wall_e) / CELL))
+        const mcSX = Math.max(1, Math.floor((bed.x - wall_w) / CELL))
+        const wallSizesN = splitWallSizes(cells_x, maxCellsX, mcNX, wall_e > 0 ? true : null)
+        const wallSizesS = splitWallSizes(cells_x, maxCellsX, mcSX, wall_w > 0 ? false : null)
+        const wallCols = wallSizesN.length
+        let wallNStartX = 0, wallSStartX = 0
         for (let pi = 0; pi < wallCols; pi++) {
-          const segCellXC = Array.from({ length: wallSizesX[pi] }, (_, i) => (wallStartX + i - (cells_x - 1) / 2) * CELL)
           const tx = pi * PIECE_GAP + baseX
-          if (wall_n > 0) pushStrip(wallLabel('North', wallCols, pi), buildWallStrip('N', segCellXC, fullCellYC, wall_n, wall_s, wall_e, wall_w, pi === 0, pi === wallCols - 1), tx, rows * PIECE_GAP + baseY)
-          if (wall_s > 0) pushStrip(wallLabel('South', wallCols, pi), buildWallStrip('S', segCellXC, fullCellYC, wall_n, wall_s, wall_e, wall_w, pi === 0, pi === wallCols - 1), tx, -PIECE_GAP + baseY)
-          wallStartX += wallSizesX[pi]
+          if (wall_n > 0) {
+            const segCellXC = Array.from({ length: wallSizesN[pi] }, (_, i) => (wallNStartX + i - (cells_x - 1) / 2) * CELL)
+            pushStrip(wallLabel('North', wallCols, pi), buildWallStrip('N', segCellXC, fullCellYC, wall_n, wall_s, wall_e, wall_w, pi === 0, pi === wallCols - 1), tx, rows * PIECE_GAP + baseY)
+            wallNStartX += wallSizesN[pi]
+          }
+          if (wall_s > 0) {
+            const segCellXC = Array.from({ length: wallSizesS[pi] }, (_, i) => (wallSStartX + i - (cells_x - 1) / 2) * CELL)
+            pushStrip(wallLabel('South', wallCols, pi), buildWallStrip('S', segCellXC, fullCellYC, wall_n, wall_s, wall_e, wall_w, pi === 0, pi === wallCols - 1), tx, -PIECE_GAP + baseY)
+            wallSStartX += wallSizesS[pi]
+          }
         }
-        const wallSizesY = splitSizes(cells_y, maxCellsY)
-        const wallRows = wallSizesY.length
-        let wallStartY = 0
+        // E corner is at bottom end (SE, adds wall_s height); W corner is at top end (NW, adds wall_n height).
+        const mcEY = Math.max(1, Math.floor((bed.y - wall_s) / CELL))
+        const mcWY = Math.max(1, Math.floor((bed.y - wall_n) / CELL))
+        const wallSizesE = splitWallSizes(cells_y, maxCellsY, mcEY, wall_s > 0 ? false : null)
+        const wallSizesW = splitWallSizes(cells_y, maxCellsY, mcWY, wall_n > 0 ? true : null)
+        const wallRows = wallSizesE.length
+        let wallEStartY = 0, wallWStartY = 0
         for (let pj = 0; pj < wallRows; pj++) {
-          const segCellYC = Array.from({ length: wallSizesY[pj] }, (_, j) => (wallStartY + j - (cells_y - 1) / 2) * CELL)
           const ty = pj * PIECE_GAP + baseY
-          if (wall_e > 0) pushStrip(wallLabel('East', wallRows, pj), buildWallStrip('E', fullCellXC, segCellYC, wall_n, wall_s, wall_e, wall_w, pj === 0, pj === wallRows - 1), cols * PIECE_GAP + baseX, ty)
-          if (wall_w > 0) pushStrip(wallLabel('West', wallRows, pj), buildWallStrip('W', fullCellXC, segCellYC, wall_n, wall_s, wall_e, wall_w, pj === 0, pj === wallRows - 1), -PIECE_GAP + baseX, ty)
-          wallStartY += wallSizesY[pj]
+          if (wall_e > 0) {
+            const segCellYC = Array.from({ length: wallSizesE[pj] }, (_, j) => (wallEStartY + j - (cells_y - 1) / 2) * CELL)
+            pushStrip(wallLabel('East', wallRows, pj), buildWallStrip('E', fullCellXC, segCellYC, wall_n, wall_s, wall_e, wall_w, pj === 0, pj === wallRows - 1), cols * PIECE_GAP + baseX, ty)
+            wallEStartY += wallSizesE[pj]
+          }
+          if (wall_w > 0) {
+            const segCellYC = Array.from({ length: wallSizesW[pj] }, (_, j) => (wallWStartY + j - (cells_y - 1) / 2) * CELL)
+            pushStrip(wallLabel('West', wallRows, pj), buildWallStrip('W', fullCellXC, segCellYC, wall_n, wall_s, wall_e, wall_w, pj === 0, pj === wallRows - 1), cols * PIECE_GAP + baseX, ty)
+            wallWStartY += wallSizesW[pj]
+          }
         }
       }
     }
