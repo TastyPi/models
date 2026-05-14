@@ -2,6 +2,7 @@ import { createEffect, createMemo, createSignal, Show } from 'solid-js'
 import { render } from 'solid-js/web'
 import '../index.css'
 import { PageLayout } from '../components/PageLayout'
+import { DownloadFooter } from '../components/DownloadFooter'
 import { BooleanField } from '../components/BooleanField'
 import { NumberSlider } from '../components/NumberSlider'
 import { SelectField } from '../components/SelectField'
@@ -99,12 +100,7 @@ function WallHookPage() {
       description="Triangular prism hook. Print flat on the hypotenuse face — no supports needed."
       geometry={geometry}
       rendering={rendering}
-      footer={
-        <>
-          <button onClick={() => download()} style={btnStyle}>Download STL</button>
-          <button onClick={() => download(undefined, '3mf')} style={btnStyleOutline}>Download 3MF</button>
-        </>
-      }
+      footer={<DownloadFooter label="Download" onStl={() => download()} on3mf={() => download(undefined, '3mf')} />}
       header={
         <div style={{ 'margin-bottom': '8px' }}>
           <div style={{ 'font-size': '0.6rem', color: '#555', 'text-transform': 'uppercase', 'letter-spacing': '0.08em', 'margin-bottom': '4px' }}>Preset</div>
@@ -150,8 +146,5 @@ function WallHookPage() {
     </PageLayout>
   )
 }
-
-const btnStyle = { padding: '10px', background: '#6688cc', color: '#fff', border: 'none', 'border-radius': '6px', cursor: 'pointer', 'font-size': '0.875rem', width: '100%' } as const
-const btnStyleOutline = { padding: '8px', background: 'none', color: '#6688cc', border: '1px solid #6688cc', 'border-radius': '6px', cursor: 'pointer', 'font-size': '0.8rem', width: '100%' } as const
 
 render(() => <WallHookPage />, document.getElementById('root')!)

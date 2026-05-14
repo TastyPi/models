@@ -1,10 +1,11 @@
-import { createEffect, createSignal, Show } from 'solid-js'
+import { createEffect, createSignal } from 'solid-js'
 import { render } from 'solid-js/web'
 import '../index.css'
 import { PageLayout } from '../components/PageLayout'
 import { BooleanField } from '../components/BooleanField'
 import { SelectField } from '../components/SelectField'
 import { SidebarSection } from '../components/SidebarSection'
+import { DownloadFooter } from '../components/DownloadFooter'
 import { useGeometry } from '../hooks/useGeometry'
 import { attribution } from '../models/corner-radius-gauge'
 
@@ -41,20 +42,11 @@ function CornerRadiusGaugePage() {
       onPieceClick={setSelectedPiece}
       rendering={rendering}
       footer={
-        <>
-          <Show
-            when={selectedPiece() >= 0 && pieces()}
-            fallback={
-              <button onClick={() => download()} style={btnStyle}>Download STL</button>
-            }
-          >
-            <button onClick={() => download(selectedPiece())} style={btnStyle}>
-              Download {pieces()?.[selectedPiece()]?.label} STL
-            </button>
-            <button onClick={() => download()} style={btnStyleOutline}>Download all STL</button>
-          </Show>
-          <button onClick={() => download(undefined, '3mf')} style={btnStyleOutline}>Download 3MF</button>
-        </>
+        <DownloadFooter
+          label={selectedPiece() >= 0 ? 'Download selected' : 'Download'}
+          onStl={() => selectedPiece() >= 0 ? download(selectedPiece()) : download()}
+          on3mf={() => selectedPiece() >= 0 ? download(selectedPiece(), '3mf') : download(undefined, '3mf')}
+        />
       }
     >
       <SidebarSection label="Text" defaultOpen>
@@ -74,8 +66,5 @@ function CornerRadiusGaugePage() {
     </PageLayout>
   )
 }
-
-const btnStyle = { padding: '10px', background: '#6688cc', color: '#fff', border: 'none', 'border-radius': '6px', cursor: 'pointer', 'font-size': '0.875rem', width: '100%' } as const
-const btnStyleOutline = { padding: '8px', background: 'none', color: '#6688cc', border: '1px solid #6688cc', 'border-radius': '6px', cursor: 'pointer', 'font-size': '0.8rem', width: '100%' } as const
 
 render(() => <CornerRadiusGaugePage />, document.getElementById('root')!)

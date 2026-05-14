@@ -8,6 +8,7 @@ import { BooleanField } from '../components/BooleanField'
 import { NumberSlider } from '../components/NumberSlider'
 import { SelectField } from '../components/SelectField'
 import { SidebarSection } from '../components/SidebarSection'
+import { DownloadFooter } from '../components/DownloadFooter'
 import { useGeometry } from '../hooks/useGeometry'
 import { attribution, info } from '../models/gridfinity-bin'
 
@@ -71,10 +72,7 @@ function GridfinityBinPage() {
       header={<ModelInfo>{infoStr()}</ModelInfo>}
       geometry={geometry}
       rendering={rendering}
-      footer={<>
-        <button onClick={() => download()} class={styles.downloadBtn}>Download STL</button>
-        <button onClick={() => download(undefined, '3mf')} class={styles.downloadBtnOutline}>Download 3MF</button>
-      </>}
+      footer={<DownloadFooter label="Download" onStl={() => download()} on3mf={() => download(undefined, '3mf')} />}
     >
       <SidebarSection label="Size" defaultOpen>
         <NumberSlider label="Width (cells)" value={cellsX()} onChange={setCellsX} min={1} max={10} />
