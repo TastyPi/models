@@ -294,12 +294,15 @@ export function useGeometry(slug: string, params: () => Record<string, unknown>)
     onCleanup(() => clearTimeout(timer))
   })
 
-  const download = (pieceIndex?: number, format: 'stl' | '3mf' = 'stl') => {
+  const download = (pieceIndex?: number | number[], format: 'stl' | '3mf' = 'stl') => {
     const p = params()
-    const pieceLabel = pieceIndex !== undefined ? pieces()?.[pieceIndex]?.label : undefined
+    const singleIndex = typeof pieceIndex === 'number' ? pieceIndex : undefined
+    const pieceIndices = Array.isArray(pieceIndex) ? pieceIndex : undefined
+    const pieceLabel = singleIndex !== undefined ? pieces()?.[singleIndex]?.label : undefined
     const filename = (pieceLabel ?? slug).toLowerCase().replace(/\s+/g, '-')
     const wantPieces = format === '3mf' && pieceIndex === undefined
-    const key = `export::${slug}::${pieceIndex ?? 'all'}::${format}::${JSON.stringify(p)}`
+    const keyPart = pieceIndices ? pieceIndices.slice().sort((a, b) => a - b).join(',') : (singleIndex ?? 'all')
+    const key = `export::${slug}::${keyPart}::${format}::${JSON.stringify(p)}`
     pendingCallbacks.set(key, (mesh, exportPieces) => {
       const [buf, ext, mime] = format === '3mf'
         ? [build3mf(mesh, filename, exportPieces), '3mf', 'application/vnd.ms-package.3dmanufacturing-3dmodel+xml']
@@ -308,7 +311,7 @@ export function useGeometry(slug: string, params: () => Record<string, unknown>)
       Object.assign(document.createElement('a'), { href: url, download: `${filename}.${ext}` }).click()
       URL.revokeObjectURL(url)
     })
-    worker.postMessage({ type: 'export', key, slug, params: p, pieceIndex, wantPieces })
+    worker.postMessage({ type: 'export', key, slug, params: p, pieceIndex: singleIndex, wantPieces, pieceIndices })
   }
 
   const togglePiece = (idx: number) => {
