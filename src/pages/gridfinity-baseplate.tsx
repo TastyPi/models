@@ -39,7 +39,7 @@ interface Preset {
   cells_x: number; cells_y: number;
   edge_n: string; edge_s: string; edge_e: string; edge_w: string;
   wall_n: number | null; wall_s: number | null; wall_e: number | null; wall_w: number | null;
-  separate_walls: boolean; wall_connector: string; corner_style: string;
+  separate_walls: boolean; wall_connector: string;
   corner_radius_sw: number; corner_radius_se: number; corner_radius_ne: number; corner_radius_nw: number;
   base_style: string; magnets: boolean;
 }
@@ -48,7 +48,7 @@ const DEFAULTS: Preset = {
   cells_x: 5, cells_y: 5,
   edge_n: 'wall', edge_s: 'wall', edge_e: 'wall', edge_w: 'wall',
   wall_n: null, wall_s: null, wall_e: null, wall_w: null,
-  separate_walls: false, wall_connector: 'wall_male', corner_style: 'corner_l',
+  separate_walls: false, wall_connector: 'wall_male',
   corner_radius_sw: 0, corner_radius_se: 0, corner_radius_ne: 0, corner_radius_nw: 0,
   base_style: 'open', magnets: false,
 }
@@ -58,7 +58,7 @@ const PRESETS: Record<string, Preset> = {
     cells_x: 13, cells_y: 9,
     edge_n: 'wall', edge_s: 'wall', edge_e: 'wall', edge_w: 'wall',
     wall_n: 12.5, wall_s: 12.5, wall_e: 11, wall_w: 11,
-    separate_walls: false, wall_connector: 'wall_male', corner_style: 'corner_l',
+    separate_walls: false, wall_connector: 'wall_male',
     corner_radius_sw: 2.5, corner_radius_se: 2.5, corner_radius_ne: 0, corner_radius_nw: 0,
     base_style: 'open', magnets: false,
   },
@@ -85,7 +85,6 @@ function GridfinityBaseplatePage() {
   const [edgeW, setEdgeW] = createSignal(urlStr('edge_w', base.edge_w))
   const [separateWalls, setSeparateWalls] = createSignal(urlBool('separate_walls', base.separate_walls))
   const [wallConnector, setWallConnector] = createSignal(urlStr('wall_connector', base.wall_connector))
-  const [cornerStyle, setCornerStyle] = createSignal(urlStr('corner_style', base.corner_style))
   const [cornerSW, setCornerSW] = createSignal(urlNum('corner_radius_sw', base.corner_radius_sw))
   const [cornerSE, setCornerSE] = createSignal(urlNum('corner_radius_se', base.corner_radius_se))
   const [cornerNE, setCornerNE] = createSignal(urlNum('corner_radius_ne', base.corner_radius_ne))
@@ -104,10 +103,6 @@ function GridfinityBaseplatePage() {
   const setBedY = (v: number) => { _setBedY(v); writeLS('bed_y', v) }
 
   const hasWalls = createMemo(() => wallN() !== null || wallS() !== null || wallE() !== null || wallW() !== null)
-  const hasCorner = createMemo(() =>
-    ((wallN() !== null) && (wallE() !== null || wallW() !== null)) ||
-    ((wallS() !== null) && (wallE() !== null || wallW() !== null))
-  )
   const wallMin = createMemo(() => separateWalls() && wallConnector() === 'wall_female' ? EP_WALL_MIN : 0)
 
   const info = createMemo(() => {
@@ -125,7 +120,6 @@ function GridfinityBaseplatePage() {
     edge_n: edgeN(), edge_s: edgeS(), edge_e: edgeE(), edge_w: edgeW(),
     wall_n: wallN(), wall_s: wallS(), wall_e: wallE(), wall_w: wallW(),
     separate_walls: separateWalls(), wall_connector: wallConnector(),
-    corner_style: cornerStyle(),
     corner_radius_sw: cornerSW(), corner_radius_se: cornerSE(),
     corner_radius_ne: cornerNE(), corner_radius_nw: cornerNW(),
     base_style: baseStyle(), magnets: magnets(),
@@ -147,7 +141,7 @@ function GridfinityBaseplatePage() {
     return cellsX() !== p.cells_x || cellsY() !== p.cells_y ||
       edgeN() !== p.edge_n || edgeS() !== p.edge_s || edgeE() !== p.edge_e || edgeW() !== p.edge_w ||
       wallN() !== p.wall_n || wallS() !== p.wall_s || wallE() !== p.wall_e || wallW() !== p.wall_w ||
-      separateWalls() !== p.separate_walls || wallConnector() !== p.wall_connector || cornerStyle() !== p.corner_style ||
+      separateWalls() !== p.separate_walls || wallConnector() !== p.wall_connector ||
       cornerSW() !== p.corner_radius_sw || cornerSE() !== p.corner_radius_se ||
       cornerNE() !== p.corner_radius_ne || cornerNW() !== p.corner_radius_nw ||
       baseStyle() !== p.base_style || magnets() !== p.magnets
@@ -156,7 +150,7 @@ function GridfinityBaseplatePage() {
     setCellsX(p.cells_x); setCellsY(p.cells_y)
     setEdgeN(p.edge_n); setEdgeS(p.edge_s); setEdgeE(p.edge_e); setEdgeW(p.edge_w)
     setWallN(p.wall_n); setWallS(p.wall_s); setWallE(p.wall_e); setWallW(p.wall_w)
-    setSeparateWalls(p.separate_walls); setWallConnector(p.wall_connector); setCornerStyle(p.corner_style)
+    setSeparateWalls(p.separate_walls); setWallConnector(p.wall_connector)
     setCornerSW(p.corner_radius_sw); setCornerSE(p.corner_radius_se)
     setCornerNE(p.corner_radius_ne); setCornerNW(p.corner_radius_nw)
     setBaseStyle(p.base_style); setMagnets(p.magnets)
@@ -192,16 +186,19 @@ function GridfinityBaseplatePage() {
           </>
         }
         footer={
-          <Show
-            when={selectedPiece() >= 0 && pieces()}
-            fallback={
-              <button onClick={() => download()} class={styles.downloadBtn}>Download STL</button>
-            }
-          >
-            <button onClick={() => download(selectedPiece())} class={styles.downloadBtn}>
-              Download {pieces()?.[selectedPiece()]?.label} STL
-            </button>
-          </Show>
+          <>
+            <Show
+              when={selectedPiece() >= 0 && pieces()}
+              fallback={
+                <button onClick={() => download()} class={styles.downloadBtn}>Download STL</button>
+              }
+            >
+              <button onClick={() => download(selectedPiece())} class={styles.downloadBtn}>
+                Download {pieces()?.[selectedPiece()]?.label} STL
+              </button>
+            </Show>
+            <button onClick={() => download(undefined, '3mf')} class={styles.downloadBtnOutline}>Download 3MF</button>
+          </>
         }
       >
         <SidebarSection label="Print bed" defaultOpen checked={restrictBed} onCheckedChange={setRestrictBed}>
@@ -248,15 +245,6 @@ function GridfinityBaseplatePage() {
             <SelectField label="Wall connector" value={wallConnector()} onChange={setWallConnector} default={presetBase()?.wall_connector} urlKey="wall_connector" options={[
               { value: 'wall_male',   label: 'Male on wall' },
               { value: 'wall_female', label: 'Female on wall' },
-            ]} />
-          </Show>
-          <Show when={restrictBed() && separateWalls() && hasCorner()}>
-            <SelectField label="Corner style" value={cornerStyle()} onChange={setCornerStyle} default={presetBase()?.corner_style} urlKey="corner_style" options={[
-              { value: 'corner_l',   label: 'L-shaped' },
-              { value: 'corner_cw',  label: 'Clockwise' },
-              { value: 'corner_ccw', label: 'Anti-clockwise' },
-              { value: 'corner_ns',  label: 'Included in N/S walls' },
-              { value: 'corner_ew',  label: 'Included in E/W walls' },
             ]} />
           </Show>
           <SelectField label="North edge" value={edgeN()} onChange={setEdgeN} default={presetBase()?.edge_n} urlKey="edge_n" options={[

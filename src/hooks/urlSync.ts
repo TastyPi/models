@@ -4,7 +4,9 @@ export type UrlSetter = (key: string, value: string | null) => void
 export const UrlSyncContext = createContext<UrlSetter>()
 
 export function createUrlSync(): UrlSetter {
-  const [params, setParams] = createSignal<Record<string, string>>({}, { equals: false })
+  const initial: Record<string, string> = {}
+  new URLSearchParams(window.location.search).forEach((v, k) => { initial[k] = v })
+  const [params, setParams] = createSignal<Record<string, string>>(initial, { equals: false })
 
   createEffect(() => {
     const urlParams = new URLSearchParams(params())

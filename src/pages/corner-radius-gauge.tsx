@@ -41,17 +41,20 @@ function CornerRadiusGaugePage() {
       onPieceClick={setSelectedPiece}
       rendering={rendering}
       footer={
-        <Show
-          when={selectedPiece() >= 0 && pieces()}
-          fallback={
-            <button onClick={() => download()} style={btnStyle}>Download STL</button>
-          }
-        >
-          <button onClick={() => download(selectedPiece())} style={btnStyle}>
-            Download {pieces()?.[selectedPiece()]?.label} STL
-          </button>
-          <button onClick={() => download()} style={btnStyleOutline}>Download all STL</button>
-        </Show>
+        <>
+          <Show
+            when={selectedPiece() >= 0 && pieces()}
+            fallback={
+              <button onClick={() => download()} style={btnStyle}>Download STL</button>
+            }
+          >
+            <button onClick={() => download(selectedPiece())} style={btnStyle}>
+              Download {pieces()?.[selectedPiece()]?.label} STL
+            </button>
+            <button onClick={() => download()} style={btnStyleOutline}>Download all STL</button>
+          </Show>
+          <button onClick={() => download(undefined, '3mf')} style={btnStyleOutline}>Download 3MF</button>
+        </>
       }
     >
       <SidebarSection label="Text" defaultOpen>

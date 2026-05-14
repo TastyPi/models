@@ -69,7 +69,10 @@ function GridfinityBinPage() {
       header={<ModelInfo>{infoStr()}</ModelInfo>}
       geometry={geometry}
       rendering={rendering}
-      footer={<button onClick={() => download()} class={styles.downloadBtn}>Download STL</button>}
+      footer={<>
+        <button onClick={() => download()} class={styles.downloadBtn}>Download STL</button>
+        <button onClick={() => download(undefined, '3mf')} class={styles.downloadBtnOutline}>Download 3MF</button>
+      </>}
     >
       <SidebarSection label="Size" defaultOpen>
         <NumberSlider label="Width (cells)" value={cellsX()} onChange={setCellsX} min={1} max={10} />

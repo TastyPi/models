@@ -1,9 +1,9 @@
 import type { Manifold } from 'manifold-3d'
 
 export type RawMesh = { vertProperties: Float32Array; triVerts: Uint32Array; numProp: number }
-export type PieceMesh = { label: string; mesh: RawMesh; secondaryMesh?: RawMesh }
+export type PieceMesh = { label: string; mesh: RawMesh; secondaryMesh?: RawMesh; settings?: Record<string, string>; subParts?: { label: string; mesh: RawMesh; settings?: Record<string, string> }[] }
 export type Attribution = { name: string; author: string; url: string; license: string }
-export type PieceGeom = { label: string; geom: Manifold; primaryGeom?: Manifold; secondaryGeom?: Manifold }
+export type PieceGeom = { label: string; geom: Manifold; primaryGeom?: Manifold; secondaryGeom?: Manifold; primaryLabel?: string; secondaryLabel?: string; primarySettings?: Record<string, string>; secondarySettings?: Record<string, string>; settings?: Record<string, string> }
 export type WrappedGeom = { geom: Manifold; exportTransform?: (g: Manifold) => Manifold }
 export type PiecedGeom = { merged: Manifold; pieces: PieceGeom[]; exportTransform?: (g: Manifold) => Manifold }
 export type GeomResult = Manifold | WrappedGeom | PiecedGeom
