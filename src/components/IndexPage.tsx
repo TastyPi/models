@@ -17,7 +17,7 @@ const MODELS: { slug: string; label: string; description: string; params: Record
     params: {
       cells_x: 2, cells_y: 2, height_units: 3, stacking_lip: true,
       magnets: false, magnet_style: 'smooth', magnet_size: 6.2,
-      chamfer: false, supportless: false, dividers_x: 0, dividers_y: 0,
+      chamfer: false, supportless: false, corner_magnets: false, dividers_x: 0, dividers_y: 0,
     },
   },
   {
