@@ -1,5 +1,6 @@
 import { createMemo, Show, For, type JSX } from 'solid-js'
 import { ModelViewer } from './ModelViewer'
+import { DownloadFooter } from './DownloadFooter'
 import type { RawMesh, PieceMesh, Attribution } from '../types'
 import styles from './PageLayout.module.css'
 
@@ -14,13 +15,20 @@ interface Props {
   selectedPiece?: () => ReadonlySet<number>
   onPieceClick?: (idx: number) => void
   download?: (pieceIndex?: number, format?: 'stl' | '3mf') => void
+  downloadNote?: string
   rendering?: () => boolean
   children: JSX.Element
 }
 
 export function PageLayout(props: Props) {
   const selIndices = createMemo(() => props.selectedPiece ? [...props.selectedPiece()] : [])
-  const hasSelection = () => selIndices().length > 0 && !!props.pieces?.()
+
+  const downloadLabel = createMemo(() => {
+    const sel = selIndices()
+    if (sel.length === 0) return 'Download'
+    if (sel.length === 1) return `Download ${props.pieces?.()?.[sel[0]]?.label ?? 'selected'}`
+    return `Download selected (${sel.length})`
+  })
 
   return (
     <div class={styles.layout}>
@@ -42,27 +50,12 @@ export function PageLayout(props: Props) {
 
         <div class={styles.sidebarFooter}>
           <Show when={props.download !== undefined}>
-            <Show
-              when={hasSelection()}
-              fallback={
-                <button onClick={() => props.download!()} class={styles.downloadBtn}>Download STL</button>
-              }
-            >
-              <Show
-                when={selIndices().length === 1}
-                fallback={
-                  <button onClick={() => selIndices().forEach(i => props.download!(i))} class={styles.downloadBtn}>
-                    Download selected ({selIndices().length}) STL
-                  </button>
-                }
-              >
-                <button onClick={() => props.download!(selIndices()[0])} class={styles.downloadBtn}>
-                  Download {props.pieces?.()?.[selIndices()[0]]?.label} STL
-                </button>
-              </Show>
-              <button onClick={() => props.download!()} class={styles.downloadBtnOutline}>Download all STL</button>
-            </Show>
-            <button onClick={() => props.download!(undefined, '3mf')} class={styles.downloadBtnOutline}>Download 3MF</button>
+            <DownloadFooter
+              label={downloadLabel()}
+              onStl={() => selIndices().length > 0 ? selIndices().forEach(i => props.download!(i)) : props.download!()}
+              on3mf={() => props.download!(undefined, '3mf')}
+              note={props.downloadNote}
+            />
           </Show>
           <Show when={props.footer}>
             {props.footer}

@@ -8,6 +8,7 @@ import { BooleanField } from '../components/BooleanField'
 import { NumberSlider } from '../components/NumberSlider'
 import { SelectField } from '../components/SelectField'
 import { SidebarSection } from '../components/SidebarSection'
+import { DownloadFooter } from '../components/DownloadFooter'
 import { useGeometry } from '../hooks/useGeometry'
 import { attribution, info } from '../models/gridfinity-bin'
 
@@ -27,6 +28,7 @@ function GridfinityBinPage() {
   const [magnetSize, setMagnetSize] = createSignal(urlNum('magnet_size', 6.2))
   const [chamfer, setChamfer] = createSignal(urlBool('chamfer', false))
   const [supportless, setSupportless] = createSignal(urlBool('supportless', false))
+  const [cornerMagnets, setCornerMagnets] = createSignal(urlBool('corner_magnets', false))
   const [dividersX, setDividersX] = createSignal(urlNum('dividers_x', 0))
   const [dividersY, setDividersY] = createSignal(urlNum('dividers_y', 0))
 
@@ -36,7 +38,7 @@ function GridfinityBinPage() {
     cells_x: cellsX(), cells_y: cellsY(), height_units: heightUnits(),
     stacking_lip: stackingLip(),
     magnets: magnets(), magnet_style: magnetStyle(), magnet_size: magnetSize(),
-    chamfer: chamfer(), supportless: supportless(),
+    chamfer: chamfer(), supportless: supportless(), corner_magnets: cornerMagnets(),
     dividers_x: dividersX(), dividers_y: dividersY(),
   }))
 
@@ -55,6 +57,7 @@ function GridfinityBinPage() {
       if (p.magnet_style === 'smooth') url.set('magnet_size', String(p.magnet_size))
       url.set('chamfer', String(p.chamfer))
       url.set('supportless', String(p.supportless))
+      url.set('corner_magnets', String(p.corner_magnets))
     }
     if (p.dividers_x > 0) url.set('dividers_x', String(p.dividers_x))
     if (p.dividers_y > 0) url.set('dividers_y', String(p.dividers_y))
@@ -69,10 +72,7 @@ function GridfinityBinPage() {
       header={<ModelInfo>{infoStr()}</ModelInfo>}
       geometry={geometry}
       rendering={rendering}
-      footer={<>
-        <button onClick={() => download()} class={styles.downloadBtn}>Download STL</button>
-        <button onClick={() => download(undefined, '3mf')} class={styles.downloadBtnOutline}>Download 3MF</button>
-      </>}
+      footer={<DownloadFooter label="Download" onStl={() => download()} on3mf={() => download(undefined, '3mf')} />}
     >
       <SidebarSection label="Size" defaultOpen>
         <NumberSlider label="Width (cells)" value={cellsX()} onChange={setCellsX} min={1} max={10} />
@@ -101,6 +101,7 @@ function GridfinityBinPage() {
           </Show>
           <BooleanField label="Chamfer" value={chamfer()} onChange={setChamfer} default={false} />
           <BooleanField label="Supportless" value={supportless()} onChange={setSupportless} default={false} />
+          <BooleanField label="Corners only" value={cornerMagnets()} onChange={setCornerMagnets} default={false} />
         </Show>
       </SidebarSection>
     </PageLayout>

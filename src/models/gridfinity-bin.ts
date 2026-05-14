@@ -46,10 +46,10 @@ export function generate(p: {
   cells_x: number; cells_y: number; height_units: number
   stacking_lip: boolean
   magnets: boolean; magnet_style: 'ribs' | 'smooth'; magnet_size: number
-  chamfer: boolean; supportless: boolean
+  chamfer: boolean; supportless: boolean; corner_magnets: boolean
   dividers_x: number; dividers_y: number
 }) {
-  const { cells_x, cells_y, height_units, stacking_lip, magnets, magnet_style, magnet_size, chamfer, supportless, dividers_x, dividers_y } = p
+  const { cells_x, cells_y, height_units, stacking_lip, magnets, magnet_style, magnet_size, chamfer, supportless, corner_magnets, dividers_x, dividers_y } = p
   const { Manifold, CrossSection } = getManifold()
 
   const nominalH = height_units * HEIGHT_UNIT
@@ -87,6 +87,10 @@ export function generate(p: {
   if (magnets) {
     const holeShapes: any[] = []
     cellXC.forEach(cx => cellYC.forEach(cy => {
+      if (corner_magnets && !(
+        (cx === cellXC[0] || cx === cellXC[cellXC.length - 1]) &&
+        (cy === cellYC[0] || cy === cellYC[cellYC.length - 1])
+      )) return
       const corners: [number, number][] = [
         [cx + MAG_OFFSET, cy + MAG_OFFSET], [cx - MAG_OFFSET, cy + MAG_OFFSET],
         [cx - MAG_OFFSET, cy - MAG_OFFSET], [cx + MAG_OFFSET, cy - MAG_OFFSET],

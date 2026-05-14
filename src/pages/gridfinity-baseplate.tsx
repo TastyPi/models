@@ -173,6 +173,7 @@ function GridfinityBaseplatePage() {
         selectedPiece={selectedPiece}
         onPieceClick={togglePiece}
         download={download}
+        downloadNote="3MF includes per-part infill settings"
         rendering={rendering}
         header={
           <>
