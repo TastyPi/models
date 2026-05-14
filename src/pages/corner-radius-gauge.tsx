@@ -1,4 +1,4 @@
-import { createEffect, createSignal, Show } from 'solid-js'
+import { createEffect, createSignal } from 'solid-js'
 import { render } from 'solid-js/web'
 import '../index.css'
 import { PageLayout } from '../components/PageLayout'
@@ -16,7 +16,7 @@ function CornerRadiusGaugePage() {
   const [textTop, setTextTop] = createSignal(sp.has('text_top') ? sp.get('text_top') === 'true' : DEFAULTS.text_top)
   const [textBottom, setTextBottom] = createSignal(sp.has('text_bottom') ? sp.get('text_bottom') === 'true' : DEFAULTS.text_bottom)
 
-  const { geometry, pieces, rendering, selectedPiece, setSelectedPiece, download } = useGeometry(
+  const { geometry, pieces, rendering, selectedPiece, togglePiece, download } = useGeometry(
     'corner-radius-gauge',
     () => ({ text_style: textStyle(), text_top: textTop(), text_bottom: textBottom() }),
   )
@@ -38,24 +38,9 @@ function CornerRadiusGaugePage() {
       geometry={geometry}
       pieces={pieces}
       selectedPiece={selectedPiece}
-      onPieceClick={setSelectedPiece}
+      onPieceClick={togglePiece}
+      download={download}
       rendering={rendering}
-      footer={
-        <>
-          <Show
-            when={selectedPiece() >= 0 && pieces()}
-            fallback={
-              <button onClick={() => download()} style={btnStyle}>Download STL</button>
-            }
-          >
-            <button onClick={() => download(selectedPiece())} style={btnStyle}>
-              Download {pieces()?.[selectedPiece()]?.label} STL
-            </button>
-            <button onClick={() => download()} style={btnStyleOutline}>Download all STL</button>
-          </Show>
-          <button onClick={() => download(undefined, '3mf')} style={btnStyleOutline}>Download 3MF</button>
-        </>
-      }
     >
       <SidebarSection label="Text" defaultOpen>
         <SelectField
@@ -75,7 +60,5 @@ function CornerRadiusGaugePage() {
   )
 }
 
-const btnStyle = { padding: '10px', background: '#6688cc', color: '#fff', border: 'none', 'border-radius': '6px', cursor: 'pointer', 'font-size': '0.875rem', width: '100%' } as const
-const btnStyleOutline = { padding: '8px', background: 'none', color: '#6688cc', border: '1px solid #6688cc', 'border-radius': '6px', cursor: 'pointer', 'font-size': '0.8rem', width: '100%' } as const
 
 render(() => <CornerRadiusGaugePage />, document.getElementById('root')!)

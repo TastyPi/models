@@ -126,7 +126,7 @@ function GridfinityBaseplatePage() {
     restrict_bed: restrictBed(), bed_type: bedType(), bed_x: bedX(), bed_y: bedY(),
   }))
 
-  const { geometry, pieces, rendering, selectedPiece, setSelectedPiece, download } = useGeometry('gridfinity-baseplate', params)
+  const { geometry, pieces, rendering, selectedPiece, togglePiece, download } = useGeometry('gridfinity-baseplate', params)
 
   const setUrl = createUrlSync()
 
@@ -171,7 +171,8 @@ function GridfinityBaseplatePage() {
         geometry={geometry}
         pieces={pieces}
         selectedPiece={selectedPiece}
-        onPieceClick={setSelectedPiece}
+        onPieceClick={togglePiece}
+        download={download}
         rendering={rendering}
         header={
           <>
@@ -183,21 +184,6 @@ function GridfinityBaseplatePage() {
               onResetAll={() => applyPreset(presetParams()!)}
             />
             <ModelInfo>{info()}</ModelInfo>
-          </>
-        }
-        footer={
-          <>
-            <Show
-              when={selectedPiece() >= 0 && pieces()}
-              fallback={
-                <button onClick={() => download()} class={styles.downloadBtn}>Download STL</button>
-              }
-            >
-              <button onClick={() => download(selectedPiece())} class={styles.downloadBtn}>
-                Download {pieces()?.[selectedPiece()]?.label} STL
-              </button>
-            </Show>
-            <button onClick={() => download(undefined, '3mf')} class={styles.downloadBtnOutline}>Download 3MF</button>
           </>
         }
       >

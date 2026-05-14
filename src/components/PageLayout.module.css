@@ -79,6 +79,34 @@
 
 .attrLinkNowrap { white-space: nowrap; }
 
+.downloadBtn {
+  padding: 10px;
+  background: #6688cc;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  width: 100%;
+}
+
+.downloadBtnOutline {
+  padding: 8px;
+  background: none;
+  color: #6688cc;
+  border: 1px solid #6688cc;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  width: 100%;
+  transition: background 0.15s, color 0.15s;
+}
+
+.downloadBtnOutline:hover {
+  background: #6688cc;
+  color: #fff;
+}
+
 .main {
   flex: 1;
   position: relative;
