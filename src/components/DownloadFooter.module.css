@@ -1,0 +1,35 @@
+.label {
+  margin: 0 0 6px;
+  font-size: 0.75rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+}
+
+.btn {
+  flex: 1;
+  padding: 8px 12px;
+  background: #6688cc;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.15s;
+}
+
+.btn:hover {
+  background: #7799dd;
+}
+
+.note {
+  margin: 6px 0 0;
+  font-size: 0.7rem;
+  color: #666;
+  line-height: 1.4;
+}

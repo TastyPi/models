@@ -1,13 +1,8 @@
 import { render } from 'solid-js/web'
 import '../index.css'
 import { PageLayout } from '../components/PageLayout'
+import { DownloadFooter } from '../components/DownloadFooter'
 import { useGeometry } from '../hooks/useGeometry'
-
-const btnStyle = {
-  padding: '10px', background: '#6688cc', color: '#fff', border: 'none',
-  'border-radius': '6px', cursor: 'pointer', 'font-size': '0.875rem', width: '100%',
-} as const
-const btnStyleOutline = { padding: '8px', background: 'none', color: '#6688cc', border: '1px solid #6688cc', 'border-radius': '6px', cursor: 'pointer', 'font-size': '0.8rem', width: '100%' } as const
 
 function MagnetTestPage() {
   const { geometry, rendering, download } = useGeometry('magnet-test', () => ({}))
@@ -18,10 +13,7 @@ function MagnetTestPage() {
       description="Compare crush ribs vs plain bore sizes for 6×2mm magnets."
       geometry={geometry}
       rendering={rendering}
-      footer={<>
-        <button onClick={() => download()} style={btnStyle}>Download STL</button>
-        <button onClick={() => download(undefined, '3mf')} style={btnStyleOutline}>Download 3MF</button>
-      </>}
+      footer={<DownloadFooter label="Download" onStl={() => download()} on3mf={() => download(undefined, '3mf')} />}
     >
       <div style={{ 'font-size': '0.8rem', color: '#777', 'line-height': '1.6' }}>
         <p style={{ margin: '0 0 8px' }}>Six pockets, left to right: crush ribs, then plain bores at 6.0, 6.1, 6.2, 6.3, and 6.4 mm diameter.</p>

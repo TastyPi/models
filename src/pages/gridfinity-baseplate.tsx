@@ -2,6 +2,7 @@ import { createMemo, createSignal, Show } from 'solid-js'
 import { render } from 'solid-js/web'
 import '../index.css'
 import { PageLayout } from '../components/PageLayout'
+import { DownloadFooter } from '../components/DownloadFooter'
 import { ModelInfo } from '../components/ModelInfo'
 import { BooleanField } from '../components/BooleanField'
 import { NumberSlider } from '../components/NumberSlider'
@@ -186,19 +187,12 @@ function GridfinityBaseplatePage() {
           </>
         }
         footer={
-          <>
-            <Show
-              when={selectedPiece() >= 0 && pieces()}
-              fallback={
-                <button onClick={() => download()} class={styles.downloadBtn}>Download STL</button>
-              }
-            >
-              <button onClick={() => download(selectedPiece())} class={styles.downloadBtn}>
-                Download {pieces()?.[selectedPiece()]?.label} STL
-              </button>
-            </Show>
-            <button onClick={() => download(undefined, '3mf')} class={styles.downloadBtnOutline}>Download 3MF</button>
-          </>
+          <DownloadFooter
+            label={selectedPiece() >= 0 ? 'Download selected' : 'Download'}
+            onStl={() => selectedPiece() >= 0 ? download(selectedPiece()) : download()}
+            on3mf={() => selectedPiece() >= 0 ? download(selectedPiece(), '3mf') : download(undefined, '3mf')}
+            note="3MF includes per-part infill settings"
+          />
         }
       >
         <SidebarSection label="Print bed" defaultOpen checked={restrictBed} onCheckedChange={setRestrictBed}>
