@@ -14,7 +14,7 @@ interface Props {
   pieces?: () => PieceMesh[] | null
   selectedPiece?: () => ReadonlySet<number>
   onPieceClick?: (idx: number) => void
-  download?: (pieceIndex?: number, format?: 'stl' | '3mf') => void
+  download?: (pieceIndex?: number | number[], format?: 'stl' | '3mf') => void
   downloadNote?: string
   rendering?: () => boolean
   children: JSX.Element
@@ -53,7 +53,7 @@ export function PageLayout(props: Props) {
             <DownloadFooter
               label={downloadLabel()}
               onStl={() => selIndices().length > 0 ? selIndices().forEach(i => props.download!(i)) : props.download!()}
-              on3mf={() => props.download!(undefined, '3mf')}
+              on3mf={() => { const sel = selIndices(); props.download!(sel.length > 0 ? sel : undefined, '3mf') }}
               note={props.downloadNote}
             />
           </Show>

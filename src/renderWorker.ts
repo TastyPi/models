@@ -21,7 +21,7 @@ const MODELS: Record<string, {
 
 type InMsg =
   | { type: 'generate'; key: string; slug: string; params: Record<string, unknown> }
-  | { type: 'export';   key: string; slug: string; params: Record<string, unknown>; pieceIndex?: number; wantPieces?: boolean }
+  | { type: 'export';   key: string; slug: string; params: Record<string, unknown>; pieceIndex?: number; wantPieces?: boolean; pieceIndices?: number[] }
 
 type OutMsg =
   | { type: 'result'; key: string; mesh: RawMesh; pieces?: PieceMesh[] }
@@ -66,13 +66,16 @@ self.onmessage = async (e: MessageEvent<InMsg>) => {
       }
       self.postMessage({ type: 'result', key, mesh, pieces } satisfies OutMsg, { transfer: transferables })
     } else {
-      const { pieceIndex, wantPieces } = e.data as Extract<InMsg, { type: 'export' }>
-      if (wantPieces && pieced) {
+      const { pieceIndex, wantPieces, pieceIndices } = e.data as Extract<InMsg, { type: 'export' }>
+      if ((wantPieces || pieceIndices) && pieced) {
         const applyTransforms = (g: Manifold) => {
           if (result.exportTransform) g = result.exportTransform(g)
           return flatRotate(g)
         }
-        const pieceMeshes: PieceMesh[] = result.pieces.map((p: PieceGeom) => {
+        const selectedPieces: PieceGeom[] = pieceIndices
+          ? result.pieces.filter((_: PieceGeom, i: number) => pieceIndices.includes(i))
+          : result.pieces
+        const pieceMeshes: PieceMesh[] = selectedPieces.map((p: PieceGeom) => {
           const pieceMesh: PieceMesh = { label: p.label, mesh: extractMesh(applyTransforms(p.geom)), settings: p.settings }
           if (p.primaryGeom && p.secondaryGeom) {
             pieceMesh.subParts = [
