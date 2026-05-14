@@ -5,7 +5,6 @@ import { PageLayout } from '../components/PageLayout'
 import { BooleanField } from '../components/BooleanField'
 import { SelectField } from '../components/SelectField'
 import { SidebarSection } from '../components/SidebarSection'
-import { DownloadFooter } from '../components/DownloadFooter'
 import { useGeometry } from '../hooks/useGeometry'
 import { attribution } from '../models/corner-radius-gauge'
 
@@ -17,7 +16,7 @@ function CornerRadiusGaugePage() {
   const [textTop, setTextTop] = createSignal(sp.has('text_top') ? sp.get('text_top') === 'true' : DEFAULTS.text_top)
   const [textBottom, setTextBottom] = createSignal(sp.has('text_bottom') ? sp.get('text_bottom') === 'true' : DEFAULTS.text_bottom)
 
-  const { geometry, pieces, rendering, selectedPiece, setSelectedPiece, download } = useGeometry(
+  const { geometry, pieces, rendering, selectedPiece, togglePiece, download } = useGeometry(
     'corner-radius-gauge',
     () => ({ text_style: textStyle(), text_top: textTop(), text_bottom: textBottom() }),
   )
@@ -39,15 +38,9 @@ function CornerRadiusGaugePage() {
       geometry={geometry}
       pieces={pieces}
       selectedPiece={selectedPiece}
-      onPieceClick={setSelectedPiece}
+      onPieceClick={togglePiece}
+      download={download}
       rendering={rendering}
-      footer={
-        <DownloadFooter
-          label={selectedPiece() >= 0 ? 'Download selected' : 'Download'}
-          onStl={() => selectedPiece() >= 0 ? download(selectedPiece()) : download()}
-          on3mf={() => selectedPiece() >= 0 ? download(selectedPiece(), '3mf') : download(undefined, '3mf')}
-        />
-      }
     >
       <SidebarSection label="Text" defaultOpen>
         <SelectField

@@ -6,7 +6,7 @@ import type { RawMesh } from '../types'
 interface Props {
   geometry: () => RawMesh | null
   pieces?: () => Array<{ mesh: RawMesh; label: string; secondaryMesh?: RawMesh }> | null
-  selectedPiece?: () => number
+  selectedPiece?: () => ReadonlySet<number>
   onPieceClick?: (index: number) => void
 }
 
@@ -86,12 +86,20 @@ export function ModelViewer(props: Props) {
     const ro = new ResizeObserver(syncSize)
     ro.observe(containerRef)
 
-    const pieceMat = (i: number, sel: number): THREE.Material => {
-      if (sel >= 0) return i === sel ? matHighlight : matDimmed
-      return i === hoveredIdx ? matHover : matPrimary
+    const selectionLabel = (sel: ReadonlySet<number>) => {
+      if (sel.size === 0) return null
+      if (sel.size === 1) return props.pieces?.()?.[sel.values().next().value!]?.label ?? null
+      return `${sel.size} pieces selected`
     }
 
-    const applyMaterials = (sel: number) => {
+    const pieceMat = (i: number, sel: ReadonlySet<number>): THREE.Material => {
+      if (sel.has(i)) return matHighlight
+      if (i === hoveredIdx) return matHover
+      if (sel.size > 0) return matDimmed
+      return matPrimary
+    }
+
+    const applyMaterials = (sel: ReadonlySet<number>) => {
       for (let i = 0; i < pieceMeshes.length; i++) {
         pieceMeshes[i].material = pieceMat(i, sel)
       }
@@ -117,7 +125,7 @@ export function ModelViewer(props: Props) {
       hoveredIdx = -1
       setOverlayLabel(null)
 
-      const sel = untrack(() => props.selectedPiece?.() ?? -1)
+      const sel = untrack(() => props.selectedPiece?.() ?? new Set<number>())
 
       if (piecesData && piecesData.length > 0) {
         for (let i = 0; i < piecesData.length; i++) {
@@ -178,13 +186,12 @@ export function ModelViewer(props: Props) {
 
     // Update materials (only) when selection changes — no geometry rebuild.
     createEffect(() => {
-      const sel = props.selectedPiece?.() ?? -1
+      const sel = props.selectedPiece?.() ?? new Set<number>()
       if (pieceMeshes.length === 0) return
       hoveredIdx = -1
       canvasRef.style.cursor = ''
       applyMaterials(sel)
-      const label = sel >= 0 ? (untrack(() => props.pieces?.())?.[sel]?.label ?? null) : null
-      setOverlayLabel(label)
+      setOverlayLabel(selectionLabel(sel))
     })
 
     // Raycasting
@@ -206,26 +213,25 @@ export function ModelViewer(props: Props) {
     const onMouseDown = (e: MouseEvent) => { mouseDownX = e.clientX; mouseDownY = e.clientY }
     const onClick = (e: MouseEvent) => {
       if (Math.hypot(e.clientX - mouseDownX, e.clientY - mouseDownY) > 5) return
-      const idx = hitIndex(e)
-      const sel = props.selectedPiece?.() ?? -1
-      props.onPieceClick?.(idx === sel ? -1 : idx)
+      props.onPieceClick?.(hitIndex(e))
     }
     const onMouseMove = (e: MouseEvent) => {
       if (pieceMeshes.length === 0) return
-      const sel = props.selectedPiece?.() ?? -1
       const newHovered = hitIndex(e)
       canvasRef.style.cursor = newHovered >= 0 ? 'pointer' : ''
-      if (sel >= 0 || newHovered === hoveredIdx) return
+      if (newHovered === hoveredIdx) return
       hoveredIdx = newHovered
-      applyMaterials(-1)
-      setOverlayLabel(newHovered >= 0 ? (props.pieces?.()?.[newHovered]?.label ?? null) : null)
+      const sel = props.selectedPiece?.() ?? new Set<number>()
+      applyMaterials(sel)
+      setOverlayLabel(newHovered >= 0 ? (props.pieces?.()?.[newHovered]?.label ?? null) : selectionLabel(sel))
     }
     const onMouseLeave = () => {
       if (hoveredIdx < 0) return
       hoveredIdx = -1
       canvasRef.style.cursor = ''
-      applyMaterials(props.selectedPiece?.() ?? -1)
-      if ((props.selectedPiece?.() ?? -1) < 0) setOverlayLabel(null)
+      const sel = props.selectedPiece?.() ?? new Set<number>()
+      applyMaterials(sel)
+      setOverlayLabel(selectionLabel(sel))
     }
 
     canvasRef.addEventListener('mousedown', onMouseDown)

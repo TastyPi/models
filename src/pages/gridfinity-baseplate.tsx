@@ -2,7 +2,6 @@ import { createMemo, createSignal, Show } from 'solid-js'
 import { render } from 'solid-js/web'
 import '../index.css'
 import { PageLayout } from '../components/PageLayout'
-import { DownloadFooter } from '../components/DownloadFooter'
 import { ModelInfo } from '../components/ModelInfo'
 import { BooleanField } from '../components/BooleanField'
 import { NumberSlider } from '../components/NumberSlider'
@@ -127,7 +126,7 @@ function GridfinityBaseplatePage() {
     restrict_bed: restrictBed(), bed_type: bedType(), bed_x: bedX(), bed_y: bedY(),
   }))
 
-  const { geometry, pieces, rendering, selectedPiece, setSelectedPiece, download } = useGeometry('gridfinity-baseplate', params)
+  const { geometry, pieces, rendering, selectedPiece, togglePiece, download } = useGeometry('gridfinity-baseplate', params)
 
   const setUrl = createUrlSync()
 
@@ -172,7 +171,9 @@ function GridfinityBaseplatePage() {
         geometry={geometry}
         pieces={pieces}
         selectedPiece={selectedPiece}
-        onPieceClick={setSelectedPiece}
+        onPieceClick={togglePiece}
+        download={download}
+        downloadNote="3MF includes per-part infill settings"
         rendering={rendering}
         header={
           <>
@@ -185,14 +186,6 @@ function GridfinityBaseplatePage() {
             />
             <ModelInfo>{info()}</ModelInfo>
           </>
-        }
-        footer={
-          <DownloadFooter
-            label={selectedPiece() >= 0 ? 'Download selected' : 'Download'}
-            onStl={() => selectedPiece() >= 0 ? download(selectedPiece()) : download()}
-            on3mf={() => selectedPiece() >= 0 ? download(selectedPiece(), '3mf') : download(undefined, '3mf')}
-            note="3MF includes per-part infill settings"
-          />
         }
       >
         <SidebarSection label="Print bed" defaultOpen checked={restrictBed} onCheckedChange={setRestrictBed}>

@@ -1,5 +1,6 @@
-import { Show, For, type JSX } from 'solid-js'
+import { createMemo, Show, For, type JSX } from 'solid-js'
 import { ModelViewer } from './ModelViewer'
+import { DownloadFooter } from './DownloadFooter'
 import type { RawMesh, PieceMesh, Attribution } from '../types'
 import styles from './PageLayout.module.css'
 
@@ -11,13 +12,24 @@ interface Props {
   footer?: JSX.Element
   geometry: () => RawMesh | null
   pieces?: () => PieceMesh[] | null
-  selectedPiece?: () => number
+  selectedPiece?: () => ReadonlySet<number>
   onPieceClick?: (idx: number) => void
+  download?: (pieceIndex?: number, format?: 'stl' | '3mf') => void
+  downloadNote?: string
   rendering?: () => boolean
   children: JSX.Element
 }
 
 export function PageLayout(props: Props) {
+  const selIndices = createMemo(() => props.selectedPiece ? [...props.selectedPiece()] : [])
+
+  const downloadLabel = createMemo(() => {
+    const sel = selIndices()
+    if (sel.length === 0) return 'Download'
+    if (sel.length === 1) return `Download ${props.pieces?.()?.[sel[0]]?.label ?? 'selected'}`
+    return `Download selected (${sel.length})`
+  })
+
   return (
     <div class={styles.layout}>
       <aside class={styles.sidebar}>
@@ -37,10 +49,18 @@ export function PageLayout(props: Props) {
         </div>
 
         <div class={styles.sidebarFooter}>
+          <Show when={props.download !== undefined}>
+            <DownloadFooter
+              label={downloadLabel()}
+              onStl={() => selIndices().length > 0 ? selIndices().forEach(i => props.download!(i)) : props.download!()}
+              on3mf={() => props.download!(undefined, '3mf')}
+              note={props.downloadNote}
+            />
+          </Show>
           <Show when={props.footer}>
             {props.footer}
           </Show>
-          <div classList={{ [styles.attribution]: true, [styles.attributionDivider]: !!props.footer }}>
+          <div classList={{ [styles.attribution]: true, [styles.attributionDivider]: !!(props.footer || props.download) }}>
             <div>
               {'© 2026 Graham Rogers · '}
               <a href="https://github.com/TastyPi/models" target="_blank" rel="noopener noreferrer" class={styles.attrLink}>GitHub</a>

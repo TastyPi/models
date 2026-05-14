@@ -247,7 +247,7 @@ export function useGeometry(slug: string, params: () => Record<string, unknown>)
   const [geometry, setGeometry] = createSignal<RawMesh | null>(null)
   const [pieces, setPieces] = createSignal<PieceMesh[] | null>(null)
   const [rendering, setRendering] = createSignal(true)
-  const [selectedPiece, setSelectedPiece] = createSignal(-1)
+  const [selectedPiece, setSelectedPiece] = createSignal<ReadonlySet<number>>(new Set<number>())
   let currentKey: string | null = null
   const pendingCallbacks = new Map<string, (mesh: RawMesh, pieces?: PieceMesh[]) => void>()
 
@@ -271,7 +271,7 @@ export function useGeometry(slug: string, params: () => Record<string, unknown>)
 
   createEffect(() => {
     const p = params()
-    setSelectedPiece(-1)
+    setSelectedPiece(new Set<number>())
 
     const key = `${slug}::${JSON.stringify(p)}`
     const cached = geometryCache.get(key)
@@ -311,5 +311,14 @@ export function useGeometry(slug: string, params: () => Record<string, unknown>)
     worker.postMessage({ type: 'export', key, slug, params: p, pieceIndex, wantPieces })
   }
 
-  return { geometry, pieces, rendering, selectedPiece, setSelectedPiece, download }
+  const togglePiece = (idx: number) => {
+    if (idx < 0) { setSelectedPiece(new Set<number>()); return }
+    setSelectedPiece(prev => {
+      const next = new Set(prev)
+      if (next.has(idx)) next.delete(idx); else next.add(idx)
+      return next
+    })
+  }
+
+  return { geometry, pieces, rendering, selectedPiece, togglePiece, download }
 }
