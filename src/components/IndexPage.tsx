@@ -28,7 +28,7 @@ const MODELS: { slug: string; label: string; description: string; params: Record
       cells_x: 3, cells_y: 3,
       edge_n: 'wall', edge_s: 'wall', edge_e: 'wall', edge_w: 'wall',
       wall_n: null, wall_s: null, wall_e: null, wall_w: null,
-      separate_walls: false, wall_connector: 'wall_male', corner_style: 'corner_l',
+      separate_walls: false, wall_connector: 'wall_male',
       corner_radius_sw: 0, corner_radius_se: 0, corner_radius_ne: 0, corner_radius_nw: 0,
       base_style: 'open', magnets: false,
       restrict_bed: false, bed_type: 'prusa_core_one', bed_x: 250, bed_y: 220,

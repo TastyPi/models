@@ -16,10 +16,6 @@ const matHover     = new THREE.MeshStandardMaterial({ color: 0x7799dd, roughness
 const matHighlight = new THREE.MeshStandardMaterial({ color: 0x99bbff, roughness: 0.3, metalness: 0.15, flatShading: true })
 const matDimmed    = new THREE.MeshStandardMaterial({ color: 0x2a3a5a, roughness: 0.7, metalness: 0.0, flatShading: true, transparent: true, opacity: 0.35 })
 
-const matSecondary          = new THREE.MeshStandardMaterial({ color: 0xe8d090, roughness: 0.4, metalness: 0.1, flatShading: true })
-const matSecondaryHover     = new THREE.MeshStandardMaterial({ color: 0xf0dca0, roughness: 0.35, metalness: 0.12, flatShading: true })
-const matSecondaryHighlight = new THREE.MeshStandardMaterial({ color: 0xfff0b8, roughness: 0.3, metalness: 0.15, flatShading: true })
-const matSecondaryDimmed    = new THREE.MeshStandardMaterial({ color: 0x3a3420, roughness: 0.7, metalness: 0.0, flatShading: true, transparent: true, opacity: 0.35 })
 
 function buildGeo(raw: RawMesh): THREE.BufferGeometry {
   const geo = new THREE.BufferGeometry()
@@ -95,17 +91,12 @@ export function ModelViewer(props: Props) {
       return i === hoveredIdx ? matHover : matPrimary
     }
 
-    const secMat = (i: number, sel: number): THREE.Material => {
-      if (sel >= 0) return i === sel ? matSecondaryHighlight : matSecondaryDimmed
-      return i === hoveredIdx ? matSecondaryHover : matSecondary
-    }
-
     const applyMaterials = (sel: number) => {
       for (let i = 0; i < pieceMeshes.length; i++) {
         pieceMeshes[i].material = pieceMat(i, sel)
       }
       for (const { mesh, pieceIdx } of secondaryMeshes) {
-        mesh.material = secMat(pieceIdx, sel)
+        mesh.material = pieceMat(pieceIdx, sel)
       }
       scheduleRender()
     }
@@ -133,7 +124,7 @@ export function ModelViewer(props: Props) {
           pieceMeshes.push(new THREE.Mesh(buildGeo(piecesData[i].mesh), pieceMat(i, sel)))
           scene.add(pieceMeshes[i])
           if (piecesData[i].secondaryMesh) {
-            const sm = new THREE.Mesh(buildGeo(piecesData[i].secondaryMesh!), secMat(i, sel))
+            const sm = new THREE.Mesh(buildGeo(piecesData[i].secondaryMesh!), pieceMat(i, sel))
             scene.add(sm)
             secondaryMeshes.push({ mesh: sm, pieceIdx: i })
           }

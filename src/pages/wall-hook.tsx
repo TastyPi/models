@@ -100,7 +100,10 @@ function WallHookPage() {
       geometry={geometry}
       rendering={rendering}
       footer={
-        <button onClick={() => download()} style={btnStyle}>Download STL</button>
+        <>
+          <button onClick={() => download()} style={btnStyle}>Download STL</button>
+          <button onClick={() => download(undefined, '3mf')} style={btnStyleOutline}>Download 3MF</button>
+        </>
       }
       header={
         <div style={{ 'margin-bottom': '8px' }}>
@@ -149,5 +152,6 @@ function WallHookPage() {
 }
 
 const btnStyle = { padding: '10px', background: '#6688cc', color: '#fff', border: 'none', 'border-radius': '6px', cursor: 'pointer', 'font-size': '0.875rem', width: '100%' } as const
+const btnStyleOutline = { padding: '8px', background: 'none', color: '#6688cc', border: '1px solid #6688cc', 'border-radius': '6px', cursor: 'pointer', 'font-size': '0.8rem', width: '100%' } as const
 
 render(() => <WallHookPage />, document.getElementById('root')!)
