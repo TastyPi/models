@@ -23,8 +23,15 @@
 
 .resetBtn.hidden { visibility: hidden; }
 
+.selectRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .select {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   background: #1e1e30;
   color: #fff;
   border: 1px solid #2a2a40;
@@ -34,3 +41,13 @@
   cursor: pointer;
   text-overflow: ellipsis;
 }
+
+.printablesLink {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  opacity: 0.75;
+  transition: opacity 0.15s;
+}
+
+.printablesLink:hover { opacity: 1; }
