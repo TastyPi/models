@@ -10,11 +10,23 @@ interface Props {
   onObjectClick?: (index: number) => void
 }
 
-// Shared material instances — swapped onto meshes without reallocation
-const matPrimary   = new THREE.MeshStandardMaterial({ color: 0x6688cc, roughness: 0.4, metalness: 0.1, flatShading: true })
-const matHover     = new THREE.MeshStandardMaterial({ color: 0x7799dd, roughness: 0.35, metalness: 0.12, flatShading: true })
-const matHighlight = new THREE.MeshStandardMaterial({ color: 0x99bbff, roughness: 0.3, metalness: 0.15, flatShading: true })
-const matDimmed    = new THREE.MeshStandardMaterial({ color: 0x2a3a5a, roughness: 0.7, metalness: 0.0, flatShading: true, transparent: true, opacity: 0.35 })
+type MatPalette = { base: THREE.Material; hover: THREE.Material; highlight: THREE.Material; dim: THREE.Material }
+
+// One palette per mesh-array slot — index 0 = body, index 1 = accent (inlay/text), etc.
+const MAT_PALETTES: MatPalette[] = [
+  {
+    base:      new THREE.MeshStandardMaterial({ color: 0x6688cc, roughness: 0.4, metalness: 0.1, flatShading: true }),
+    hover:     new THREE.MeshStandardMaterial({ color: 0x7799dd, roughness: 0.35, metalness: 0.12, flatShading: true }),
+    highlight: new THREE.MeshStandardMaterial({ color: 0x99bbff, roughness: 0.3, metalness: 0.15, flatShading: true }),
+    dim:       new THREE.MeshStandardMaterial({ color: 0x334466, roughness: 0.7, metalness: 0.0, flatShading: true }),
+  },
+  {
+    base:      new THREE.MeshStandardMaterial({ color: 0xcc7733, roughness: 0.4, metalness: 0.1, flatShading: true }),
+    hover:     new THREE.MeshStandardMaterial({ color: 0xdd8844, roughness: 0.35, metalness: 0.12, flatShading: true }),
+    highlight: new THREE.MeshStandardMaterial({ color: 0xffaa55, roughness: 0.3, metalness: 0.15, flatShading: true }),
+    dim:       new THREE.MeshStandardMaterial({ color: 0x664422, roughness: 0.7, metalness: 0.0, flatShading: true }),
+  },
+]
 
 
 function buildGeo(raw: RawMesh): THREE.BufferGeometry {
@@ -49,7 +61,11 @@ export function ModelViewer(props: Props) {
 
     addSceneLights(scene)
 
-    let objectMeshes: THREE.Mesh[] = []
+    // objectThreeMeshes[i] = all Three.js meshes for object i.
+    // meshes[0] is primary (blue), meshes[1+] are accent (orange).
+    // meshToIndex maps every Three.js mesh back to its object index for raycasting.
+    let objectThreeMeshes: THREE.Mesh[][] = []
+    const meshToIndex = new Map<THREE.Mesh, number>()
     let hoveredIdx = -1
     let rafId: number | null = null
     let hadGeometry = false
@@ -85,17 +101,18 @@ export function ModelViewer(props: Props) {
       return `${sel.size} objects selected`
     }
 
-    const objectMat = (i: number, sel: ReadonlySet<number>): THREE.Material => {
-      if (sel.has(i)) return matHighlight
-      if (i === hoveredIdx) return matHover
-      if (sel.size > 0) return matDimmed
-      return matPrimary
+    const meshMat = (i: number, j: number, sel: ReadonlySet<number>): THREE.Material => {
+      const { base, hover, highlight, dim } = MAT_PALETTES[Math.min(j, MAT_PALETTES.length - 1)]
+      if (sel.has(i)) return highlight
+      if (i === hoveredIdx) return hover
+      if (sel.size > 0) return dim
+      return base
     }
 
     const applyMaterials = (sel: ReadonlySet<number>) => {
-      for (let i = 0; i < objectMeshes.length; i++) {
-        objectMeshes[i].material = objectMat(i, sel)
-      }
+      for (let i = 0; i < objectThreeMeshes.length; i++)
+        for (let j = 0; j < objectThreeMeshes[i].length; j++)
+          objectThreeMeshes[i][j].material = meshMat(i, j, sel)
       scheduleRender()
     }
 
@@ -107,8 +124,9 @@ export function ModelViewer(props: Props) {
       const geomChanged = !hadGeometry && hasGeometry
       if (hasGeometry) hadGeometry = true
 
-      for (const m of objectMeshes) { scene.remove(m); m.geometry.dispose() }
-      objectMeshes = []
+      for (const meshes of objectThreeMeshes) for (const m of meshes) { scene.remove(m); m.geometry.dispose() }
+      objectThreeMeshes = []
+      meshToIndex.clear()
       hoveredIdx = -1
       setOverlayLabel(null)
 
@@ -116,8 +134,14 @@ export function ModelViewer(props: Props) {
 
       if (objectsData && objectsData.length > 0) {
         for (let i = 0; i < objectsData.length; i++) {
-          objectMeshes.push(new THREE.Mesh(buildGeo(objectsData[i].mesh), objectMat(i, sel)))
-          scene.add(objectMeshes[i])
+          const threeMeshes: THREE.Mesh[] = []
+          for (let j = 0; j < objectsData[i].meshes.length; j++) {
+            const m = new THREE.Mesh(buildGeo(objectsData[i].meshes[j]), meshMat(i, j, sel))
+            threeMeshes.push(m)
+            meshToIndex.set(m, i)
+            scene.add(m)
+          }
+          objectThreeMeshes.push(threeMeshes)
         }
       }
 
@@ -132,7 +156,7 @@ export function ModelViewer(props: Props) {
       let sphere: THREE.Sphere | null = null
       if (objectsData && objectsData.length > 0) {
         const box = new THREE.Box3()
-        for (const m of objectMeshes) box.expandByObject(m)
+        for (const meshes of objectThreeMeshes) for (const m of meshes) box.expandByObject(m)
         sphere = new THREE.Sphere()
         box.getBoundingSphere(sphere)
       }
@@ -171,23 +195,24 @@ export function ModelViewer(props: Props) {
     // Update materials (only) when selection changes — no geometry rebuild.
     createEffect(() => {
       const sel = props.selectedObject?.() ?? new Set<number>()
-      if (objectMeshes.length === 0) return
+      if (objectThreeMeshes.length === 0) return
       hoveredIdx = -1
       canvasRef.style.cursor = ''
       applyMaterials(sel)
       setOverlayLabel(selectionLabel(sel))
     })
 
-    // Raycasting
+    // Raycasting — hits on any mesh (primary or accent) resolve to the same object index.
     const hitIndex = (e: MouseEvent) => {
-      if (objectMeshes.length === 0) return -1
+      if (objectThreeMeshes.length === 0) return -1
       const rect = canvasRef.getBoundingClientRect()
       mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
       mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
       raycaster.setFromCamera(mouse, camera)
-      const hits = raycaster.intersectObjects(objectMeshes)
+      const allMeshes = objectThreeMeshes.flat()
+      const hits = raycaster.intersectObjects(allMeshes)
       if (hits.length === 0) return -1
-      return objectMeshes.indexOf(hits[0].object as THREE.Mesh)
+      return meshToIndex.get(hits[0].object as THREE.Mesh) ?? -1
     }
 
     const onMouseDown = (e: MouseEvent) => { mouseDownX = e.clientX; mouseDownY = e.clientY }
@@ -196,7 +221,7 @@ export function ModelViewer(props: Props) {
       props.onObjectClick?.(hitIndex(e))
     }
     const onMouseMove = (e: MouseEvent) => {
-      if (objectMeshes.length === 0) return
+      if (objectThreeMeshes.length === 0) return
       const newHovered = hitIndex(e)
       canvasRef.style.cursor = newHovered >= 0 ? 'pointer' : ''
       if (newHovered === hoveredIdx) return
@@ -224,7 +249,7 @@ export function ModelViewer(props: Props) {
       controls.removeEventListener('change', scheduleRender)
       controls.removeEventListener('change', onCameraMove)
       ro.disconnect()
-      for (const m of objectMeshes) { scene.remove(m); m.geometry.dispose() }
+      for (const meshes of objectThreeMeshes) for (const m of meshes) { scene.remove(m); m.geometry.dispose() }
       renderer.dispose()
       canvasRef.removeEventListener('mousedown', onMouseDown)
       canvasRef.removeEventListener('click', onClick)
