@@ -5,12 +5,13 @@ import { DownloadFooter } from '../components/DownloadFooter'
 import { useGeometry } from '../hooks/useGeometry'
 
 function MagnetTestPage() {
-  const { rendering, download } = useGeometry('magnet-test', () => ({}))
+  const { objects, rendering, download } = useGeometry('magnet-test', () => ({}))
 
   return (
     <PageLayout
       title="Magnet Press-Fit Test"
       description="Compare crush ribs vs plain bore sizes for 6×2mm magnets."
+      objects={objects}
       rendering={rendering}
       footer={<DownloadFooter label="Download" onStl={() => download()} on3mf={() => download('3mf')} />}
     >
