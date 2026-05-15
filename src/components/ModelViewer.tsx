@@ -2,6 +2,7 @@ import { createEffect, createSignal, onCleanup, onMount, untrack, Show } from 's
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type { RawMesh, PreviewMesh } from '../types'
+import { VIEW_DIR, addSceneLights, setupCamera } from './sceneHelpers'
 
 interface Props {
   objects?: () => PreviewMesh[] | null
@@ -39,19 +40,14 @@ export function ModelViewer(props: Props) {
     scene.background = new THREE.Color(0x1a1a2e)
 
     const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 2000)
-    camera.position.set(150, 180, 250)
+    setupCamera(camera)
+    camera.position.set(-250, -150, 180)
 
     const controls = new OrbitControls(camera, renderer.domElement)
-    controls.target.set(0, 10, 0)
+    controls.target.set(0, 0, 0)
     controls.update()
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.5))
-    const sun = new THREE.DirectionalLight(0xffffff, 1.2)
-    sun.position.set(100, 200, 100)
-    scene.add(sun)
-    const fill = new THREE.DirectionalLight(0x8899ff, 0.4)
-    fill.position.set(-100, 50, -100)
-    scene.add(fill)
+    addSceneLights(scene)
 
     let objectMeshes: THREE.Mesh[] = []
     let hoveredIdx = -1
@@ -145,7 +141,7 @@ export function ModelViewer(props: Props) {
         if (geomChanged) {
           const dist = fitDist(sphere.radius)
           controls.target.copy(sphere.center)
-          camera.position.copy(sphere.center).addScaledVector(new THREE.Vector3(-1.2, 0.9, 2).normalize(), dist)
+          camera.position.copy(sphere.center).addScaledVector(VIEW_DIR, dist)
           camera.near = dist * 0.01
           camera.far = dist * 10
           camera.updateProjectionMatrix()
@@ -158,7 +154,7 @@ export function ModelViewer(props: Props) {
           isResetting = true
           const dist = fitDist(s.radius)
           controls.target.copy(s.center)
-          camera.position.copy(s.center).addScaledVector(new THREE.Vector3(-1.2, 0.9, 2).normalize(), dist)
+          camera.position.copy(s.center).addScaledVector(VIEW_DIR, dist)
           camera.near = dist * 0.01
           camera.far = dist * 10
           camera.updateProjectionMatrix()

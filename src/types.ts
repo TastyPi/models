@@ -1,4 +1,4 @@
-import type { Manifold } from 'manifold-3d'
+import type { BufferGeometry } from 'three'
 
 export type RawMesh = { vertProperties: Float32Array; triVerts: Uint32Array; numProp: number }
 export type PreviewMesh = { label: string; mesh: RawMesh }
@@ -6,7 +6,7 @@ export type Attribution = { name: string; author: string; url: string; license: 
 
 export type PartGeom = {
   label: string
-  geom: Manifold
+  geom: BufferGeometry
   settings?: Record<string, string>
 }
 
@@ -18,5 +18,5 @@ export type ObjGeom = {
 
 export type GeomResult = {
   objects: ObjGeom[]
-  exportTransform?: (g: Manifold) => Manifold
+  exportTransform?: (g: BufferGeometry) => BufferGeometry
 }

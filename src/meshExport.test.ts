@@ -62,8 +62,8 @@ describe('buildStl', () => {
     expect(dv.getUint32(80, true)).toBe(0)
   })
 
-  it('swaps y/z axes (manifold y→STL z, manifold z negated→STL y)', () => {
-    // Vertex at manifold (1, 2, 3) should appear in STL as (1, -3, 2)
+  it('writes coordinates as-is (x,y,z passthrough)', () => {
+    // Vertex at (1, 2, 3) should appear in STL as (1, 2, 3)
     const mesh: RawMesh = {
       vertProperties: new Float32Array([0, 0, 0,  1, 2, 3,  0, 1, 0]),
       triVerts: new Uint32Array([0, 1, 2]),
@@ -83,8 +83,8 @@ describe('buildStl', () => {
     const v2y = dv.getFloat32(112, true)
     const v2z = dv.getFloat32(116, true)
     expect(v2x).toBeCloseTo(1)
-    expect(v2y).toBeCloseTo(-3)
-    expect(v2z).toBeCloseTo(2)
+    expect(v2y).toBeCloseTo(2)
+    expect(v2z).toBeCloseTo(3)
   })
 })
 

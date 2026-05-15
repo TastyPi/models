@@ -11,7 +11,7 @@ const EP_GAP = 0.15
 const EP_H_MALE = 2.0
 const EP_H_FEMALE = 2.25
 
-export const flatModel = true
+
 
 export interface Params {
   cells_x: number

@@ -1,4 +1,4 @@
-import { getManifold } from '../manifold'
+import { getManifold, manifoldToBufferGeometry } from '../manifold'
 import { MAGNET_HOLE_R, MAGNET_HOLE_DEPTH, crushRibCrossSection } from '../magnets'
 import type { GeomResult } from '../types'
 
@@ -18,7 +18,7 @@ const HOLE_Y = 0
 const HALF_SPAN = ((N - 1) / 2) * HOLE_SPACING
 const PLATE_W = Math.ceil(2 * (HALF_SPAN + MAGNET_HOLE_R + MARGIN))
 
-export const flatModel = true
+
 
 export function generate(_p: Record<string, unknown>): GeomResult {
   const { Manifold, CrossSection } = getManifold()
@@ -55,5 +55,5 @@ export function generate(_p: Record<string, unknown>): GeomResult {
   })
 
   plate = plate.subtract(Manifold.union(toRemove))
-  return { objects: [{ label: 'Magnet Press-Fit Test', parts: [{ label: 'Magnet Press-Fit Test', geom: plate }] }] }
+  return { objects: [{ label: 'Magnet Press-Fit Test', parts: [{ label: 'Magnet Press-Fit Test', geom: manifoldToBufferGeometry(plate) }] }] }
 }
