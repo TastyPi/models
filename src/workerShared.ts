@@ -20,8 +20,18 @@ export const MODELS: Record<ModelSlug, {
 }
 
 export function composeObj(obj: ObjGeom): BufferGeometry {
-  if (obj.parts.length === 1) return obj.parts[0].geom
   return mergeGeometries(obj.parts.map(p => p.geom)) ?? new BufferGeometry()
+}
+
+export function groupPartsByExtruder(obj: ObjGeom): Array<{ geoms: BufferGeometry[]; extruder: number }> {
+  const groups = new Map<number, BufferGeometry[]>()
+  for (const p of obj.parts) {
+    const ext = p.extruder ?? 1
+    const arr = groups.get(ext) ?? []
+    arr.push(p.geom)
+    groups.set(ext, arr)
+  }
+  return [...groups.entries()].sort(([a], [b]) => a - b).map(([extruder, geoms]) => ({ geoms, extruder }))
 }
 
 export function extractMesh(geom: BufferGeometry): RawMesh {

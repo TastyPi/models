@@ -45,7 +45,12 @@ self.onmessage = async (e: MessageEvent<InMsg>) => {
           mesh: extractMesh(applyTransforms(composeObj(obj))),
           settings: obj.settings,
           parts: obj.parts.length > 1
-            ? obj.parts.map(p => ({ label: p.label, mesh: extractMesh(applyTransforms(p.geom)), settings: p.settings }))
+            ? obj.parts.map(p => {
+                const settings: Record<string, string> = {}
+                if (p.extruder != null) settings.extruder = String(p.extruder)
+                Object.assign(settings, p.settings)
+                return { label: p.label, mesh: extractMesh(applyTransforms(p.geom)), settings: Object.keys(settings).length > 0 ? settings : undefined }
+              })
             : undefined,
         }))
         data = build3mf(exportObjs)

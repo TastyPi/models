@@ -61,10 +61,9 @@ export function ModelViewer(props: Props) {
 
     addSceneLights(scene)
 
-    // objectThreeMeshes[i] = all Three.js meshes for object i.
-    // meshes[0] is primary (blue), meshes[1+] are accent (orange).
+    // objectThreeMeshes[i] = all Three.js meshes for object i, each paired with its extruder.
     // meshToIndex maps every Three.js mesh back to its object index for raycasting.
-    let objectThreeMeshes: THREE.Mesh[][] = []
+    let objectThreeMeshes: Array<Array<{ mesh: THREE.Mesh; extruder: number }>> = []
     const meshToIndex = new Map<THREE.Mesh, number>()
     let hoveredIdx = -1
     let rafId: number | null = null
@@ -101,8 +100,8 @@ export function ModelViewer(props: Props) {
       return `${sel.size} objects selected`
     }
 
-    const meshMat = (i: number, j: number, sel: ReadonlySet<number>): THREE.Material => {
-      const { base, hover, highlight, dim } = MAT_PALETTES[Math.min(j, MAT_PALETTES.length - 1)]
+    const meshMat = (i: number, extruder: number, sel: ReadonlySet<number>): THREE.Material => {
+      const { base, hover, highlight, dim } = MAT_PALETTES[(extruder - 1) % MAT_PALETTES.length]
       if (sel.has(i)) return highlight
       if (i === hoveredIdx) return hover
       if (sel.size > 0) return dim
@@ -111,8 +110,8 @@ export function ModelViewer(props: Props) {
 
     const applyMaterials = (sel: ReadonlySet<number>) => {
       for (let i = 0; i < objectThreeMeshes.length; i++)
-        for (let j = 0; j < objectThreeMeshes[i].length; j++)
-          objectThreeMeshes[i][j].material = meshMat(i, j, sel)
+        for (const { mesh: m, extruder } of objectThreeMeshes[i])
+          m.material = meshMat(i, extruder, sel)
       scheduleRender()
     }
 
@@ -124,7 +123,7 @@ export function ModelViewer(props: Props) {
       const geomChanged = !hadGeometry && hasGeometry
       if (hasGeometry) hadGeometry = true
 
-      for (const meshes of objectThreeMeshes) for (const m of meshes) { scene.remove(m); m.geometry.dispose() }
+      for (const meshes of objectThreeMeshes) for (const { mesh: m } of meshes) { scene.remove(m); m.geometry.dispose() }
       objectThreeMeshes = []
       meshToIndex.clear()
       hoveredIdx = -1
@@ -134,10 +133,10 @@ export function ModelViewer(props: Props) {
 
       if (objectsData && objectsData.length > 0) {
         for (let i = 0; i < objectsData.length; i++) {
-          const threeMeshes: THREE.Mesh[] = []
-          for (let j = 0; j < objectsData[i].meshes.length; j++) {
-            const m = new THREE.Mesh(buildGeo(objectsData[i].meshes[j]), meshMat(i, j, sel))
-            threeMeshes.push(m)
+          const threeMeshes: Array<{ mesh: THREE.Mesh; extruder: number }> = []
+          for (const { mesh: raw, extruder } of objectsData[i].meshes) {
+            const m = new THREE.Mesh(buildGeo(raw), meshMat(i, extruder, sel))
+            threeMeshes.push({ mesh: m, extruder })
             meshToIndex.set(m, i)
             scene.add(m)
           }
@@ -156,7 +155,7 @@ export function ModelViewer(props: Props) {
       let sphere: THREE.Sphere | null = null
       if (objectsData && objectsData.length > 0) {
         const box = new THREE.Box3()
-        for (const meshes of objectThreeMeshes) for (const m of meshes) box.expandByObject(m)
+        for (const meshes of objectThreeMeshes) for (const { mesh: m } of meshes) box.expandByObject(m)
         sphere = new THREE.Sphere()
         box.getBoundingSphere(sphere)
       }
@@ -209,7 +208,7 @@ export function ModelViewer(props: Props) {
       mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
       mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
       raycaster.setFromCamera(mouse, camera)
-      const allMeshes = objectThreeMeshes.flat()
+      const allMeshes = objectThreeMeshes.flat().map(e => e.mesh)
       const hits = raycaster.intersectObjects(allMeshes)
       if (hits.length === 0) return -1
       return meshToIndex.get(hits[0].object as THREE.Mesh) ?? -1
@@ -249,7 +248,7 @@ export function ModelViewer(props: Props) {
       controls.removeEventListener('change', scheduleRender)
       controls.removeEventListener('change', onCameraMove)
       ro.disconnect()
-      for (const meshes of objectThreeMeshes) for (const m of meshes) { scene.remove(m); m.geometry.dispose() }
+      for (const meshes of objectThreeMeshes) for (const { mesh: m } of meshes) { scene.remove(m); m.geometry.dispose() }
       renderer.dispose()
       canvasRef.removeEventListener('mousedown', onMouseDown)
       canvasRef.removeEventListener('click', onClick)

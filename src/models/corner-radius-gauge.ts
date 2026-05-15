@@ -143,6 +143,7 @@ export function generate({ text_style, text_top, text_bottom }: Params): GeomRes
       if (letterUnion) parts.push({
         label: 'Text',
         geom: manifoldToBufferGeometry(letterUnion.translate([tileX, tileY, 0])),
+        extruder: 2,
       })
       allPieces.push({ label: `${labelStr}mm`, parts })
     }
