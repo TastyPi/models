@@ -1,4 +1,4 @@
-import { getManifold } from '../manifold'
+import { getManifold, manifoldToBufferGeometry } from '../manifold'
 import type { Attribution, GeomResult } from '../types'
 import { MAGNET_HOLE_R, MAGNET_HOLE_DEPTH, crushRibCrossSection } from '../magnets'
 
@@ -177,6 +177,5 @@ export function generate(p: {
     bin = bin.add(Manifold.union(divParts))
   }
 
-  const geom = bin.rotate([-90, 0, 0])
-  return { objects: [{ label: 'Gridfinity Bin', parts: [{ label: 'Gridfinity Bin', geom }] }] }
+  return { objects: [{ label: 'Gridfinity Bin', parts: [{ label: 'Gridfinity Bin', geom: manifoldToBufferGeometry(bin) }] }] }
 }

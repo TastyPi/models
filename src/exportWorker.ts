@@ -1,6 +1,6 @@
 import { MODELS, extractMesh, composeObj, readyPromise } from './workerShared'
 import { buildStl, build3mf } from './meshExport'
-import type { Manifold } from 'manifold-3d'
+import type { BufferGeometry } from 'three'
 import type { ExportObj } from './meshExport'
 import type { ModelSlug } from './models/registry'
 
@@ -24,13 +24,9 @@ self.onmessage = async (e: MessageEvent<InMsg>) => {
   if (!entry) { self.postMessage({ type: 'error', key } satisfies OutMsg); return }
   try {
     const result = entry.generate(params)
-    const flatRotate = (g: any): any => entry.flatModel ? g.rotate(-90, 0, 0) : g
-    const exportTransform: ((g: Manifold) => Manifold) | undefined = result.exportTransform
 
-    const applyTransforms = (g: any): any => {
-      if (exportTransform) g = exportTransform(g)
-      return flatRotate(g)
-    }
+    const applyTransforms = (g: BufferGeometry): BufferGeometry =>
+      result.exportTransform ? result.exportTransform(g) : g
 
     const selected = objectIndices
       ? result.objects.filter((_, i) => objectIndices.includes(i))

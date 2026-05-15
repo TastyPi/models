@@ -1,4 +1,4 @@
-import { getManifold } from '../manifold'
+import { getManifold, manifoldToBufferGeometry } from '../manifold'
 import type { Attribution, ObjGeom, GeomResult } from '../types'
 
 const TILE_W = 15
@@ -67,7 +67,7 @@ export const attribution: Attribution[] = [
   },
 ]
 
-export const flatModel = true
+
 
 export interface Params {
   text_style: string
@@ -160,7 +160,7 @@ export function generate({ text_style, text_top, text_bottom }: Params): GeomRes
           const text = buildLabel(labelStr, 0, 0, 0)
           if (text) tile = tile.subtract(text.mirror([1, -1, 0]).translate([LY0, LX0, 0]))
         }
-        allPieces.push({ label: `${labelStr}mm`, parts: [{ label: `${labelStr}mm`, geom: tile.translate([tileX, tileY, 0]) }] })
+        allPieces.push({ label: `${labelStr}mm`, parts: [{ label: `${labelStr}mm`, geom: manifoldToBufferGeometry(tile.translate([tileX, tileY, 0])) }] })
       } else {
         // Multi-colour: letter shapes inlaid flush at top/bottom surfaces.
         // Composed as two separate shells — assign extruder 1 to the tile body
@@ -173,8 +173,8 @@ export function generate({ text_style, text_top, text_bottom }: Params): GeomRes
         const letterUnion = letterParts.length > 0
           ? letterParts.reduce((a, b) => a.add(b))
           : null
-        const parts: ObjGeom['parts'] = [{ label: 'Body', geom: tileBody.translate([tileX, tileY, 0]) }]
-        if (letterUnion) parts.push({ label: 'Text', geom: letterUnion.translate([tileX, tileY, 0]) })
+        const parts: ObjGeom['parts'] = [{ label: 'Body', geom: manifoldToBufferGeometry(tileBody.translate([tileX, tileY, 0])) }]
+        if (letterUnion) parts.push({ label: 'Text', geom: manifoldToBufferGeometry(letterUnion.translate([tileX, tileY, 0])) })
         allPieces.push({ label: `${labelStr}mm`, parts })
       }
     }

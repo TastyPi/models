@@ -42,7 +42,7 @@ function GridfinityBinPage() {
     dividers_x: dividersX(), dividers_y: dividersY(),
   }))
 
-  const { objects, rendering, download } = useGeometry('gridfinity-bin', params)
+  const { objects, rendering, selectedObject, toggleObject, download } = useGeometry('gridfinity-bin', params)
 
   createEffect(() => {
     const p = params()
@@ -71,6 +71,8 @@ function GridfinityBinPage() {
       attribution={attribution}
       header={<ModelInfo>{infoStr()}</ModelInfo>}
       objects={objects}
+      selectedObject={selectedObject}
+      onObjectClick={toggleObject}
       rendering={rendering}
       footer={<DownloadFooter label="Download" onStl={() => download()} on3mf={() => download('3mf')} />}
     >

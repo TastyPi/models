@@ -1,6 +1,7 @@
-import { getManifold } from "../manifold";
+import { getManifold, manifoldToBufferGeometry } from "../manifold";
 import { resolveScrew, resolveDriverDiameter } from "../screws";
 import { type Manifold } from "manifold-3d";
+import { BufferGeometry, Matrix4 } from "three";
 import type { GeomResult } from "../types";
 
 export interface Params {
@@ -79,10 +80,13 @@ export function generate({
   const body = prism.add(lip);
 
   const printAngle = Math.atan2(wallHeight, depth) * (180 / Math.PI)
-  const exportTransform = (g: Manifold) => g.rotate(printAngle, 0, 0)
+  const exportTransform = (g: BufferGeometry): BufferGeometry => {
+    g.applyMatrix4(new Matrix4().makeRotationX((printAngle + 90) * Math.PI / 180))
+    return g
+  }
 
   const wrap = (geom: Manifold): GeomResult => ({
-    objects: [{ label: 'Wall Hook', parts: [{ label: 'Wall Hook', geom }] }],
+    objects: [{ label: 'Wall Hook', parts: [{ label: 'Wall Hook', geom: manifoldToBufferGeometry(geom) }] }],
     exportTransform,
   })
 

@@ -13,11 +13,10 @@ self.onmessage = async (e: MessageEvent<InMsg>) => {
   if (!entry) { self.postMessage({ type: 'error', key } satisfies OutMsg); return }
   try {
     const result = entry.generate(params)
-    const flatRotate = (g: any) => entry.flatModel ? g.rotate(-90, 0, 0) : g
 
     const objects: PreviewMesh[] = result.objects.map(p => ({
       label: p.label,
-      mesh: extractMesh(flatRotate(composeObj(p))),
+      mesh: extractMesh(composeObj(p)),
     }))
 
     const transferables: Transferable[] = []

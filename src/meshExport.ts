@@ -15,9 +15,9 @@ export function buildStl(meshes: RawMesh[]): ArrayBuffer {
   let o = 84
   for (const { vertProperties: v, triVerts: t, numProp: s } of meshes) {
     const n = t.length / 3
-    const px = (base: number) =>  v[base]
-    const py = (base: number) => -v[base + 2]
-    const pz = (base: number) =>  v[base + 1]
+    const px = (base: number) => v[base]
+    const py = (base: number) => v[base + 1]
+    const pz = (base: number) => v[base + 2]
     for (let i = 0; i < n; i++) {
       const a = t[i * 3] * s, b = t[i * 3 + 1] * s, c = t[i * 3 + 2] * s
       const ux = px(b)-px(a), uy = py(b)-py(a), uz = pz(b)-pz(a)
@@ -98,7 +98,7 @@ function meshXml(m: RawMesh, dx = 0, dy = 0, dz = 0): string {
   const f = (n: number) => +n.toFixed(4)
   const verts: string[] = []
   for (let i = 0; i < nv; i++)
-    verts.push(`<vertex x="${f(v[i*s] + dx)}" y="${f(-v[i*s+2] + dy)}" z="${f(v[i*s+1] + dz)}"/>`)
+    verts.push(`<vertex x="${f(v[i*s] + dx)}" y="${f(v[i*s+1] + dy)}" z="${f(v[i*s+2] + dz)}"/>`)
   const tris: string[] = []
   for (let i = 0; i < nt; i++)
     tris.push(`<triangle v1="${t[i*3]}" v2="${t[i*3+1]}" v3="${t[i*3+2]}"/>`)
@@ -111,7 +111,7 @@ function meshBounds(m: RawMesh) {
   const f = (n: number) => +n.toFixed(4)
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, minZ = Infinity
   for (let i = 0; i < nv; i++) {
-    const x = f(v[i*s]), y = f(-v[i*s+2]), z = f(v[i*s+1])
+    const x = f(v[i*s]), y = f(v[i*s+1]), z = f(v[i*s+2])
     if (x < minX) minX = x; if (x > maxX) maxX = x
     if (y < minY) minY = y; if (y > maxY) maxY = y
     if (z < minZ) minZ = z
@@ -131,7 +131,7 @@ function mergedMeshXml(
     const { vertProperties: v, triVerts: t, numProp: s } = m
     const nv = v.length / s, nt = t.length / 3
     for (let i = 0; i < nv; i++)
-      verts.push(`<vertex x="${f(v[i*s] + dx)}" y="${f(-v[i*s+2] + dy)}" z="${f(v[i*s+1] + dz)}"/>`)
+      verts.push(`<vertex x="${f(v[i*s] + dx)}" y="${f(v[i*s+1] + dy)}" z="${f(v[i*s+2] + dz)}"/>`)
     for (let i = 0; i < nt; i++)
       tris.push(`<triangle v1="${t[i*3] + vertOffset}" v2="${t[i*3+1] + vertOffset}" v3="${t[i*3+2] + vertOffset}"/>`)
     triCounts.push(nt)

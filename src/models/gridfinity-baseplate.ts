@@ -1,5 +1,5 @@
-import { getManifold } from '../manifold'
-import type { Manifold } from 'manifold-3d'
+import { getManifold, manifoldToBufferGeometry } from '../manifold'
+import { BufferGeometry, Matrix4 } from 'three'
 import type { Attribution, ObjGeom, GeomResult } from '../types'
 import { resolveBed, splitSizes, splitWallSizes, splitMaxInterior } from '../printBed'
 
@@ -38,7 +38,7 @@ export const attribution: Attribution[] = [
   { name: 'GridFlock', author: 'Jonas Konrad', url: 'https://github.com/yawkat/GridFlock', license: 'MIT, CC BY 4.0' },
 ]
 
-export const flatModel = true
+
 
 export { OUTER_R, EP_WALL_MIN }
 
@@ -440,10 +440,10 @@ export function generate(params: Params): GeomResult {
     const GRID_SETTINGS: Record<string, string> = { fill_density: '0%' }
 
     const pushStrip = (label: string, strip: any | null, dx: number, dy: number) => {
-      if (strip) labeled.push({ label, parts: [{ label, geom: strip.translate([dx, dy, 0]), settings: WALL_SETTINGS }] })
+      if (strip) labeled.push({ label, parts: [{ label, geom: manifoldToBufferGeometry(strip.translate([dx, dy, 0])), settings: WALL_SETTINGS }] })
     }
 
-    let exportTransform: ((g: Manifold) => Manifold) | undefined
+    let exportTransform: ((g: BufferGeometry) => BufferGeometry) | undefined
 
     if (!restrict_bed) {
       const cellXC = Array.from({ length: cells_x }, (_, i) => (i - (cells_x - 1) / 2) * CELL)
@@ -487,16 +487,16 @@ export function generate(params: Params): GeomResult {
         const clipBox = Manifold.cube([tileR - tileL + extE + extW, tileT - tileB + extN + extS, BASE_H + 2])
           .translate([tileL - extW, tileB - extS, -1])
         labeled.push({ label: 'Tile', parts: [
-          { label: 'Grid', geom: tile.intersect(clipBox), settings: GRID_SETTINGS },
-          { label: 'Wall', geom: tile.subtract(clipBox), settings: WALL_SETTINGS },
+          { label: 'Grid', geom: manifoldToBufferGeometry(tile.intersect(clipBox)), settings: GRID_SETTINGS },
+          { label: 'Wall', geom: manifoldToBufferGeometry(tile.subtract(clipBox)), settings: WALL_SETTINGS },
         ] })
       } else {
-        labeled.push({ label: 'Tile', parts: [{ label: 'Tile', geom: tile, settings: GRID_SETTINGS }] })
+        labeled.push({ label: 'Tile', parts: [{ label: 'Tile', geom: manifoldToBufferGeometry(tile), settings: GRID_SETTINGS }] })
       }
     } else {
       const rawBed = resolveBed(bed_type, bed_x, bed_y)
       const { tiles, sizesX, sizesY, bed, swapped } = planTiles({ cells_x, cells_y, wall_n, wall_s, wall_e, wall_w, separate_walls, bed: rawBed })
-      if (swapped) exportTransform = (g: Manifold) => g.rotate(0, 0, 90)
+      if (swapped) exportTransform = (g: BufferGeometry) => { g.applyMatrix4(new Matrix4().makeRotationZ(Math.PI / 2)); return g }
       const maxCellsX = Math.max(1, Math.floor(bed.x / CELL))
       const maxCellsY = Math.max(1, Math.floor(bed.y / CELL))
       const cols = sizesX.length, rows = sizesY.length
@@ -524,11 +524,11 @@ export function generate(params: Params): GeomResult {
           const clipBox = Manifold.cube([tR - tL + extE, tT - tB + extS, BASE_H + 2])
             .translate([tL, tB - extS, -1])
           labeled.push({ label: tile.label, parts: [
-            { label: 'Grid', geom: piece.intersect(clipBox).translate([tx, ty, 0]), settings: GRID_SETTINGS },
-            { label: 'Wall', geom: piece.subtract(clipBox).translate([tx, ty, 0]), settings: WALL_SETTINGS },
+            { label: 'Grid', geom: manifoldToBufferGeometry(piece.intersect(clipBox).translate([tx, ty, 0])), settings: GRID_SETTINGS },
+            { label: 'Wall', geom: manifoldToBufferGeometry(piece.subtract(clipBox).translate([tx, ty, 0])), settings: WALL_SETTINGS },
           ] })
         } else {
-          labeled.push({ label: tile.label, parts: [{ label: tile.label, geom: piece.translate([tx, ty, 0]), settings: GRID_SETTINGS }] })
+          labeled.push({ label: tile.label, parts: [{ label: tile.label, geom: manifoldToBufferGeometry(piece.translate([tx, ty, 0])), settings: GRID_SETTINGS }] })
         }
       }
 

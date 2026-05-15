@@ -27,7 +27,7 @@ const MAG_CORNER = CELL / 2 - 8.0
 
 const PIECE_GAP = 5
 
-export const flatModel = true
+
 
 export interface Params {
   cells_x: number

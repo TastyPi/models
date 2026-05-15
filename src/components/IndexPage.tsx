@@ -2,6 +2,7 @@ import { createSignal, onMount, onCleanup, Show, For } from 'solid-js'
 import * as THREE from 'three'
 import type { PreviewMesh } from '../types'
 import styles from './IndexPage.module.css'
+import { VIEW_DIR, addSceneLights, setupCamera } from './sceneHelpers'
 
 const MODELS: { slug: string; label: string; description: string; params: Record<string, unknown> }[] = [
   {
@@ -78,20 +79,14 @@ function renderThumbnail(objects: PreviewMesh[]): string {
     box.expandByObject(new THREE.Mesh(geo))
   }
 
-  scene.add(new THREE.AmbientLight(0xffffff, 0.5))
-  const sun = new THREE.DirectionalLight(0xffffff, 1.2)
-  sun.position.set(100, 200, 100)
-  scene.add(sun)
-  const fill = new THREE.DirectionalLight(0x8899ff, 0.4)
-  fill.position.set(-100, 50, -100)
-  scene.add(fill)
+  addSceneLights(scene)
 
   const sphere = new THREE.Sphere()
   box.getBoundingSphere(sphere)
   const camera = new THREE.PerspectiveCamera(45, W / H, 0.1, sphere.radius * 20)
-  const viewDir = new THREE.Vector3(-1.2, 0.9, 2).normalize()
+  setupCamera(camera)
   const dist = (sphere.radius / Math.sin((45 / 2) * (Math.PI / 180))) * 1.1
-  camera.position.copy(sphere.center).addScaledVector(viewDir, dist)
+  camera.position.copy(sphere.center).addScaledVector(VIEW_DIR, dist)
   camera.lookAt(sphere.center)
 
   renderer.render(scene, camera)
