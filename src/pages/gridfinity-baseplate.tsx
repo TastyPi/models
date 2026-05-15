@@ -65,7 +65,7 @@ const PRESETS: Record<string, Preset> = {
 }
 
 const PRESET_OPTIONS = [
-  { value: 'halfords', label: 'Halfords 3 Drawer Middle Chest (13×9)' },
+  { value: 'halfords', label: 'Halfords 3 Drawer Middle Chest (13×9)', link: 'https://www.printables.com/model/1722482-halfords-3-drawer-middle-chest-gridfinity-baseplat' },
 ]
 
 function GridfinityBaseplatePage() {
