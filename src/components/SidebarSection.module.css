@@ -32,6 +32,8 @@
   color: #555;
 }
 
+.chevronHidden { visibility: hidden; }
+
 .body {
   display: flex;
   flex-direction: column;

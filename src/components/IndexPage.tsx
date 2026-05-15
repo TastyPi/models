@@ -89,7 +89,7 @@ function renderThumbnail(objects: PreviewMesh[]): string {
   const sphere = new THREE.Sphere()
   box.getBoundingSphere(sphere)
   const camera = new THREE.PerspectiveCamera(45, W / H, 0.1, sphere.radius * 20)
-  const viewDir = new THREE.Vector3(1.2, 0.9, 2).normalize()
+  const viewDir = new THREE.Vector3(-1.2, 0.9, 2).normalize()
   const dist = (sphere.radius / Math.sin((45 / 2) * (Math.PI / 180))) * 1.1
   camera.position.copy(sphere.center).addScaledVector(viewDir, dist)
   camera.lookAt(sphere.center)
