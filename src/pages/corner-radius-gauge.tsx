@@ -16,7 +16,7 @@ function CornerRadiusGaugePage() {
   const [textTop, setTextTop] = createSignal(sp.has('text_top') ? sp.get('text_top') === 'true' : DEFAULTS.text_top)
   const [textBottom, setTextBottom] = createSignal(sp.has('text_bottom') ? sp.get('text_bottom') === 'true' : DEFAULTS.text_bottom)
 
-  const { geometry, pieces, rendering, selectedPiece, togglePiece, download } = useGeometry(
+  const { objects, rendering, selectedObject, toggleObject, download } = useGeometry(
     'corner-radius-gauge',
     () => ({ text_style: textStyle(), text_top: textTop(), text_bottom: textBottom() }),
   )
@@ -35,10 +35,9 @@ function CornerRadiusGaugePage() {
       title="Corner Radius Gauge"
       description="Set of 10 gauge tiles for corner radii from 0.5 to 5 mm in 0.5 mm steps."
       attribution={attribution}
-      geometry={geometry}
-      pieces={pieces}
-      selectedPiece={selectedPiece}
-      onPieceClick={togglePiece}
+      objects={objects}
+      selectedObject={selectedObject}
+      onObjectClick={toggleObject}
       download={download}
       rendering={rendering}
     >

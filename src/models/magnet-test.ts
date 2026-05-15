@@ -1,5 +1,6 @@
 import { getManifold } from '../manifold'
 import { MAGNET_HOLE_R, MAGNET_HOLE_DEPTH, crushRibCrossSection } from '../magnets'
+import type { GeomResult } from '../types'
 
 const PLATE_H = 7        // one gridfinity base unit
 const PUSHOUT_R = 1.5   // 2.5mm allen key (M3, Core One) + 0.5mm = 3mm dia
@@ -19,7 +20,7 @@ const PLATE_W = Math.ceil(2 * (HALF_SPAN + MAGNET_HOLE_R + MARGIN))
 
 export const flatModel = true
 
-export function generate(_p: Record<string, unknown>) {
+export function generate(_p: Record<string, unknown>): GeomResult {
   const { Manifold, CrossSection } = getManifold()
 
   const holeXs = Array.from({ length: N }, (_, i) => (i - (N - 1) / 2) * HOLE_SPACING)
@@ -54,5 +55,5 @@ export function generate(_p: Record<string, unknown>) {
   })
 
   plate = plate.subtract(Manifold.union(toRemove))
-  return plate
+  return { objects: [{ label: 'Magnet Press-Fit Test', parts: [{ label: 'Magnet Press-Fit Test', geom: plate }] }] }
 }

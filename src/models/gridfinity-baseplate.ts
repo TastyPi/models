@@ -1,6 +1,6 @@
 import { getManifold } from '../manifold'
 import type { Manifold } from 'manifold-3d'
-import type { Attribution } from '../types'
+import type { Attribution, ObjGeom, GeomResult } from '../types'
 import { resolveBed, splitSizes, splitWallSizes, splitMaxInterior } from '../printBed'
 
 // Gridfinity spec constants (from https://gridfinity.xyz/specification/)
@@ -169,7 +169,7 @@ export interface Params {
   edge_w?: string
 }
 
-export function generate(params: Params) {
+export function generate(params: Params): GeomResult {
   const { cells_x, cells_y, separate_walls, wall_connector, corner_radius_sw, corner_radius_se, corner_radius_ne, corner_radius_nw, base_style, magnets, restrict_bed, bed_type, bed_x, bed_y, edge_n, edge_s, edge_e, edge_w } = params
   const wall_n = params.wall_n ?? 0
   const wall_s = params.wall_s ?? 0
@@ -434,13 +434,13 @@ export function generate(params: Params) {
     }
 
     // ── Assemble ─────────────────────────────────────────────────────────────
-    const labeled: { label: string; geom: any; primaryGeom?: any; secondaryGeom?: any; primaryLabel?: string; secondaryLabel?: string; primarySettings?: Record<string, string>; secondarySettings?: Record<string, string>; settings?: Record<string, string> }[] = []
+    const labeled: ObjGeom[] = []
 
     const WALL_SETTINGS: Record<string, string> = { fill_density: '5%', fill_pattern: 'zigzag' }
     const GRID_SETTINGS: Record<string, string> = { fill_density: '0%' }
 
     const pushStrip = (label: string, strip: any | null, dx: number, dy: number) => {
-      if (strip) labeled.push({ label, geom: strip.translate([dx, dy, 0]), settings: WALL_SETTINGS })
+      if (strip) labeled.push({ label, parts: [{ label, geom: strip.translate([dx, dy, 0]), settings: WALL_SETTINGS }] })
     }
 
     let exportTransform: ((g: Manifold) => Manifold) | undefined
@@ -486,14 +486,12 @@ export function generate(params: Params) {
         const extW = eW === 'male' ? EP_TAB_D + EP_NECK_D + 1 : 0
         const clipBox = Manifold.cube([tileR - tileL + extE + extW, tileT - tileB + extN + extS, BASE_H + 2])
           .translate([tileL - extW, tileB - extS, -1])
-        labeled.push({ label: 'Tile', geom: tile,
-          primaryGeom: tile.intersect(clipBox), secondaryGeom: tile.subtract(clipBox),
-          primaryLabel: 'Grid', secondaryLabel: 'Wall',
-          primarySettings: { fill_density: '0%' },
-          secondarySettings: { fill_density: '5%', fill_pattern: 'zigzag' },
-        })
+        labeled.push({ label: 'Tile', parts: [
+          { label: 'Grid', geom: tile.intersect(clipBox), settings: GRID_SETTINGS },
+          { label: 'Wall', geom: tile.subtract(clipBox), settings: WALL_SETTINGS },
+        ] })
       } else {
-        labeled.push({ label: 'Tile', geom: tile, settings: GRID_SETTINGS })
+        labeled.push({ label: 'Tile', parts: [{ label: 'Tile', geom: tile, settings: GRID_SETTINGS }] })
       }
     } else {
       const rawBed = resolveBed(bed_type, bed_x, bed_y)
@@ -525,15 +523,12 @@ export function generate(params: Params) {
           const extE = tile.hasEConn ? EP_TAB_D + EP_NECK_D + 1 : 0
           const clipBox = Manifold.cube([tR - tL + extE, tT - tB + extS, BASE_H + 2])
             .translate([tL, tB - extS, -1])
-          labeled.push({ label: tile.label, geom: piece.translate([tx, ty, 0]),
-            primaryGeom: piece.intersect(clipBox).translate([tx, ty, 0]),
-            secondaryGeom: piece.subtract(clipBox).translate([tx, ty, 0]),
-            primaryLabel: 'Grid', secondaryLabel: 'Wall',
-            primarySettings: { fill_density: '0%' },
-            secondarySettings: { fill_density: '5%', fill_pattern: 'zigzag' },
-          })
+          labeled.push({ label: tile.label, parts: [
+            { label: 'Grid', geom: piece.intersect(clipBox).translate([tx, ty, 0]), settings: GRID_SETTINGS },
+            { label: 'Wall', geom: piece.subtract(clipBox).translate([tx, ty, 0]), settings: WALL_SETTINGS },
+          ] })
         } else {
-          labeled.push({ label: tile.label, geom: piece.translate([tx, ty, 0]), settings: GRID_SETTINGS })
+          labeled.push({ label: tile.label, parts: [{ label: tile.label, geom: piece.translate([tx, ty, 0]), settings: GRID_SETTINGS }] })
         }
       }
 
@@ -546,18 +541,19 @@ export function generate(params: Params) {
         const mcSX = Math.max(1, Math.floor((bed.x - wall_w) / CELL))
         const wallSizesN = splitWallSizes(cells_x, maxCellsX, mcNX, wall_e > 0 ? true : null)
         const wallSizesS = splitWallSizes(cells_x, maxCellsX, mcSX, wall_w > 0 ? false : null)
-        const wallCols = wallSizesN.length
-        let wallNStartX = 0, wallSStartX = 0
-        for (let pi = 0; pi < wallCols; pi++) {
-          const tx = pi * PIECE_GAP + baseX
-          if (wall_n > 0) {
+        let wallNStartX = 0
+        if (wall_n > 0) {
+          for (let pi = 0; pi < wallSizesN.length; pi++) {
             const segCellXC = Array.from({ length: wallSizesN[pi] }, (_, i) => (wallNStartX + i - (cells_x - 1) / 2) * CELL)
-            pushStrip(wallLabel('North', wallCols, pi), buildWallStrip('N', segCellXC, fullCellYC, wall_n, wall_s, wall_e, wall_w, pi === 0, pi === wallCols - 1), tx, rows * PIECE_GAP + baseY)
+            pushStrip(wallLabel('North', wallSizesN.length, pi), buildWallStrip('N', segCellXC, fullCellYC, wall_n, wall_s, wall_e, wall_w, pi === 0, pi === wallSizesN.length - 1), pi * PIECE_GAP + baseX, rows * PIECE_GAP + baseY)
             wallNStartX += wallSizesN[pi]
           }
-          if (wall_s > 0) {
+        }
+        let wallSStartX = 0
+        if (wall_s > 0) {
+          for (let pi = 0; pi < wallSizesS.length; pi++) {
             const segCellXC = Array.from({ length: wallSizesS[pi] }, (_, i) => (wallSStartX + i - (cells_x - 1) / 2) * CELL)
-            pushStrip(wallLabel('South', wallCols, pi), buildWallStrip('S', segCellXC, fullCellYC, wall_n, wall_s, wall_e, wall_w, pi === 0, pi === wallCols - 1), tx, -PIECE_GAP + baseY)
+            pushStrip(wallLabel('South', wallSizesS.length, pi), buildWallStrip('S', segCellXC, fullCellYC, wall_n, wall_s, wall_e, wall_w, pi === 0, pi === wallSizesS.length - 1), pi * PIECE_GAP + baseX, -PIECE_GAP + baseY)
             wallSStartX += wallSizesS[pi]
           }
         }
@@ -566,32 +562,24 @@ export function generate(params: Params) {
         const mcWY = Math.max(1, Math.floor((bed.y - wall_n) / CELL))
         const wallSizesE = splitWallSizes(cells_y, maxCellsY, mcEY, wall_s > 0 ? false : null)
         const wallSizesW = splitWallSizes(cells_y, maxCellsY, mcWY, wall_n > 0 ? true : null)
-        const wallRows = wallSizesE.length
-        let wallEStartY = 0, wallWStartY = 0
-        for (let pj = 0; pj < wallRows; pj++) {
-          const ty = pj * PIECE_GAP + baseY
-          if (wall_e > 0) {
+        let wallEStartY = 0
+        if (wall_e > 0) {
+          for (let pj = 0; pj < wallSizesE.length; pj++) {
             const segCellYC = Array.from({ length: wallSizesE[pj] }, (_, j) => (wallEStartY + j - (cells_y - 1) / 2) * CELL)
-            pushStrip(wallLabel('East', wallRows, pj), buildWallStrip('E', fullCellXC, segCellYC, wall_n, wall_s, wall_e, wall_w, pj === 0, pj === wallRows - 1), cols * PIECE_GAP + baseX, ty)
+            pushStrip(wallLabel('East', wallSizesE.length, pj), buildWallStrip('E', fullCellXC, segCellYC, wall_n, wall_s, wall_e, wall_w, pj === 0, pj === wallSizesE.length - 1), cols * PIECE_GAP + baseX, pj * PIECE_GAP + baseY)
             wallEStartY += wallSizesE[pj]
           }
-          if (wall_w > 0) {
+        }
+        let wallWStartY = 0
+        if (wall_w > 0) {
+          for (let pj = 0; pj < wallSizesW.length; pj++) {
             const segCellYC = Array.from({ length: wallSizesW[pj] }, (_, j) => (wallWStartY + j - (cells_y - 1) / 2) * CELL)
-            pushStrip(wallLabel('West', wallRows, pj), buildWallStrip('W', fullCellXC, segCellYC, wall_n, wall_s, wall_e, wall_w, pj === 0, pj === wallRows - 1), cols * PIECE_GAP + baseX, ty)
+            pushStrip(wallLabel('West', wallSizesW.length, pj), buildWallStrip('W', fullCellXC, segCellYC, wall_n, wall_s, wall_e, wall_w, pj === 0, pj === wallSizesW.length - 1), -PIECE_GAP + baseX, pj * PIECE_GAP + baseY)
             wallWStartY += wallSizesW[pj]
           }
         }
       }
     }
 
-    const merged = Manifold.union(labeled.map(p => p.geom))
-    if (labeled.length <= 1) {
-      if (exportTransform) return { geom: merged, exportTransform }
-      return merged
-    }
-    return {
-      merged,
-      pieces: labeled.map(p => ({ label: p.label, geom: p.geom, primaryGeom: p.primaryGeom, secondaryGeom: p.secondaryGeom, primaryLabel: p.primaryLabel, secondaryLabel: p.secondaryLabel, primarySettings: p.primarySettings, secondarySettings: p.secondarySettings, settings: p.settings })),
-      exportTransform,
-    }
+    return { objects: labeled, exportTransform }
 }

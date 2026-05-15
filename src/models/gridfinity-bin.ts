@@ -1,5 +1,5 @@
 import { getManifold } from '../manifold'
-import type { Attribution } from '../types'
+import type { Attribution, GeomResult } from '../types'
 import { MAGNET_HOLE_R, MAGNET_HOLE_DEPTH, crushRibCrossSection } from '../magnets'
 
 // Gridfinity spec constants (from https://gridfinity.xyz/specification/)
@@ -48,7 +48,7 @@ export function generate(p: {
   magnets: boolean; magnet_style: 'ribs' | 'smooth'; magnet_size: number
   chamfer: boolean; supportless: boolean; corner_magnets: boolean
   dividers_x: number; dividers_y: number
-}) {
+}): GeomResult {
   const { cells_x, cells_y, height_units, stacking_lip, magnets, magnet_style, magnet_size, chamfer, supportless, corner_magnets, dividers_x, dividers_y } = p
   const { Manifold, CrossSection } = getManifold()
 
@@ -177,5 +177,6 @@ export function generate(p: {
     bin = bin.add(Manifold.union(divParts))
   }
 
-  return bin.rotate([-90, 0, 0])
+  const geom = bin.rotate([-90, 0, 0])
+  return { objects: [{ label: 'Gridfinity Bin', parts: [{ label: 'Gridfinity Bin', geom }] }] }
 }

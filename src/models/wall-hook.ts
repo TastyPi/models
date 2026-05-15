@@ -1,6 +1,7 @@
 import { getManifold } from "../manifold";
 import { resolveScrew, resolveDriverDiameter } from "../screws";
 import { type Manifold } from "manifold-3d";
+import type { GeomResult } from "../types";
 
 export interface Params {
   wall_side_height: number
@@ -24,7 +25,7 @@ export function generate({
   lip_edge_radius: edgeRadius, screw_holes: holeCount, screw_spacing: screwSpacing,
   screw_type: screwType, screw_shaft: screwShaft, screw_head: screwHead,
   driver_type: driverType, driver_diameter: driverDiameterCustom, countersunk
-}: Params): { geom: Manifold; exportTransform: (g: Manifold) => Manifold } {
+}: Params): GeomResult {
   const { Manifold } = getManifold();
 
   const { shaft: shaftDiameter, head: headDiameter } = resolveScrew(screwType, screwShaft, screwHead);
@@ -80,7 +81,12 @@ export function generate({
   const printAngle = Math.atan2(wallHeight, depth) * (180 / Math.PI)
   const exportTransform = (g: Manifold) => g.rotate(printAngle, 0, 0)
 
-  if (holeCount === 0) return { geom: body, exportTransform };
+  const wrap = (geom: Manifold): GeomResult => ({
+    objects: [{ label: 'Wall Hook', parts: [{ label: 'Wall Hook', geom }] }],
+    exportTransform,
+  })
+
+  if (holeCount === 0) return wrap(body);
 
   const coneRadius = headDiameter / 2;
   const countersinkDepth = coneRadius - shaftDiameter / 2;  // 90 degree countersink depth
@@ -114,9 +120,9 @@ export function generate({
     return shaft.add(cone).add(bore);
   };
 
-  if (holeCount === 1) return { geom: body.subtract(makeHole(0)), exportTransform };
+  if (holeCount === 1) return wrap(body.subtract(makeHole(0)));
 
   const geom = Array.from({ length: holeCount }, (_, i) => (i - (holeCount - 1) / 2) * screwSpacing)
     .reduce((acc, x) => acc.subtract(makeHole(x)), body);
-  return { geom, exportTransform };
+  return wrap(geom);
 }

@@ -5,15 +5,14 @@ import { DownloadFooter } from '../components/DownloadFooter'
 import { useGeometry } from '../hooks/useGeometry'
 
 function MagnetTestPage() {
-  const { geometry, rendering, download } = useGeometry('magnet-test', () => ({}))
+  const { rendering, download } = useGeometry('magnet-test', () => ({}))
 
   return (
     <PageLayout
       title="Magnet Press-Fit Test"
       description="Compare crush ribs vs plain bore sizes for 6×2mm magnets."
-      geometry={geometry}
       rendering={rendering}
-      footer={<DownloadFooter label="Download" onStl={() => download()} on3mf={() => download(undefined, '3mf')} />}
+      footer={<DownloadFooter label="Download" onStl={() => download()} on3mf={() => download('3mf')} />}
     >
       <div style={{ 'font-size': '0.8rem', color: '#777', 'line-height': '1.6' }}>
         <p style={{ margin: '0 0 8px' }}>Six pockets, left to right: crush ribs, then plain bores at 6.0, 6.1, 6.2, 6.3, and 6.4 mm diameter.</p>
