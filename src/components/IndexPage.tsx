@@ -1,6 +1,6 @@
 import { createSignal, onMount, onCleanup, Show, For } from 'solid-js'
 import * as THREE from 'three'
-import type { RawMesh } from '../types'
+import type { PreviewMesh } from '../types'
 import styles from './IndexPage.module.css'
 
 const MODELS: { slug: string; label: string; description: string; params: Record<string, unknown> }[] = [
@@ -53,7 +53,7 @@ const MODELS: { slug: string; label: string; description: string; params: Record
   },
 ]
 
-function renderThumbnail(mesh: RawMesh): string {
+function renderThumbnail(objects: PreviewMesh[]): string {
   const W = 280, H = 200
   const canvas = document.createElement('canvas')
   canvas.width = W
@@ -65,15 +65,18 @@ function renderThumbnail(mesh: RawMesh): string {
   const scene = new THREE.Scene()
   scene.background = new THREE.Color(0x1a1a2e)
 
-  const geo = new THREE.BufferGeometry()
-  geo.setAttribute('position', new THREE.BufferAttribute(mesh.vertProperties, mesh.numProp))
-  geo.setIndex(new THREE.BufferAttribute(mesh.triVerts, 1))
-  geo.computeBoundingSphere()
-  geo.computeVertexNormals()
-
   const mat = new THREE.MeshStandardMaterial({ color: 0x6688cc, roughness: 0.4, metalness: 0.1, flatShading: true })
-  const obj = new THREE.Mesh(geo, mat)
-  scene.add(obj)
+  const geos: THREE.BufferGeometry[] = []
+  const box = new THREE.Box3()
+  for (const { mesh } of objects) {
+    const geo = new THREE.BufferGeometry()
+    geo.setAttribute('position', new THREE.BufferAttribute(mesh.vertProperties, mesh.numProp))
+    geo.setIndex(new THREE.BufferAttribute(mesh.triVerts, 1))
+    geo.computeBoundingSphere()
+    geos.push(geo)
+    scene.add(new THREE.Mesh(geo, mat))
+    box.expandByObject(new THREE.Mesh(geo))
+  }
 
   scene.add(new THREE.AmbientLight(0xffffff, 0.5))
   const sun = new THREE.DirectionalLight(0xffffff, 1.2)
@@ -83,7 +86,8 @@ function renderThumbnail(mesh: RawMesh): string {
   fill.position.set(-100, 50, -100)
   scene.add(fill)
 
-  const sphere = geo.boundingSphere!
+  const sphere = new THREE.Sphere()
+  box.getBoundingSphere(sphere)
   const camera = new THREE.PerspectiveCamera(45, W / H, 0.1, sphere.radius * 20)
   const viewDir = new THREE.Vector3(1.2, 0.9, 2).normalize()
   const dist = (sphere.radius / Math.sin((45 / 2) * (Math.PI / 180))) * 1.1
@@ -94,27 +98,27 @@ function renderThumbnail(mesh: RawMesh): string {
   const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
 
   renderer.dispose()
-  geo.dispose()
+  for (const geo of geos) geo.dispose()
   mat.dispose()
 
   return dataUrl
 }
 
 type WorkerOutMsg =
-  | { type: 'result'; key: string; mesh: RawMesh }
+  | { type: 'result'; key: string; objects: PreviewMesh[] }
   | { type: 'error'; key: string }
 
 export function IndexPage() {
   const [thumbnails, setThumbnails] = createSignal<Record<string, string>>({})
 
   onMount(() => {
-    const worker = new Worker(new URL('../renderWorker.ts', import.meta.url), { type: 'module' })
+    const worker = new Worker(new URL('../previewWorker.ts', import.meta.url), { type: 'module' })
 
     worker.onmessage = (e: MessageEvent<WorkerOutMsg>) => {
       const msg = e.data
       if (msg.type !== 'result') return
       try {
-        const thumb = renderThumbnail(msg.mesh)
+        const thumb = renderThumbnail(msg.objects)
         setThumbnails(prev => ({ ...prev, [msg.key]: thumb }))
       } catch (err) {
         console.error('thumbnail render failed for', msg.key, err)

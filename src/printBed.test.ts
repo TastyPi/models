@@ -135,6 +135,27 @@ describe('splitWallSizes', () => {
   })
 })
 
+describe('splitWallSizes — E/W wall independence when wall_n ≠ wall_s', () => {
+  const CELL = 42
+
+  it('E and W walls can have different piece counts when wall_n ≠ wall_s', () => {
+    // Bug: old code used wallSizesE.length to drive both E and W loops.
+    // With wall_s=18, wall_n=0, cells_y=8, bed.y=180:
+    //   mcEY = floor((180-18)/42) = 3  → cornerAtEnd=false → [1, 4, 3] (3 pieces)
+    //   mcWY = floor((180-0)/42)  = 4  → cornerAtEnd=null  → [4, 4]    (2 pieces)
+    const cells_y = 8, bed_y = 180, wall_s = 18, wall_n = 0
+    const maxCellsY = Math.max(1, Math.floor(bed_y / CELL))
+    const mcEY = Math.max(1, Math.floor((bed_y - wall_s) / CELL))
+    const mcWY = Math.max(1, Math.floor((bed_y - wall_n) / CELL))
+    const wallSizesE = splitWallSizes(cells_y, maxCellsY, mcEY, wall_s > 0 ? false : null)
+    const wallSizesW = splitWallSizes(cells_y, maxCellsY, mcWY, wall_n > 0 ? true : null)
+    expect(wallSizesE.length).toBe(3)
+    expect(wallSizesW.length).toBe(2)
+    expect(wallSizesE.reduce((a, b) => a + b, 0)).toBe(cells_y)
+    expect(wallSizesW.reduce((a, b) => a + b, 0)).toBe(cells_y)
+  })
+})
+
 describe('splitMaxInterior', () => {
   it('returns single piece when n fits in bothMax', () => {
     expect(splitMaxInterior(5, 5, 5, 5, 5)).toEqual([5])

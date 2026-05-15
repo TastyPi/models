@@ -1,5 +1,5 @@
 import { getManifold } from '../manifold'
-import type { Attribution } from '../types'
+import type { Attribution, ObjGeom, GeomResult } from '../types'
 
 const TILE_W = 15
 const TILE_THICK = 3
@@ -75,7 +75,7 @@ export interface Params {
   text_bottom: boolean
 }
 
-export function generate({ text_style, text_top, text_bottom }: Params) {
+export function generate({ text_style, text_top, text_bottom }: Params): GeomResult {
     const { Manifold, CrossSection } = getManifold()
     const isMulti = text_style === 'multicolour'
     const showTop = text_top
@@ -124,7 +124,7 @@ export function generate({ text_style, text_top, text_bottom }: Params) {
     const LX0 = (W - LABEL_W) / 2
     const LY0 = INSET + (W - INSET - DH) / 2
 
-    const allPieces: { label: string; geom: any; primaryGeom?: any; secondaryGeom?: any }[] = []
+    const allPieces: ObjGeom[] = []
 
     for (let i = 0; i < 10; i++) {
       const r = (i + 1) * 0.5
@@ -160,7 +160,7 @@ export function generate({ text_style, text_top, text_bottom }: Params) {
           const text = buildLabel(labelStr, 0, 0, 0)
           if (text) tile = tile.subtract(text.mirror([1, -1, 0]).translate([LY0, LX0, 0]))
         }
-        allPieces.push({ label: `${labelStr}mm`, geom: tile.translate([tileX, tileY, 0]) })
+        allPieces.push({ label: `${labelStr}mm`, parts: [{ label: `${labelStr}mm`, geom: tile.translate([tileX, tileY, 0]) }] })
       } else {
         // Multi-colour: letter shapes inlaid flush at top/bottom surfaces.
         // Composed as two separate shells — assign extruder 1 to the tile body
@@ -173,18 +173,11 @@ export function generate({ text_style, text_top, text_bottom }: Params) {
         const letterUnion = letterParts.length > 0
           ? letterParts.reduce((a, b) => a.add(b))
           : null
-        const exportGeom = letterUnion
-          ? Manifold.compose([tileBody, letterUnion])
-          : tileBody
-        allPieces.push({
-          label: `${labelStr}mm`,
-          geom: exportGeom.translate([tileX, tileY, 0]),
-          primaryGeom: tileBody.translate([tileX, tileY, 0]),
-          secondaryGeom: letterUnion?.translate([tileX, tileY, 0]),
-        })
+        const parts: ObjGeom['parts'] = [{ label: 'Body', geom: tileBody.translate([tileX, tileY, 0]) }]
+        if (letterUnion) parts.push({ label: 'Text', geom: letterUnion.translate([tileX, tileY, 0]) })
+        allPieces.push({ label: `${labelStr}mm`, parts })
       }
     }
 
-    const merged = allPieces.reduce((a, b) => ({ ...a, geom: a.geom.add(b.geom) })).geom
-    return { merged, pieces: allPieces }
+    return { objects: allPieces }
 }

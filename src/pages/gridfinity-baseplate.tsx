@@ -126,7 +126,7 @@ function GridfinityBaseplatePage() {
     restrict_bed: restrictBed(), bed_type: bedType(), bed_x: bedX(), bed_y: bedY(),
   }))
 
-  const { geometry, pieces, rendering, selectedPiece, togglePiece, download } = useGeometry('gridfinity-baseplate', params)
+  const { objects, rendering, selectedObject, toggleObject, download } = useGeometry('gridfinity-baseplate', params)
 
   const setUrl = createUrlSync()
 
@@ -168,10 +168,9 @@ function GridfinityBaseplatePage() {
       <PageLayout
         title="Gridfinity Baseplate"
         attribution={attribution}
-        geometry={geometry}
-        pieces={pieces}
-        selectedPiece={selectedPiece}
-        onPieceClick={togglePiece}
+        objects={objects}
+        selectedObject={selectedObject}
+        onObjectClick={toggleObject}
         download={download}
         downloadNote="3MF includes per-part infill settings"
         rendering={rendering}

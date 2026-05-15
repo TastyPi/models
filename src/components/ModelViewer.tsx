@@ -1,13 +1,12 @@
 import { createEffect, createSignal, onCleanup, onMount, untrack, Show } from 'solid-js'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import type { RawMesh } from '../types'
+import type { RawMesh, PreviewMesh } from '../types'
 
 interface Props {
-  geometry: () => RawMesh | null
-  pieces?: () => Array<{ mesh: RawMesh; label: string; secondaryMesh?: RawMesh }> | null
-  selectedPiece?: () => ReadonlySet<number>
-  onPieceClick?: (index: number) => void
+  objects?: () => PreviewMesh[] | null
+  selectedObject?: () => ReadonlySet<number>
+  onObjectClick?: (index: number) => void
 }
 
 // Shared material instances — swapped onto meshes without reallocation
@@ -54,12 +53,10 @@ export function ModelViewer(props: Props) {
     fill.position.set(-100, 50, -100)
     scene.add(fill)
 
-    let mainMesh: THREE.Mesh | null = null
-    let pieceMeshes: THREE.Mesh[] = []
-    let secondaryMeshes: { mesh: THREE.Mesh; pieceIdx: number }[] = []
+    let objectMeshes: THREE.Mesh[] = []
     let hoveredIdx = -1
     let rafId: number | null = null
-    let lastRaw: RawMesh | null = null
+    let hadGeometry = false
     let isResetting = false
     const onCameraMove = () => { if (!isResetting) setCanReset(true) }
 
@@ -88,11 +85,11 @@ export function ModelViewer(props: Props) {
 
     const selectionLabel = (sel: ReadonlySet<number>) => {
       if (sel.size === 0) return null
-      if (sel.size === 1) return props.pieces?.()?.[sel.values().next().value!]?.label ?? null
-      return `${sel.size} pieces selected`
+      if (sel.size === 1) return props.objects?.()?.[sel.values().next().value!]?.label ?? null
+      return `${sel.size} objects selected`
     }
 
-    const pieceMat = (i: number, sel: ReadonlySet<number>): THREE.Material => {
+    const objectMat = (i: number, sel: ReadonlySet<number>): THREE.Material => {
       if (sel.has(i)) return matHighlight
       if (i === hoveredIdx) return matHover
       if (sel.size > 0) return matDimmed
@@ -100,61 +97,51 @@ export function ModelViewer(props: Props) {
     }
 
     const applyMaterials = (sel: ReadonlySet<number>) => {
-      for (let i = 0; i < pieceMeshes.length; i++) {
-        pieceMeshes[i].material = pieceMat(i, sel)
-      }
-      for (const { mesh, pieceIdx } of secondaryMeshes) {
-        mesh.material = pieceMat(pieceIdx, sel)
+      for (let i = 0; i < objectMeshes.length; i++) {
+        objectMeshes[i].material = objectMat(i, sel)
       }
       scheduleRender()
     }
 
-    // Rebuild scene geometry when geometry/pieces data changes.
-    // Reads selectedPiece via untrack so selection changes don't trigger a full rebuild.
+    // Rebuild scene geometry when objects data changes.
+    // Reads selectedObject via untrack so selection changes don't trigger a full rebuild.
     createEffect(() => {
-      const raw = props.geometry()
-      const piecesData = props.pieces?.() ?? null
-      const geomChanged = lastRaw === null
-      lastRaw = raw
+      const objectsData = props.objects?.() ?? null
+      const hasGeometry = objectsData !== null && objectsData.length > 0
+      const geomChanged = !hadGeometry && hasGeometry
+      if (hasGeometry) hadGeometry = true
 
-      if (mainMesh) { scene.remove(mainMesh); mainMesh.geometry.dispose(); mainMesh = null }
-      for (const m of pieceMeshes) { scene.remove(m); m.geometry.dispose() }
-      for (const { mesh } of secondaryMeshes) { scene.remove(mesh); mesh.geometry.dispose() }
-      pieceMeshes = []
-      secondaryMeshes = []
+      for (const m of objectMeshes) { scene.remove(m); m.geometry.dispose() }
+      objectMeshes = []
       hoveredIdx = -1
       setOverlayLabel(null)
 
-      const sel = untrack(() => props.selectedPiece?.() ?? new Set<number>())
+      const sel = untrack(() => props.selectedObject?.() ?? new Set<number>())
 
-      if (piecesData && piecesData.length > 0) {
-        for (let i = 0; i < piecesData.length; i++) {
-          pieceMeshes.push(new THREE.Mesh(buildGeo(piecesData[i].mesh), pieceMat(i, sel)))
-          scene.add(pieceMeshes[i])
-          if (piecesData[i].secondaryMesh) {
-            const sm = new THREE.Mesh(buildGeo(piecesData[i].secondaryMesh!), pieceMat(i, sel))
-            scene.add(sm)
-            secondaryMeshes.push({ mesh: sm, pieceIdx: i })
-          }
+      if (objectsData && objectsData.length > 0) {
+        for (let i = 0; i < objectsData.length; i++) {
+          objectMeshes.push(new THREE.Mesh(buildGeo(objectsData[i].mesh), objectMat(i, sel)))
+          scene.add(objectMeshes[i])
         }
-      } else if (raw) {
-        mainMesh = new THREE.Mesh(buildGeo(raw), matPrimary)
-        scene.add(mainMesh)
       }
 
-      if (raw) {
-        const geo = piecesData ? buildGeo(raw) : (mainMesh!.geometry as THREE.BufferGeometry)
-        const sphere = geo.boundingSphere!.clone()
-        if (piecesData) geo.dispose()
+      // Use the narrower of vertical/horizontal half-FOV so the model fits regardless of portrait/landscape
+      const fitDist = (r: number) => {
+        const fovY = camera.fov * Math.PI / 180
+        const fovX = 2 * Math.atan(Math.tan(fovY / 2) * camera.aspect)
+        const halfFov = Math.min(fovY, fovX) / 2
+        return (r / Math.sin(halfFov)) * 1.2
+      }
 
-        // Use the narrower of vertical/horizontal half-FOV so the model fits regardless of portrait/landscape
-        const fitDist = (r: number) => {
-          const fovY = camera.fov * Math.PI / 180
-          const fovX = 2 * Math.atan(Math.tan(fovY / 2) * camera.aspect)
-          const halfFov = Math.min(fovY, fovX) / 2
-          return (r / Math.sin(halfFov)) * 1.2
-        }
+      let sphere: THREE.Sphere | null = null
+      if (objectsData && objectsData.length > 0) {
+        const box = new THREE.Box3()
+        for (const m of objectMeshes) box.expandByObject(m)
+        sphere = new THREE.Sphere()
+        box.getBoundingSphere(sphere)
+      }
 
+      if (sphere) {
         if (geomChanged) {
           const dist = fitDist(sphere.radius)
           controls.target.copy(sphere.center)
@@ -168,9 +155,9 @@ export function ModelViewer(props: Props) {
 
         doResetCamera = () => {
           isResetting = true
-          const dist = fitDist(sphere.radius)
-          controls.target.copy(sphere.center)
-          camera.position.copy(sphere.center).addScaledVector(new THREE.Vector3(1.2, 0.9, 2).normalize(), dist)
+          const dist = fitDist(sphere!.radius)
+          controls.target.copy(sphere!.center)
+          camera.position.copy(sphere!.center).addScaledVector(new THREE.Vector3(1.2, 0.9, 2).normalize(), dist)
           camera.near = dist * 0.01
           camera.far = dist * 10
           camera.updateProjectionMatrix()
@@ -186,8 +173,8 @@ export function ModelViewer(props: Props) {
 
     // Update materials (only) when selection changes — no geometry rebuild.
     createEffect(() => {
-      const sel = props.selectedPiece?.() ?? new Set<number>()
-      if (pieceMeshes.length === 0) return
+      const sel = props.selectedObject?.() ?? new Set<number>()
+      if (objectMeshes.length === 0) return
       hoveredIdx = -1
       canvasRef.style.cursor = ''
       applyMaterials(sel)
@@ -196,40 +183,36 @@ export function ModelViewer(props: Props) {
 
     // Raycasting
     const hitIndex = (e: MouseEvent) => {
-      if (pieceMeshes.length === 0) return -1
+      if (objectMeshes.length === 0) return -1
       const rect = canvasRef.getBoundingClientRect()
       mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
       mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
       raycaster.setFromCamera(mouse, camera)
-      const allMeshes = [...pieceMeshes, ...secondaryMeshes.map(s => s.mesh)]
-      const hits = raycaster.intersectObjects(allMeshes)
+      const hits = raycaster.intersectObjects(objectMeshes)
       if (hits.length === 0) return -1
-      const hit = hits[0].object as THREE.Mesh
-      const primaryIdx = pieceMeshes.indexOf(hit)
-      if (primaryIdx >= 0) return primaryIdx
-      return secondaryMeshes.find(s => s.mesh === hit)?.pieceIdx ?? -1
+      return objectMeshes.indexOf(hits[0].object as THREE.Mesh)
     }
 
     const onMouseDown = (e: MouseEvent) => { mouseDownX = e.clientX; mouseDownY = e.clientY }
     const onClick = (e: MouseEvent) => {
       if (Math.hypot(e.clientX - mouseDownX, e.clientY - mouseDownY) > 5) return
-      props.onPieceClick?.(hitIndex(e))
+      props.onObjectClick?.(hitIndex(e))
     }
     const onMouseMove = (e: MouseEvent) => {
-      if (pieceMeshes.length === 0) return
+      if (objectMeshes.length === 0) return
       const newHovered = hitIndex(e)
       canvasRef.style.cursor = newHovered >= 0 ? 'pointer' : ''
       if (newHovered === hoveredIdx) return
       hoveredIdx = newHovered
-      const sel = props.selectedPiece?.() ?? new Set<number>()
+      const sel = props.selectedObject?.() ?? new Set<number>()
       applyMaterials(sel)
-      setOverlayLabel(newHovered >= 0 ? (props.pieces?.()?.[newHovered]?.label ?? null) : selectionLabel(sel))
+      setOverlayLabel(newHovered >= 0 ? (props.objects?.()?.[newHovered]?.label ?? null) : selectionLabel(sel))
     }
     const onMouseLeave = () => {
       if (hoveredIdx < 0) return
       hoveredIdx = -1
       canvasRef.style.cursor = ''
-      const sel = props.selectedPiece?.() ?? new Set<number>()
+      const sel = props.selectedObject?.() ?? new Set<number>()
       applyMaterials(sel)
       setOverlayLabel(selectionLabel(sel))
     }
@@ -244,6 +227,7 @@ export function ModelViewer(props: Props) {
       controls.removeEventListener('change', scheduleRender)
       controls.removeEventListener('change', onCameraMove)
       ro.disconnect()
+      for (const m of objectMeshes) { scene.remove(m); m.geometry.dispose() }
       renderer.dispose()
       canvasRef.removeEventListener('mousedown', onMouseDown)
       canvasRef.removeEventListener('click', onClick)

@@ -1,7 +1,7 @@
 import { createMemo, Show, For, type JSX } from 'solid-js'
 import { ModelViewer } from './ModelViewer'
 import { DownloadFooter } from './DownloadFooter'
-import type { RawMesh, PieceMesh, Attribution } from '../types'
+import type { PreviewMesh, Attribution } from '../types'
 import styles from './PageLayout.module.css'
 
 interface Props {
@@ -10,23 +10,22 @@ interface Props {
   attribution?: Attribution[]
   header?: JSX.Element
   footer?: JSX.Element
-  geometry: () => RawMesh | null
-  pieces?: () => PieceMesh[] | null
-  selectedPiece?: () => ReadonlySet<number>
-  onPieceClick?: (idx: number) => void
-  download?: (pieceIndex?: number | number[], format?: 'stl' | '3mf') => void
+  objects?: () => PreviewMesh[] | null
+  selectedObject?: () => ReadonlySet<number>
+  onObjectClick?: (idx: number) => void
+  download?: (format?: 'stl' | '3mf', objectIndices?: number[]) => void
   downloadNote?: string
   rendering?: () => boolean
   children: JSX.Element
 }
 
 export function PageLayout(props: Props) {
-  const selIndices = createMemo(() => props.selectedPiece ? [...props.selectedPiece()] : [])
+  const selIndices = createMemo(() => props.selectedObject ? [...props.selectedObject()] : [])
 
   const downloadLabel = createMemo(() => {
     const sel = selIndices()
     if (sel.length === 0) return 'Download'
-    if (sel.length === 1) return `Download ${props.pieces?.()?.[sel[0]]?.label ?? 'selected'}`
+    if (sel.length === 1) return `Download ${props.objects?.()?.[sel[0]]?.label ?? 'selected'}`
     return `Download selected (${sel.length})`
   })
 
@@ -52,8 +51,8 @@ export function PageLayout(props: Props) {
           <Show when={props.download !== undefined}>
             <DownloadFooter
               label={downloadLabel()}
-              onStl={() => selIndices().length > 0 ? selIndices().forEach(i => props.download!(i)) : props.download!()}
-              on3mf={() => { const sel = selIndices(); props.download!(sel.length > 0 ? sel : undefined, '3mf') }}
+              onStl={() => { const sel = selIndices(); props.download!('stl', sel.length > 0 ? sel : undefined) }}
+              on3mf={() => { const sel = selIndices(); props.download!('3mf', sel.length > 0 ? sel : undefined) }}
               note={props.downloadNote}
             />
           </Show>
@@ -93,10 +92,9 @@ export function PageLayout(props: Props) {
 
       <main class={styles.main}>
         <ModelViewer
-          geometry={props.geometry}
-          pieces={props.pieces}
-          selectedPiece={props.selectedPiece}
-          onPieceClick={props.onPieceClick}
+          objects={props.objects}
+          selectedObject={props.selectedObject}
+          onObjectClick={props.onObjectClick}
         />
         <Show when={props.rendering?.()}>
           <div class={styles.rendering}>Rendering…</div>

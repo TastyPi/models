@@ -42,7 +42,7 @@ function GridfinityBinPage() {
     dividers_x: dividersX(), dividers_y: dividersY(),
   }))
 
-  const { geometry, rendering, download } = useGeometry('gridfinity-bin', params)
+  const { rendering, download } = useGeometry('gridfinity-bin', params)
 
   createEffect(() => {
     const p = params()
@@ -70,9 +70,8 @@ function GridfinityBinPage() {
       description="Gridfinity bin with configurable width, depth, and height."
       attribution={attribution}
       header={<ModelInfo>{infoStr()}</ModelInfo>}
-      geometry={geometry}
       rendering={rendering}
-      footer={<DownloadFooter label="Download" onStl={() => download()} on3mf={() => download(undefined, '3mf')} />}
+      footer={<DownloadFooter label="Download" onStl={() => download()} on3mf={() => download('3mf')} />}
     >
       <SidebarSection label="Size" defaultOpen>
         <NumberSlider label="Width (cells)" value={cellsX()} onChange={setCellsX} min={1} max={10} />
