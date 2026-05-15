@@ -49,11 +49,9 @@ export function SidebarSection(props: Props) {
             />
           </Show>
         </div>
-        <Show when={canExpand()}>
-          <span class={`material-icons ${styles.chevron}`}>
-            {effectiveOpen() ? 'expand_more' : 'chevron_right'}
-          </span>
-        </Show>
+        <span class={`material-icons ${styles.chevron}`} classList={{ [styles.chevronHidden]: !canExpand() }}>
+          {effectiveOpen() ? 'expand_more' : 'chevron_right'}
+        </span>
       </div>
       <Show when={effectiveOpen()}>
         <div class={styles.body}>{props.children}</div>

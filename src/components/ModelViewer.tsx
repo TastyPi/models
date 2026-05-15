@@ -145,7 +145,7 @@ export function ModelViewer(props: Props) {
         if (geomChanged) {
           const dist = fitDist(sphere.radius)
           controls.target.copy(sphere.center)
-          camera.position.copy(sphere.center).addScaledVector(new THREE.Vector3(1.2, 0.9, 2).normalize(), dist)
+          camera.position.copy(sphere.center).addScaledVector(new THREE.Vector3(-1.2, 0.9, 2).normalize(), dist)
           camera.near = dist * 0.01
           camera.far = dist * 10
           camera.updateProjectionMatrix()
@@ -153,11 +153,12 @@ export function ModelViewer(props: Props) {
           controls.addEventListener('change', onCameraMove)
         }
 
+        const s = sphere
         doResetCamera = () => {
           isResetting = true
-          const dist = fitDist(sphere!.radius)
-          controls.target.copy(sphere!.center)
-          camera.position.copy(sphere!.center).addScaledVector(new THREE.Vector3(1.2, 0.9, 2).normalize(), dist)
+          const dist = fitDist(s.radius)
+          controls.target.copy(s.center)
+          camera.position.copy(s.center).addScaledVector(new THREE.Vector3(-1.2, 0.9, 2).normalize(), dist)
           camera.near = dist * 0.01
           camera.far = dist * 10
           camera.updateProjectionMatrix()
