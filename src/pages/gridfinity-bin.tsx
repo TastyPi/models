@@ -9,6 +9,7 @@ import { NumberSlider } from '../components/NumberSlider'
 import { SelectField } from '../components/SelectField'
 import { SidebarSection } from '../components/SidebarSection'
 import { DownloadFooter } from '../components/DownloadFooter'
+import { HeightReferenceDialog } from '../components/HeightReferenceDialog'
 import { useGeometry } from '../hooks/useGeometry'
 import { attribution, info } from '../models/gridfinity-bin'
 
@@ -79,7 +80,7 @@ function GridfinityBinPage() {
       <SidebarSection label="Size" defaultOpen>
         <NumberSlider label="Width (cells)" value={cellsX()} onChange={setCellsX} min={1} max={10} />
         <NumberSlider label="Depth (cells)" value={cellsY()} onChange={setCellsY} min={1} max={10} />
-        <NumberSlider label="Height (units)" value={heightUnits()} onChange={setHeightUnits} min={1} max={9} />
+        <NumberSlider label="Height (units)" value={heightUnits()} onChange={setHeightUnits} min={1} max={9} labelAddon={<HeightReferenceDialog />} />
         <BooleanField label="Stacking lip" value={stackingLip()} onChange={setStackingLip} />
       </SidebarSection>
 
