@@ -74,7 +74,7 @@ function WallHookPage() {
     driver_type: driverType(), driver_diameter: driverDiameter(), countersunk: countersunk(),
   }))
 
-  const { rendering, download } = useGeometry('wall-hook', params)
+  const { objects, rendering, download } = useGeometry('wall-hook', params)
 
   createEffect(() => {
     const p = params()
@@ -98,6 +98,7 @@ function WallHookPage() {
     <PageLayout
       title="Wall Hook"
       description="Triangular prism hook. Print flat on the hypotenuse face — no supports needed."
+      objects={objects}
       rendering={rendering}
       footer={<DownloadFooter label="Download" onStl={() => download()} on3mf={() => download('3mf')} />}
       header={
