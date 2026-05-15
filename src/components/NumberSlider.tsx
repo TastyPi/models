@@ -1,9 +1,10 @@
-import { createEffect, createSignal, Show, useContext } from 'solid-js'
+import { createEffect, createSignal, Show, useContext, type JSX } from 'solid-js'
 import { UrlSyncContext } from '../hooks/urlSync'
 import styles from './NumberSlider.module.css'
 
 interface Props {
   label: string
+  labelAddon?: JSX.Element
   value: number
   onChange: (v: number) => void
   min?: number
@@ -25,7 +26,10 @@ export function NumberSlider(props: Props) {
   return (
     <div>
       <label class={styles.label}>
-        <span class={styles.labelText}>{props.label}</span>
+        <span class={styles.labelLeft}>
+          <span class={styles.labelText}>{props.label}</span>
+          {props.labelAddon}
+        </span>
         <span class={styles.labelRight}>
           <span class={styles.value}>{props.value}</span>
           <Show when={props.default != null}>

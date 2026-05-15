@@ -5,6 +5,12 @@
   margin-bottom: 4px;
 }
 
+.labelLeft {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .labelText { font-size: 0.8rem; color: #aaa; }
 
 .labelRight {
