@@ -69,7 +69,8 @@ function renderThumbnail(objects: PreviewMesh[]): string {
   const mat = new THREE.MeshStandardMaterial({ color: 0x6688cc, roughness: 0.4, metalness: 0.1, flatShading: true })
   const geos: THREE.BufferGeometry[] = []
   const box = new THREE.Box3()
-  for (const { mesh } of objects) {
+  for (const { meshes } of objects) {
+    const mesh = meshes[0]
     const geo = new THREE.BufferGeometry()
     geo.setAttribute('position', new THREE.BufferAttribute(mesh.vertProperties, mesh.numProp))
     geo.setIndex(new THREE.BufferAttribute(mesh.triVerts, 1))
