@@ -70,7 +70,7 @@ function renderThumbnail(objects: PreviewMesh[]): string {
   const geos: THREE.BufferGeometry[] = []
   const box = new THREE.Box3()
   for (const { meshes } of objects) {
-    const mesh = meshes[0]
+    const { mesh } = meshes[0]
     const geo = new THREE.BufferGeometry()
     geo.setAttribute('position', new THREE.BufferAttribute(mesh.vertProperties, mesh.numProp))
     geo.setIndex(new THREE.BufferAttribute(mesh.triVerts, 1))

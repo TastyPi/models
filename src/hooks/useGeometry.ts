@@ -17,7 +17,7 @@ class GeometryCache {
   }
 
   set(key: string, objects: PreviewMesh[]) {
-    const bytes = objects.reduce((s, o) => s + o.meshes.reduce((t, m) => t + m.vertProperties.byteLength + m.triVerts.byteLength, 0), 0)
+    const bytes = objects.reduce((s, o) => s + o.meshes.reduce((t, { mesh: m }) => t + m.vertProperties.byteLength + m.triVerts.byteLength, 0), 0)
     if (this.entries.has(key)) { this.used -= this.entries.get(key)!.bytes; this.entries.delete(key) }
     this.entries.set(key, { objects, bytes })
     this.used += bytes
