@@ -5,8 +5,7 @@ import styles from './gridfinity-bin.module.css'
 import { PageLayout } from '../components/PageLayout'
 import { ModelInfo } from '../components/ModelInfo'
 import { BooleanField } from '../components/BooleanField'
-import { NumberSlider } from '../components/NumberSlider'
-import { SelectField } from '../components/SelectField'
+import { NumberSlider, OptionalNumberSlider } from '../components/NumberSlider'
 import { SidebarSection } from '../components/SidebarSection'
 import { DownloadFooter } from '../components/DownloadFooter'
 import { HeightReferenceDialog } from '../components/HeightReferenceDialog'
@@ -22,24 +21,28 @@ function GridfinityBinPage() {
   const [cellsY, setCellsY] = createSignal(urlNum('cells_y', 1))
   const [heightUnits, setHeightUnits] = createSignal(urlNum('height_units', 3))
   const [stackingLip, setStackingLip] = createSignal(urlBool('stacking_lip', true))
-  const [magnets, setMagnets] = createSignal(urlBool('magnets', true))
-  const [magnetStyle, setMagnetStyle] = createSignal<'ribs' | 'smooth'>(
-    sp.get('magnet_style') === 'ribs' ? 'ribs' : 'smooth'
-  )
-  const [magnetSize, setMagnetSize] = createSignal(urlNum('magnet_size', 6.2))
-  const [chamfer, setChamfer] = createSignal(urlBool('chamfer', false))
-  const [supportless, setSupportless] = createSignal(urlBool('supportless', false))
-  const [cornerMagnets, setCornerMagnets] = createSignal(urlBool('corner_magnets', false))
+  const [hollowBase, setHollowBase] = createSignal(urlBool('hollow_base', false))
   const [dividersX, setDividersX] = createSignal(urlNum('dividers_x', 0))
   const [dividersY, setDividersY] = createSignal(urlNum('dividers_y', 0))
+
+  // magnet_size: null = no magnet holes, number = hole diameter in mm; 0 in URL encodes null
+  const [magnetSize, setMagnetSize] = createSignal<number | null>(
+    sp.has('magnet_size') ? (urlNum('magnet_size', 6.2) || null) : 6.2
+  )
+  const [screwHoles, setScrewHoles] = createSignal(urlBool('screw_holes', false))
+  const [supportless, setSupportless] = createSignal(urlBool('supportless', false))
+  const [cornerMagnets, setCornerMagnets] = createSignal(urlBool('corner_magnets', false))
+
+  const hasAnyHoles = () => magnetSize() !== null || screwHoles()
 
   const infoStr = createMemo(() => info(cellsX(), cellsY(), heightUnits(), stackingLip()))
 
   const params = createMemo(() => ({
     cells_x: cellsX(), cells_y: cellsY(), height_units: heightUnits(),
     stacking_lip: stackingLip(),
-    magnets: magnets(), magnet_style: magnetStyle(), magnet_size: magnetSize(),
-    chamfer: chamfer(), supportless: supportless(), corner_magnets: cornerMagnets(),
+    hollow_base: hollowBase(),
+    magnet_size: magnetSize(), screw_holes: screwHoles(),
+    supportless: supportless(), corner_magnets: cornerMagnets(),
     dividers_x: dividersX(), dividers_y: dividersY(),
   }))
 
@@ -52,16 +55,17 @@ function GridfinityBinPage() {
     url.set('cells_y', String(p.cells_y))
     url.set('height_units', String(p.height_units))
     url.set('stacking_lip', String(p.stacking_lip))
-    url.set('magnets', String(p.magnets))
-    if (p.magnets) {
-      url.set('magnet_style', p.magnet_style)
-      if (p.magnet_style === 'smooth') url.set('magnet_size', String(p.magnet_size))
-      url.set('chamfer', String(p.chamfer))
-      url.set('supportless', String(p.supportless))
-      url.set('corner_magnets', String(p.corner_magnets))
-    }
+    if (p.hollow_base) url.set('hollow_base', 'true')
     if (p.dividers_x > 0) url.set('dividers_x', String(p.dividers_x))
     if (p.dividers_y > 0) url.set('dividers_y', String(p.dividers_y))
+    if (p.magnet_size !== null) {
+      if (p.magnet_size !== 6.2) url.set('magnet_size', String(p.magnet_size))
+      if (p.supportless) url.set('supportless', 'true')
+    } else {
+      url.set('magnet_size', '0')
+    }
+    if (p.screw_holes) url.set('screw_holes', 'true')
+    if (hasAnyHoles() && p.corner_magnets) url.set('corner_magnets', 'true')
     window.history.replaceState(null, '', '?' + url.toString())
   })
 
@@ -89,22 +93,23 @@ function GridfinityBinPage() {
         <NumberSlider label="Y dividers" value={dividersY()} onChange={setDividersY} min={0} max={5} />
       </SidebarSection>
 
-      <SidebarSection label="Magnets" defaultOpen checked={magnets} onCheckedChange={setMagnets}>
-        <Show when={magnets()}>
+      <SidebarSection label="Base" defaultOpen>
+        <BooleanField label="Hollow" value={hollowBase()} onChange={setHollowBase} />
+      </SidebarSection>
+
+      <SidebarSection label="Holes" defaultOpen>
+        <OptionalNumberSlider label="Magnet diameter (mm)" value={magnetSize()} onChange={setMagnetSize} min={6.0} max={6.5} step={0.1} default={6.2} />
+        <Show when={magnetSize() !== null}>
           <p class={styles.magnetNote}>
-            Smooth 6.2 mm gave the best press-fit in testing. Try the{' '}
+            6.2 mm gives a good press-fit in testing. Try the{' '}
             <a href="../magnet-test/" class={styles.testerLink}>magnet tester</a>
             {' '}to find your ideal size.
           </p>
-          <SelectField label="Style" value={magnetStyle()} onChange={(v) => setMagnetStyle(v as 'ribs' | 'smooth')}
-            options={[{ value: 'smooth', label: 'Smooth bore' }, { value: 'ribs', label: 'Crush ribs' }]}
-            default="smooth" />
-          <Show when={magnetStyle() === 'smooth'}>
-            <NumberSlider label="Diameter (mm)" value={magnetSize()} onChange={(v) => setMagnetSize(Math.round(v * 100) / 100)} min={6.0} max={6.5} step={0.05} default={6.2} />
-          </Show>
-          <BooleanField label="Chamfer" value={chamfer()} onChange={setChamfer} default={false} />
-          <BooleanField label="Supportless" value={supportless()} onChange={setSupportless} default={false} />
-          <BooleanField label="Corners only" value={cornerMagnets()} onChange={setCornerMagnets} default={false} />
+          <BooleanField label="Supportless" value={supportless()} onChange={setSupportless} />
+        </Show>
+        <BooleanField label="Screw holes (M3)" value={screwHoles()} onChange={setScrewHoles} />
+        <Show when={hasAnyHoles()}>
+          <BooleanField label="Corners only" value={cornerMagnets()} onChange={setCornerMagnets} />
         </Show>
       </SidebarSection>
     </PageLayout>
