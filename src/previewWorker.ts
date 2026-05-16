@@ -1,6 +1,4 @@
-import { MODELS, extractMesh, groupPartsByExtruder, readyPromise } from './workerShared'
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
-import { BufferGeometry } from 'three'
+import { MODELS, buildPreviewMeshes, readyPromise } from './workerShared'
 import type { PreviewMesh } from './types'
 import type { ModelSlug } from './models/registry'
 
@@ -17,10 +15,7 @@ self.onmessage = async (e: MessageEvent<InMsg>) => {
     const result = entry.generate(params)
 
     const objects: PreviewMesh[] = result.objects.map(obj => {
-      const meshes = groupPartsByExtruder(obj).map(({ geoms, extruder }) => ({
-        mesh: extractMesh(mergeGeometries(geoms) ?? new BufferGeometry()),
-        extruder,
-      }))
+      const meshes = buildPreviewMeshes(obj)
       return { label: obj.label, meshes }
     })
 

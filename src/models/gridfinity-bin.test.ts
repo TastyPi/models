@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { info, HEIGHT_UNIT, STACKING_LIP_H } from './gridfinity-bin'
+import { info, magnetHoleDepth, HEIGHT_UNIT, STACKING_LIP_H } from './gridfinity-bin'
 
 const CELL = 42
 const BIN_GAP = 0.25
@@ -31,5 +31,27 @@ describe('info', () => {
 
   it('adds STACKING_LIP_H to height when stacking lip is on', () => {
     expect(info(1, 1, 2, true)).toContain(`× ${2 * HEIGHT_UNIT + STACKING_LIP_H} mm`)
+  })
+})
+
+describe('magnetHoleDepth', () => {
+  it('without supportless: clear depth equals total depth equals MAGNET_HOLE_DEPTH', () => {
+    const { clearDepth, totalDepth } = magnetHoleDepth(false)
+    expect(clearDepth).toBeCloseTo(2.4)
+    expect(totalDepth).toBeCloseTo(2.4)
+  })
+
+  it('with supportless: clear depth still equals MAGNET_HOLE_DEPTH', () => {
+    expect(magnetHoleDepth(true).clearDepth).toBeCloseTo(2.4)
+  })
+
+  it('with supportless: total depth adds 3 bridge layers of 0.2mm each', () => {
+    expect(magnetHoleDepth(true).totalDepth).toBeCloseTo(3.0)
+  })
+
+  it('with supportless: total depth is greater than clear depth', () => {
+    const { clearDepth, totalDepth } = magnetHoleDepth(true)
+    expect(totalDepth).toBeGreaterThan(clearDepth)
+    expect(totalDepth - clearDepth).toBeCloseTo(0.6)
   })
 })

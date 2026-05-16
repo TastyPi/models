@@ -6,7 +6,7 @@ import * as gridfinityBaseplate from './models/gridfinity-baseplate'
 import * as cornerRadiusGauge from './models/corner-radius-gauge'
 import * as gridfinityBin from './models/gridfinity-bin'
 import * as magnetTest from './models/magnet-test'
-import type { RawMesh, GeomResult, ObjGeom } from './types'
+import type { RawMesh, GeomResult, ObjGeom, PreviewMesh } from './types'
 import type { ModelSlug } from './models/registry'
 
 export const MODELS: Record<ModelSlug, {
@@ -19,20 +19,22 @@ export const MODELS: Record<ModelSlug, {
   'magnet-test':          { generate: magnetTest.generate },
 }
 
+export function buildPreviewMeshes(obj: ObjGeom): PreviewMesh['meshes'] {
+  const groups = new Map<number, BufferGeometry[]>()
+  for (const p of obj.parts) {
+    const ext = p.extruder ?? 0
+    const arr = groups.get(ext) ?? []; arr.push(p.geom); groups.set(ext, arr)
+  }
+  return [...groups.entries()].sort(([a], [b]) => a - b).map(([extruder, geoms]) => ({
+    mesh: extractMesh(mergeGeometries(geoms) ?? new BufferGeometry()),
+    extruder,
+  }))
+}
+
 export function composeObj(obj: ObjGeom): BufferGeometry {
   return mergeGeometries(obj.parts.map(p => p.geom)) ?? new BufferGeometry()
 }
 
-export function groupPartsByExtruder(obj: ObjGeom): Array<{ geoms: BufferGeometry[]; extruder: number }> {
-  const groups = new Map<number, BufferGeometry[]>()
-  for (const p of obj.parts) {
-    const ext = p.extruder ?? 0
-    const arr = groups.get(ext) ?? []
-    arr.push(p.geom)
-    groups.set(ext, arr)
-  }
-  return [...groups.entries()].sort(([a], [b]) => a - b).map(([extruder, geoms]) => ({ geoms, extruder }))
-}
 
 export function extractMesh(geom: BufferGeometry): RawMesh {
   const pos = geom.getAttribute('position') as BufferAttribute
