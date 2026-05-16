@@ -1,6 +1,6 @@
 import { getManifold, manifoldToBufferGeometry } from '../manifold'
 import type { Attribution, GeomResult } from '../types'
-import { MAGNET_HOLE_R, MAGNET_HOLE_DEPTH, crushRibCrossSection } from '../magnets'
+import { MAGNET_HOLE_DEPTH } from '../magnets'
 
 // Gridfinity spec constants (from https://gridfinity.xyz/specification/)
 // Profile coordinates sourced from gridfinity-rebuilt-openscad by Kenneth Hodson
@@ -28,7 +28,12 @@ const LIP_R_MID = LIP_R_TIP + 0.7                 // 1.85
 
 // Base hole constants (from gridfinity-rebuilt-openscad standard.scad)
 const MAG_OFFSET = 13
-const CHAMFER_R = 0.8
+const SCREW_HOLE_R = 1.5
+const LAYER_HEIGHT = 0.2
+
+// Hollow (lite) base constants (from gridfinity-rebuilt-openscad)
+const WALL_THICK_BASE = 0.95  // d_wall — shell wall thickness for hollow base
+const LITE_FLOOR_THICK = 1.0  // bottom skin thickness for hollow base
 
 export const attribution: Attribution[] = [
   { name: 'Gridfinity', author: 'Zachary Freedman / Voidstar Lab', url: 'https://www.youtube.com/watch?v=ra_9zU-mnl8', license: 'MIT' },
@@ -45,11 +50,12 @@ export function info(cells_x: number, cells_y: number, height_units: number, sta
 export function generate(p: {
   cells_x: number; cells_y: number; height_units: number
   stacking_lip: boolean
-  magnets: boolean; magnet_style: 'ribs' | 'smooth'; magnet_size: number
-  chamfer: boolean; supportless: boolean; corner_magnets: boolean
+  magnet_size: number | null; screw_holes: boolean
+  supportless: boolean; corner_magnets: boolean
+  hollow_base: boolean
   dividers_x: number; dividers_y: number
 }): GeomResult {
-  const { cells_x, cells_y, height_units, stacking_lip, magnets, magnet_style, magnet_size, chamfer, supportless, corner_magnets, dividers_x, dividers_y } = p
+  const { cells_x, cells_y, height_units, stacking_lip, magnet_size, screw_holes, supportless, corner_magnets, hollow_base, dividers_x, dividers_y } = p
   const { Manifold, CrossSection } = getManifold()
 
   const nominalH = height_units * HEIGHT_UNIT
@@ -84,54 +90,128 @@ export function generate(p: {
 
   let bin: any = Manifold.union([posts, floor, walls])
 
-  if (magnets) {
+  // Hollow (lite) base: void out each cell's interior leaving ~0.95mm shell walls + bottom skin.
+  // Uses the same absolute profile heights as the outer post but with radii reduced by WALL_THICK_BASE,
+  // then intersects with a zone that starts at LITE_FLOOR_THICK to preserve the bottom skin.
+  // Floor slab above BASE_H stays solid, sealing the hollow space from the bin interior.
+  if (hollow_base) {
+    const iR = (r: number) => Math.max(BIN_GAP + 0.01, r - WALL_THICK_BASE)
+    const iCS = (r: number) =>
+      CrossSection.square([2 * CORE_HALF, 2 * CORE_HALF], true).offset(iR(r) - BIN_GAP)
+    const iSlab = (r: number, cx: number, cy: number, z: number): any =>
+      iCS(r).extrude(0.01).translate([cx, cy, z])
+
+    const sz = (cells_x + cells_y) * CELL + 100
+    const clipZone = Manifold.cube([sz * 2, sz * 2, BASE_H - LITE_FLOOR_THICK])
+      .translate([-sz, -sz, LITE_FLOOR_THICK])
+
+    const cellVoids = cellXC.flatMap(cx => cellYC.map(cy => {
+      const innerFull = Manifold.union([
+        Manifold.hull([iSlab(R1 - 0.5, cx, cy, 0),    iSlab(R1,      cx, cy, H1)]),
+        Manifold.hull([iSlab(R1,       cx, cy, H1),    iSlab(R2,      cx, cy, H2)]),
+        iCS(R2).extrude(H3 - H2).translate([cx, cy, H2]),
+        Manifold.hull([iSlab(R2,       cx, cy, H3),    iSlab(OUTER_R, cx, cy, BASE_H)]),
+      ])
+      return innerFull.intersect(clipZone)
+    }))
+
+    // Open floor per-cell so hollow is visible from bin interior
+    const perCellInnerCS = CrossSection.square([2 * CORE_HALF, 2 * CORE_HALF], true)
+      .offset(Math.max(0.01, BOX_OUTER_R - WALL_THICK))
+    const floorVoids = cellXC.flatMap(cx => cellYC.map(cy =>
+      perCellInnerCS.extrude(FLOOR_THICK + 0.02).translate([cx, cy, BASE_H - 0.01])
+    ))
+    bin = bin.subtract(Manifold.union([...cellVoids, ...floorVoids]))
+
+    // Cover: add solid plugs around each hole so the hollow shell doesn't break through
+    if (magnet_size !== null || screw_holes) {
+      const w = WALL_THICK_BASE
+      const coverShapes: any[] = []
+      cellXC.forEach(cx => cellYC.forEach(cy => {
+        if (corner_magnets && !(
+          (cx === cellXC[0] || cx === cellXC[cellXC.length - 1]) &&
+          (cy === cellYC[0] || cy === cellYC[cellYC.length - 1])
+        )) return
+        const corners: [number, number][] = [
+          [cx + MAG_OFFSET, cy + MAG_OFFSET],
+          [cx - MAG_OFFSET, cy + MAG_OFFSET],
+          [cx - MAG_OFFSET, cy - MAG_OFFSET],
+          [cx + MAG_OFFSET, cy - MAG_OFFSET],
+        ]
+        for (const [mx, my] of corners) {
+          if (magnet_size !== null)
+            coverShapes.push(
+              Manifold.cylinder(MAGNET_HOLE_DEPTH + 2 * w, magnet_size / 2 + w, magnet_size / 2 + w, 32)
+                .translate([mx, my, -0.005])
+            )
+          if (screw_holes)
+            coverShapes.push(
+              Manifold.cylinder(BASE_H + 2 * w, SCREW_HOLE_R + w, SCREW_HOLE_R + w, 32)
+                .translate([mx, my, -0.005])
+            )
+        }
+      }))
+      if (coverShapes.length > 0) bin = bin.add(Manifold.union(coverShapes))
+    }
+  }
+
+  if (magnet_size !== null || screw_holes) {
     const holeShapes: any[] = []
+
     cellXC.forEach(cx => cellYC.forEach(cy => {
       if (corner_magnets && !(
         (cx === cellXC[0] || cx === cellXC[cellXC.length - 1]) &&
         (cy === cellYC[0] || cy === cellYC[cellYC.length - 1])
       )) return
-      const corners: [number, number][] = [
-        [cx + MAG_OFFSET, cy + MAG_OFFSET], [cx - MAG_OFFSET, cy + MAG_OFFSET],
-        [cx - MAG_OFFSET, cy - MAG_OFFSET], [cx + MAG_OFFSET, cy - MAG_OFFSET],
-      ]
-      for (const [mx, my] of corners) {
-        const useRibs = magnet_style === 'ribs'
-        const holeR = useRibs ? MAGNET_HOLE_R : magnet_size / 2
-        const magCS: any = useRibs ? crushRibCrossSection(CrossSection) : null
 
-        if (supportless) {
-          const nSteps = 4
-          const stepH = MAGNET_HOLE_DEPTH / nSteps
-          for (let i = 0; i < nSteps; i++) {
-            const stepCyl = magCS
-              ? magCS.extrude(stepH + 0.01).translate([mx, my, i * stepH - 0.005])
-              : Manifold.cylinder(stepH + 0.01, holeR, holeR, 32)
-                  .translate([mx, my, i * stepH - 0.005])
-            const bridge = Manifold.cube([holeR * 2 + 0.02, holeR + 0.01, stepH + 0.02])
-              .translate([-holeR - 0.01, -0.005, -0.01])
-              .rotate([0, 0, i * 90])
-              .translate([mx, my, i * stepH])
-            holeShapes.push(stepCyl.subtract(bridge))
+      const corners: [number, number][] = [
+        [cx + MAG_OFFSET, cy + MAG_OFFSET],
+        [cx - MAG_OFFSET, cy + MAG_OFFSET],
+        [cx - MAG_OFFSET, cy - MAG_OFFSET],
+        [cx + MAG_OFFSET, cy - MAG_OFFSET],
+      ]
+
+      for (const [mx, my] of corners) {
+        if (magnet_size !== null) {
+          const holeR = magnet_size / 2
+          if (supportless) {
+            const bridgeLayers = 3
+            const bridgeStart = MAGNET_HOLE_DEPTH - bridgeLayers * LAYER_HEIGHT  // 1.8mm
+            // Full circle for the entrance
+            holeShapes.push(
+              Manifold.cylinder(bridgeStart + 0.01, holeR, holeR, 32)
+                .translate([mx, my, -0.005])
+            )
+            // Top layers: D-shaped openings with alternating bridge orientation
+            for (let i = 0; i < bridgeLayers; i++) {
+              const z = bridgeStart + i * LAYER_HEIGHT
+              const layerCyl = Manifold.cylinder(LAYER_HEIGHT + 0.02, holeR, holeR, 32)
+                .translate([0, 0, -0.01])
+              const bridgeBlock = Manifold.cube([holeR * 2 + 0.02, holeR + 0.01, LAYER_HEIGHT + 0.04])
+                .translate([-holeR - 0.01, 0, -0.02])
+                .rotate([0, 0, i * 90])
+              holeShapes.push(layerCyl.subtract(bridgeBlock).translate([mx, my, z]))
+            }
+          } else {
+            holeShapes.push(
+              Manifold.cylinder(MAGNET_HOLE_DEPTH + 0.01, holeR, holeR, 32)
+                .translate([mx, my, -0.005])
+            )
           }
-        } else {
-          holeShapes.push(
-            magCS
-              ? magCS.extrude(MAGNET_HOLE_DEPTH + 0.01).translate([mx, my, -0.005])
-              : Manifold.cylinder(MAGNET_HOLE_DEPTH + 0.01, holeR, holeR, 32)
-                  .translate([mx, my, -0.005])
-          )
         }
 
-        if (chamfer) {
+        if (screw_holes) {
           holeShapes.push(
-            Manifold.cylinder(CHAMFER_R + 0.01, holeR + CHAMFER_R, holeR, 32)
-              .translate([mx, my, -0.01])
+            Manifold.cylinder(BASE_H + 0.01, SCREW_HOLE_R, SCREW_HOLE_R, 32)
+              .translate([mx, my, -0.005])
           )
         }
       }
     }))
-    bin = bin.subtract(Manifold.union(holeShapes))
+
+    if (holeShapes.length > 0) {
+      bin = bin.subtract(Manifold.union(holeShapes))
+    }
   }
 
   if (stacking_lip) {

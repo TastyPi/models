@@ -19,7 +19,7 @@ interface Props {
   defaultOpen?: boolean
   checked?: () => boolean
   onCheckedChange?: (v: boolean) => void
-  children: JSX.Element
+  children?: JSX.Element
 }
 
 export function SidebarSection(props: Props) {
