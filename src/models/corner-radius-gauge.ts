@@ -63,9 +63,11 @@ export interface Params {
   text_style: string
   text_top: boolean
   text_bottom: boolean
+  body_extruder: number | null
+  text_extruder: number | null
 }
 
-export function generate({ text_style, text_top, text_bottom }: Params): GeomResult {
+export function generate({ text_style, text_top, text_bottom, body_extruder, text_extruder }: Params): GeomResult {
   const { CrossSection } = getManifold()
   const isMulti = text_style === 'multicolour'
 
@@ -118,7 +120,7 @@ export function generate({ text_style, text_top, text_bottom }: Params): GeomRes
       }
       allPieces.push({
         label: `${labelStr}mm`,
-        parts: [{ label: `${labelStr}mm`, geom: manifoldToBufferGeometry(tile.translate([tileX, tileY, 0])) }],
+        parts: [{ label: `${labelStr}mm`, geom: manifoldToBufferGeometry(tile.translate([tileX, tileY, 0])), extruder: body_extruder ?? undefined }],
       })
     } else {
       const buildPart = (forTop: boolean) => {
@@ -139,11 +141,12 @@ export function generate({ text_style, text_top, text_bottom }: Params): GeomRes
       const parts: ObjGeom['parts'] = [{
         label: 'Body',
         geom: manifoldToBufferGeometry(tileBody.translate([tileX, tileY, 0])),
+        extruder: body_extruder ?? undefined,
       }]
       if (letterUnion) parts.push({
         label: 'Text',
         geom: manifoldToBufferGeometry(letterUnion.translate([tileX, tileY, 0])),
-        extruder: 2,
+        extruder: text_extruder ?? undefined,
       })
       allPieces.push({ label: `${labelStr}mm`, parts })
     }

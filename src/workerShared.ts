@@ -26,7 +26,7 @@ export function composeObj(obj: ObjGeom): BufferGeometry {
 export function groupPartsByExtruder(obj: ObjGeom): Array<{ geoms: BufferGeometry[]; extruder: number }> {
   const groups = new Map<number, BufferGeometry[]>()
   for (const p of obj.parts) {
-    const ext = p.extruder ?? 1
+    const ext = p.extruder ?? 0
     const arr = groups.get(ext) ?? []
     arr.push(p.geom)
     groups.set(ext, arr)
