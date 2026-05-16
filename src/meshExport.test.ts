@@ -157,4 +157,50 @@ describe('build3mf', () => {
     expect(text).toContain('insert')
     expect(text).toContain('extruder')
   })
+
+  it('single-part object: settings emitted at object level', () => {
+    const obj: ExportObj = {
+      label: 'hollow',
+      mesh: singleTriMesh(),
+      settings: { fill_density: '0%' },
+    }
+    const text = new TextDecoder().decode(new Uint8Array(build3mf([obj])))
+    expect(text).toContain('type="object" key="fill_density" value="0%"')
+  })
+
+  it('single-part object: settings not emitted at volume level', () => {
+    const obj: ExportObj = {
+      label: 'hollow',
+      mesh: singleTriMesh(),
+      settings: { fill_density: '0%' },
+    }
+    const text = new TextDecoder().decode(new Uint8Array(build3mf([obj])))
+    expect(text).not.toContain('type="volume" key="fill_density"')
+  })
+
+  it('single part in parts array: settings emitted at object level', () => {
+    const obj: ExportObj = {
+      label: 'bin',
+      mesh: singleTriMesh(),
+      parts: [{ label: 'Body', mesh: singleTriMesh(), settings: { fill_density: '0%' } }],
+    }
+    const text = new TextDecoder().decode(new Uint8Array(build3mf([obj])))
+    expect(text).toContain('type="object" key="fill_density" value="0%"')
+    expect(text).not.toContain('type="volume" key="fill_density"')
+  })
+
+  it('multi-part object: settings emitted at volume level, not object level', () => {
+    const obj: ExportObj = {
+      label: 'gauge',
+      mesh: twoTriMesh(),
+      parts: [
+        { label: 'Body', mesh: singleTriMesh(), settings: { extruder: '1' } },
+        { label: 'Text', mesh: singleTriMesh(), settings: { extruder: '2' } },
+      ],
+    }
+    const text = new TextDecoder().decode(new Uint8Array(build3mf([obj])))
+    expect(text).toContain('type="volume" key="extruder" value="1"')
+    expect(text).toContain('type="volume" key="extruder" value="2"')
+    expect(text).not.toContain('type="object" key="extruder"')
+  })
 })

@@ -30,6 +30,13 @@ const LIP_R_MID = LIP_R_TIP + 0.7                 // 1.85
 const MAG_OFFSET = 13
 const SCREW_HOLE_R = 1.5
 const LAYER_HEIGHT = 0.2
+const BRIDGE_LAYERS = 3
+
+export function magnetHoleDepth(supportless: boolean): { clearDepth: number; totalDepth: number } {
+  return supportless
+    ? { clearDepth: MAGNET_HOLE_DEPTH, totalDepth: MAGNET_HOLE_DEPTH + BRIDGE_LAYERS * LAYER_HEIGHT }
+    : { clearDepth: MAGNET_HOLE_DEPTH, totalDepth: MAGNET_HOLE_DEPTH }
+}
 
 // Hollow (lite) base constants (from gridfinity-rebuilt-openscad)
 const WALL_THICK_BASE = 0.95  // d_wall — shell wall thickness for hollow base
@@ -141,7 +148,7 @@ export function generate(p: {
         for (const [mx, my] of corners) {
           if (magnet_size !== null)
             coverShapes.push(
-              Manifold.cylinder(MAGNET_HOLE_DEPTH + 2 * w, magnet_size / 2 + w, magnet_size / 2 + w, 32)
+              Manifold.cylinder(magnetHoleDepth(supportless).totalDepth + 2 * w, magnet_size / 2 + w, magnet_size / 2 + w, 32)
                 .translate([mx, my, -0.005])
             )
           if (screw_holes)
@@ -175,16 +182,14 @@ export function generate(p: {
         if (magnet_size !== null) {
           const holeR = magnet_size / 2
           if (supportless) {
-            const bridgeLayers = 3
-            const bridgeStart = MAGNET_HOLE_DEPTH - bridgeLayers * LAYER_HEIGHT  // 1.8mm
-            // Full circle for the entrance
+            // Full circle for the entrance, up to MAGNET_HOLE_DEPTH (2.4mm)
             holeShapes.push(
-              Manifold.cylinder(bridgeStart + 0.01, holeR, holeR, 32)
+              Manifold.cylinder(MAGNET_HOLE_DEPTH + 0.01, holeR, holeR, 32)
                 .translate([mx, my, -0.005])
             )
             // Top layers: D-shaped openings with alternating bridge orientation
-            for (let i = 0; i < bridgeLayers; i++) {
-              const z = bridgeStart + i * LAYER_HEIGHT
+            for (let i = 0; i < BRIDGE_LAYERS; i++) {
+              const z = MAGNET_HOLE_DEPTH + i * LAYER_HEIGHT
               const layerCyl = Manifold.cylinder(LAYER_HEIGHT + 0.02, holeR, holeR, 32)
                 .translate([0, 0, -0.01])
               const bridgeBlock = Manifold.cube([holeR * 2 + 0.02, holeR + 0.01, LAYER_HEIGHT + 0.04])

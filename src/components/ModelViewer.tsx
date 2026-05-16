@@ -12,19 +12,61 @@ interface Props {
 
 type MatPalette = { base: THREE.Material; hover: THREE.Material; highlight: THREE.Material; dim: THREE.Material }
 
-// One palette per mesh-array slot — index 0 = body, index 1 = accent (inlay/text), etc.
+// Palette index 0 = no extruder assigned; indices 1–8 = extruders 1–8.
 const MAT_PALETTES: MatPalette[] = [
-  {
+  { // 0 — unassigned (blue, matching the historical default)
     base:      new THREE.MeshStandardMaterial({ color: 0x6688cc, roughness: 0.4, metalness: 0.1, flatShading: true }),
     hover:     new THREE.MeshStandardMaterial({ color: 0x7799dd, roughness: 0.35, metalness: 0.12, flatShading: true }),
     highlight: new THREE.MeshStandardMaterial({ color: 0x99bbff, roughness: 0.3, metalness: 0.15, flatShading: true }),
     dim:       new THREE.MeshStandardMaterial({ color: 0x334466, roughness: 0.7, metalness: 0.0, flatShading: true }),
   },
-  {
+  { // 1 — blue
+    base:      new THREE.MeshStandardMaterial({ color: 0x6688cc, roughness: 0.4, metalness: 0.1, flatShading: true }),
+    hover:     new THREE.MeshStandardMaterial({ color: 0x7799dd, roughness: 0.35, metalness: 0.12, flatShading: true }),
+    highlight: new THREE.MeshStandardMaterial({ color: 0x99bbff, roughness: 0.3, metalness: 0.15, flatShading: true }),
+    dim:       new THREE.MeshStandardMaterial({ color: 0x334466, roughness: 0.7, metalness: 0.0, flatShading: true }),
+  },
+  { // 2 — orange
     base:      new THREE.MeshStandardMaterial({ color: 0xcc7733, roughness: 0.4, metalness: 0.1, flatShading: true }),
     hover:     new THREE.MeshStandardMaterial({ color: 0xdd8844, roughness: 0.35, metalness: 0.12, flatShading: true }),
     highlight: new THREE.MeshStandardMaterial({ color: 0xffaa55, roughness: 0.3, metalness: 0.15, flatShading: true }),
     dim:       new THREE.MeshStandardMaterial({ color: 0x664422, roughness: 0.7, metalness: 0.0, flatShading: true }),
+  },
+  { // 3 — red
+    base:      new THREE.MeshStandardMaterial({ color: 0xbb3344, roughness: 0.4, metalness: 0.1, flatShading: true }),
+    hover:     new THREE.MeshStandardMaterial({ color: 0xcc4455, roughness: 0.35, metalness: 0.12, flatShading: true }),
+    highlight: new THREE.MeshStandardMaterial({ color: 0xee6677, roughness: 0.3, metalness: 0.15, flatShading: true }),
+    dim:       new THREE.MeshStandardMaterial({ color: 0x5a1a22, roughness: 0.7, metalness: 0.0, flatShading: true }),
+  },
+  { // 4 — green
+    base:      new THREE.MeshStandardMaterial({ color: 0x33aa55, roughness: 0.4, metalness: 0.1, flatShading: true }),
+    hover:     new THREE.MeshStandardMaterial({ color: 0x44bb66, roughness: 0.35, metalness: 0.12, flatShading: true }),
+    highlight: new THREE.MeshStandardMaterial({ color: 0x66dd88, roughness: 0.3, metalness: 0.15, flatShading: true }),
+    dim:       new THREE.MeshStandardMaterial({ color: 0x1a5530, roughness: 0.7, metalness: 0.0, flatShading: true }),
+  },
+  { // 5 — purple
+    base:      new THREE.MeshStandardMaterial({ color: 0x9955cc, roughness: 0.4, metalness: 0.1, flatShading: true }),
+    hover:     new THREE.MeshStandardMaterial({ color: 0xaa66dd, roughness: 0.35, metalness: 0.12, flatShading: true }),
+    highlight: new THREE.MeshStandardMaterial({ color: 0xcc88ff, roughness: 0.3, metalness: 0.15, flatShading: true }),
+    dim:       new THREE.MeshStandardMaterial({ color: 0x4a2266, roughness: 0.7, metalness: 0.0, flatShading: true }),
+  },
+  { // 6 — teal
+    base:      new THREE.MeshStandardMaterial({ color: 0x33aaaa, roughness: 0.4, metalness: 0.1, flatShading: true }),
+    hover:     new THREE.MeshStandardMaterial({ color: 0x44bbbb, roughness: 0.35, metalness: 0.12, flatShading: true }),
+    highlight: new THREE.MeshStandardMaterial({ color: 0x66dddd, roughness: 0.3, metalness: 0.15, flatShading: true }),
+    dim:       new THREE.MeshStandardMaterial({ color: 0x1a5555, roughness: 0.7, metalness: 0.0, flatShading: true }),
+  },
+  { // 7 — pink
+    base:      new THREE.MeshStandardMaterial({ color: 0xcc4488, roughness: 0.4, metalness: 0.1, flatShading: true }),
+    hover:     new THREE.MeshStandardMaterial({ color: 0xdd5599, roughness: 0.35, metalness: 0.12, flatShading: true }),
+    highlight: new THREE.MeshStandardMaterial({ color: 0xff77bb, roughness: 0.3, metalness: 0.15, flatShading: true }),
+    dim:       new THREE.MeshStandardMaterial({ color: 0x662244, roughness: 0.7, metalness: 0.0, flatShading: true }),
+  },
+  { // 8 — gold
+    base:      new THREE.MeshStandardMaterial({ color: 0xaaaa22, roughness: 0.4, metalness: 0.1, flatShading: true }),
+    hover:     new THREE.MeshStandardMaterial({ color: 0xbbbb33, roughness: 0.35, metalness: 0.12, flatShading: true }),
+    highlight: new THREE.MeshStandardMaterial({ color: 0xdddd55, roughness: 0.3, metalness: 0.15, flatShading: true }),
+    dim:       new THREE.MeshStandardMaterial({ color: 0x555511, roughness: 0.7, metalness: 0.0, flatShading: true }),
   },
 ]
 
@@ -101,7 +143,7 @@ export function ModelViewer(props: Props) {
     }
 
     const meshMat = (i: number, extruder: number, sel: ReadonlySet<number>): THREE.Material => {
-      const { base, hover, highlight, dim } = MAT_PALETTES[(extruder - 1) % MAT_PALETTES.length]
+      const { base, hover, highlight, dim } = MAT_PALETTES[extruder % MAT_PALETTES.length]
       if (sel.has(i)) return highlight
       if (i === hoveredIdx) return hover
       if (sel.size > 0) return dim
