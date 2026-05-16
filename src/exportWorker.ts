@@ -44,7 +44,7 @@ self.onmessage = async (e: MessageEvent<InMsg>) => {
           label: obj.label,
           mesh: extractMesh(applyTransforms(composeObj(obj))),
           settings: obj.settings,
-          parts: obj.parts.length > 1
+          parts: (obj.parts.length > 1 || obj.parts.some(p => p.extruder != null || p.settings))
             ? obj.parts.map(p => {
                 const settings: Record<string, string> = {}
                 if (p.extruder != null) settings.extruder = String(p.extruder)

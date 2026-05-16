@@ -257,5 +257,6 @@ export function generate(p: {
     bin = bin.add(Manifold.union(divParts))
   }
 
-  return { objects: [{ label: 'Gridfinity Bin', parts: [{ label: 'Gridfinity Bin', geom: manifoldToBufferGeometry(bin) }] }] }
+  const partSettings: Record<string, string> | undefined = hollow_base ? { fill_density: '0%' } : undefined
+  return { objects: [{ label: 'Gridfinity Bin', parts: [{ label: 'Gridfinity Bin', geom: manifoldToBufferGeometry(bin), settings: partSettings }] }] }
 }
