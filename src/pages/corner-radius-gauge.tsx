@@ -24,8 +24,8 @@ function CornerRadiusGaugePage() {
   const [textStyle, setTextStyle] = createSignal(sp.get('text_style') ?? DEFAULTS.text_style)
   const [textTop, setTextTop] = createSignal(sp.has('text_top') ? sp.get('text_top') === 'true' : DEFAULTS.text_top)
   const [textBottom, setTextBottom] = createSignal(sp.has('text_bottom') ? sp.get('text_bottom') === 'true' : DEFAULTS.text_bottom)
-  const [bodyExtruder, setBodyExtruder] = createSignal<number | null>(urlOptInt(sp, 'body_extruder'))
-  const [textExtruder, setTextExtruder] = createSignal<number | null>(urlOptInt(sp, 'text_extruder'))
+  const [bodyExtruder, setBodyExtruder] = createSignal<number | null>(urlOptInt(sp, 'body_extruder') ?? 1)
+  const [textExtruder, setTextExtruder] = createSignal<number | null>(urlOptInt(sp, 'text_extruder') ?? 2)
 
   const isMulticolour = createMemo(() => textStyle() === 'multicolour')
 

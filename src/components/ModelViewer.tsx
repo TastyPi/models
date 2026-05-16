@@ -14,11 +14,11 @@ type MatPalette = { base: THREE.Material; hover: THREE.Material; highlight: THRE
 
 // Palette index 0 = no extruder assigned; indices 1–8 = extruders 1–8.
 const MAT_PALETTES: MatPalette[] = [
-  { // 0 — unassigned (neutral grey)
-    base:      new THREE.MeshStandardMaterial({ color: 0x7788aa, roughness: 0.5, metalness: 0.0, flatShading: true }),
-    hover:     new THREE.MeshStandardMaterial({ color: 0x8899bb, roughness: 0.45, metalness: 0.0, flatShading: true }),
-    highlight: new THREE.MeshStandardMaterial({ color: 0xaabbdd, roughness: 0.4, metalness: 0.0, flatShading: true }),
-    dim:       new THREE.MeshStandardMaterial({ color: 0x3a4455, roughness: 0.7, metalness: 0.0, flatShading: true }),
+  { // 0 — unassigned (blue, matching the historical default)
+    base:      new THREE.MeshStandardMaterial({ color: 0x6688cc, roughness: 0.4, metalness: 0.1, flatShading: true }),
+    hover:     new THREE.MeshStandardMaterial({ color: 0x7799dd, roughness: 0.35, metalness: 0.12, flatShading: true }),
+    highlight: new THREE.MeshStandardMaterial({ color: 0x99bbff, roughness: 0.3, metalness: 0.15, flatShading: true }),
+    dim:       new THREE.MeshStandardMaterial({ color: 0x334466, roughness: 0.7, metalness: 0.0, flatShading: true }),
   },
   { // 1 — blue
     base:      new THREE.MeshStandardMaterial({ color: 0x6688cc, roughness: 0.4, metalness: 0.1, flatShading: true }),
