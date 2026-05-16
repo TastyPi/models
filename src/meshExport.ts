@@ -144,7 +144,7 @@ export function build3mf(objects: ExportObj[]): ArrayBuffer {
   const xmlObjects: string[] = []
   const buildItems: { id: number; tx: number; ty: number }[] = []
   type ConfigVol = { label: string; firstid: number; lastid: number; settings?: Record<string, string> }
-  type ConfigObj = { id: number; label: string; volumes: ConfigVol[] }
+  type ConfigObj = { id: number; label: string; objSettings?: Record<string, string>; volumes: ConfigVol[] }
   const configEntries: ConfigObj[] = []
   let nextId = 1
 
@@ -158,19 +158,21 @@ export function build3mf(objects: ExportObj[]): ArrayBuffer {
       const { xml, triCounts } = mergedMeshXml(partMeshes)
       xmlObjects.push(`<object id="${nextId}" name="${e.label.replace(/"/g, '&quot;')}" type="model"><mesh>${xml}</mesh></object>`)
       buildItems.push({ id: nextId, tx, ty })
+      const multiPart = e.parts.length > 1
       const volumes: ConfigVol[] = []
       let triStart = 0
       for (let j = 0; j < e.parts.length; j++) {
-        volumes.push({ label: e.parts[j].label, firstid: triStart, lastid: triStart + triCounts[j] - 1, settings: e.parts[j].settings })
+        volumes.push({ label: e.parts[j].label, firstid: triStart, lastid: triStart + triCounts[j] - 1, settings: multiPart ? e.parts[j].settings : undefined })
         triStart += triCounts[j]
       }
-      configEntries.push({ id: nextId, label: e.label, volumes })
+      const objSettings = multiPart ? e.settings : e.parts[0].settings
+      configEntries.push({ id: nextId, label: e.label, objSettings, volumes })
       nextId++
     } else {
       const triCount = e.mesh.triVerts.length / 3
       xmlObjects.push(`<object id="${nextId}" name="${e.label.replace(/"/g, '&quot;')}" type="model"><mesh>${meshXml(e.mesh, -cx, -cy, -minZ)}</mesh></object>`)
       buildItems.push({ id: nextId, tx, ty })
-      if (e.settings) configEntries.push({ id: nextId, label: e.label, volumes: [{ label: e.label, firstid: 0, lastid: triCount - 1, settings: e.settings }] })
+      if (e.settings) configEntries.push({ id: nextId, label: e.label, objSettings: e.settings, volumes: [{ label: e.label, firstid: 0, lastid: triCount - 1 }] })
       nextId++
     }
   }
@@ -198,8 +200,11 @@ export function build3mf(objects: ExportObj[]): ArrayBuffer {
         `<metadata type="volume" key="${k}" value="${val.replace(/"/g, '&quot;')}"/>`).join('') : ''
       return `<volume firstid="${v.firstid}" lastid="${v.lastid}"><metadata type="volume" key="name" value="${v.label.replace(/"/g, '&quot;')}"/><metadata type="volume" key="volume_type" value="ModelPart"/>${settingsMeta}</volume>`
     }
-    const objXml = (e: ConfigObj) =>
-      `<object id="${e.id}" instances_count="1"><metadata type="object" key="name" value="${e.label.replace(/"/g, '&quot;')}"/>${e.volumes.map(volXml).join('')}</object>`
+    const objXml = (e: ConfigObj) => {
+      const objMeta = e.objSettings ? Object.entries(e.objSettings).map(([k, val]) =>
+        `<metadata type="object" key="${k}" value="${val.replace(/"/g, '&quot;')}"/>`).join('') : ''
+      return `<object id="${e.id}" instances_count="1"><metadata type="object" key="name" value="${e.label.replace(/"/g, '&quot;')}"/>${objMeta}${e.volumes.map(volXml).join('')}</object>`
+    }
     zipFiles.push({ name: 'Metadata/Slic3r_PE_model.config', data: enc.encode(
       `<?xml version="1.0" encoding="UTF-8"?>\n<config>\n${configEntries.map(objXml).join('\n')}\n</config>`
     )})
