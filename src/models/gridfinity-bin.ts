@@ -47,6 +47,24 @@ export const attribution: Attribution[] = [
   { name: 'gridfinity-rebuilt-openscad', author: 'Kenneth Hodson', url: 'https://github.com/kennetek/gridfinity-rebuilt-openscad', license: 'MIT' },
 ]
 
+export function holePositions(cells_x: number, cells_y: number, corner_magnets: boolean): [number, number][] {
+  const cellXC = Array.from({ length: cells_x }, (_, i) => (i - (cells_x - 1) / 2) * CELL)
+  const cellYC = Array.from({ length: cells_y }, (_, j) => (j - (cells_y - 1) / 2) * CELL)
+  return corner_magnets
+    ? [
+        [cellXC[0] - MAG_OFFSET,                 cellYC[0] - MAG_OFFSET],
+        [cellXC[cellXC.length - 1] + MAG_OFFSET, cellYC[0] - MAG_OFFSET],
+        [cellXC[0] - MAG_OFFSET,                 cellYC[cellYC.length - 1] + MAG_OFFSET],
+        [cellXC[cellXC.length - 1] + MAG_OFFSET, cellYC[cellYC.length - 1] + MAG_OFFSET],
+      ]
+    : cellXC.flatMap(cx => cellYC.flatMap(cy => [
+        [cx + MAG_OFFSET, cy + MAG_OFFSET],
+        [cx - MAG_OFFSET, cy + MAG_OFFSET],
+        [cx - MAG_OFFSET, cy - MAG_OFFSET],
+        [cx + MAG_OFFSET, cy - MAG_OFFSET],
+      ] as [number, number][]))
+}
+
 export function info(cells_x: number, cells_y: number, height_units: number, stacking_lip: boolean): string {
   const w = cells_x * CELL - 2 * BIN_GAP
   const d = cells_y * CELL - 2 * BIN_GAP
@@ -101,6 +119,8 @@ export function generate(p: {
   // Uses the same absolute profile heights as the outer post but with radii reduced by WALL_THICK_BASE,
   // then intersects with a zone that starts at LITE_FLOOR_THICK to preserve the bottom skin.
   // Floor slab above BASE_H stays solid, sealing the hollow space from the bin interior.
+  const positions = holePositions(cells_x, cells_y, corner_magnets)
+
   if (hollow_base) {
     const iR = (r: number) => Math.max(BIN_GAP + 0.01, r - WALL_THICK_BASE)
     const iCS = (r: number) =>
@@ -134,30 +154,18 @@ export function generate(p: {
     if (magnet_size !== null || screw_holes) {
       const w = WALL_THICK_BASE
       const coverShapes: any[] = []
-      cellXC.forEach(cx => cellYC.forEach(cy => {
-        if (corner_magnets && !(
-          (cx === cellXC[0] || cx === cellXC[cellXC.length - 1]) &&
-          (cy === cellYC[0] || cy === cellYC[cellYC.length - 1])
-        )) return
-        const corners: [number, number][] = [
-          [cx + MAG_OFFSET, cy + MAG_OFFSET],
-          [cx - MAG_OFFSET, cy + MAG_OFFSET],
-          [cx - MAG_OFFSET, cy - MAG_OFFSET],
-          [cx + MAG_OFFSET, cy - MAG_OFFSET],
-        ]
-        for (const [mx, my] of corners) {
-          if (magnet_size !== null)
-            coverShapes.push(
-              Manifold.cylinder(magnetHoleDepth(supportless).totalDepth + 2 * w, magnet_size / 2 + w, magnet_size / 2 + w, 32)
-                .translate([mx, my, -0.005])
-            )
-          if (screw_holes)
-            coverShapes.push(
-              Manifold.cylinder(BASE_H + 2 * w, SCREW_HOLE_R + w, SCREW_HOLE_R + w, 32)
-                .translate([mx, my, -0.005])
-            )
-        }
-      }))
+      for (const [mx, my] of positions) {
+        if (magnet_size !== null)
+          coverShapes.push(
+            Manifold.cylinder(magnetHoleDepth(supportless).totalDepth + 2 * w, magnet_size / 2 + w, magnet_size / 2 + w, 32)
+              .translate([mx, my, -0.005])
+          )
+        if (screw_holes)
+          coverShapes.push(
+            Manifold.cylinder(BASE_H + 2 * w, SCREW_HOLE_R + w, SCREW_HOLE_R + w, 32)
+              .translate([mx, my, -0.005])
+          )
+      }
       if (coverShapes.length > 0) bin = bin.add(Manifold.union(coverShapes))
     }
   }
@@ -165,54 +173,40 @@ export function generate(p: {
   if (magnet_size !== null || screw_holes) {
     const holeShapes: any[] = []
 
-    cellXC.forEach(cx => cellYC.forEach(cy => {
-      if (corner_magnets && !(
-        (cx === cellXC[0] || cx === cellXC[cellXC.length - 1]) &&
-        (cy === cellYC[0] || cy === cellYC[cellYC.length - 1])
-      )) return
-
-      const corners: [number, number][] = [
-        [cx + MAG_OFFSET, cy + MAG_OFFSET],
-        [cx - MAG_OFFSET, cy + MAG_OFFSET],
-        [cx - MAG_OFFSET, cy - MAG_OFFSET],
-        [cx + MAG_OFFSET, cy - MAG_OFFSET],
-      ]
-
-      for (const [mx, my] of corners) {
-        if (magnet_size !== null) {
-          const holeR = magnet_size / 2
-          if (supportless) {
-            // Full circle for the entrance, up to MAGNET_HOLE_DEPTH (2.4mm)
-            holeShapes.push(
-              Manifold.cylinder(MAGNET_HOLE_DEPTH + 0.01, holeR, holeR, 32)
-                .translate([mx, my, -0.005])
-            )
-            // Top layers: D-shaped openings with alternating bridge orientation
-            for (let i = 0; i < BRIDGE_LAYERS; i++) {
-              const z = MAGNET_HOLE_DEPTH + i * LAYER_HEIGHT
-              const layerCyl = Manifold.cylinder(LAYER_HEIGHT + 0.02, holeR, holeR, 32)
-                .translate([0, 0, -0.01])
-              const bridgeBlock = Manifold.cube([holeR * 2 + 0.02, holeR + 0.01, LAYER_HEIGHT + 0.04])
-                .translate([-holeR - 0.01, 0, -0.02])
-                .rotate([0, 0, i * 90])
-              holeShapes.push(layerCyl.subtract(bridgeBlock).translate([mx, my, z]))
-            }
-          } else {
-            holeShapes.push(
-              Manifold.cylinder(MAGNET_HOLE_DEPTH + 0.01, holeR, holeR, 32)
-                .translate([mx, my, -0.005])
-            )
-          }
-        }
-
-        if (screw_holes) {
+    for (const [mx, my] of positions) {
+      if (magnet_size !== null) {
+        const holeR = magnet_size / 2
+        if (supportless) {
+          // Full circle for the entrance, up to MAGNET_HOLE_DEPTH (2.4mm)
           holeShapes.push(
-            Manifold.cylinder(BASE_H + 0.01, SCREW_HOLE_R, SCREW_HOLE_R, 32)
+            Manifold.cylinder(MAGNET_HOLE_DEPTH + 0.01, holeR, holeR, 32)
+              .translate([mx, my, -0.005])
+          )
+          // Top layers: D-shaped openings with alternating bridge orientation
+          for (let i = 0; i < BRIDGE_LAYERS; i++) {
+            const z = MAGNET_HOLE_DEPTH + i * LAYER_HEIGHT
+            const layerCyl = Manifold.cylinder(LAYER_HEIGHT + 0.02, holeR, holeR, 32)
+              .translate([0, 0, -0.01])
+            const bridgeBlock = Manifold.cube([holeR * 2 + 0.02, holeR + 0.01, LAYER_HEIGHT + 0.04])
+              .translate([-holeR - 0.01, 0, -0.02])
+              .rotate([0, 0, i * 90])
+            holeShapes.push(layerCyl.subtract(bridgeBlock).translate([mx, my, z]))
+          }
+        } else {
+          holeShapes.push(
+            Manifold.cylinder(MAGNET_HOLE_DEPTH + 0.01, holeR, holeR, 32)
               .translate([mx, my, -0.005])
           )
         }
       }
-    }))
+
+      if (screw_holes) {
+        holeShapes.push(
+          Manifold.cylinder(BASE_H + 0.01, SCREW_HOLE_R, SCREW_HOLE_R, 32)
+            .translate([mx, my, -0.005])
+        )
+      }
+    }
 
     if (holeShapes.length > 0) {
       bin = bin.subtract(Manifold.union(holeShapes))
