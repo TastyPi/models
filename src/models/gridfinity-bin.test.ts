@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { info, magnetHoleDepth, holePositions, HEIGHT_UNIT, STACKING_LIP_H, STACKING_LIP_D, LIP_R_TIP, LIP_SUPPORT_INNER_H, LIP_SUPPORT_OUTER_H } from './gridfinity-bin'
+import { info, magnetHoleDepth, holePositions, HEIGHT_UNIT, STACKING_LIP_H, STACKING_LIP_D, LIP_R_TIP, LIP_SUPPORT_INNER_H, LIP_SUPPORT_OUTER_H, TAB_D, TAB_H, TAB_SUPPORT_H } from './gridfinity-bin'
 
 const BOX_OUTER_R = 3.75  // OUTER_R - BIN_GAP
 
@@ -103,6 +103,26 @@ describe('stacking lip support geometry', () => {
     const overhang = wallInnerR - LIP_R_TIP       // 1.4mm — material with nothing below it
     const supportHorizontalSpan = LIP_SUPPORT_OUTER_H - LIP_SUPPORT_INNER_H
     expect(supportHorizontalSpan).toBeGreaterThanOrEqual(overhang)
+  })
+})
+
+describe('label tab', () => {
+  const BASE_H = 5
+  const FLOOR_THICK = 1.2
+  const floorTop = BASE_H + FLOOR_THICK
+
+  it('TAB_H matches the reference formula: tan(36°) × TAB_D + TAB_SUPPORT_H', () => {
+    expect(TAB_H).toBeCloseTo(Math.tan(36 * Math.PI / 180) * TAB_D + TAB_SUPPORT_H, 3)
+  })
+
+  it('TAB_D and TAB_SUPPORT_H match gridfinity-rebuilt-openscad values', () => {
+    expect(TAB_D).toBeCloseTo(15.85)
+    expect(TAB_SUPPORT_H).toBeCloseTo(1.2)
+  })
+
+  it('tab fits above floor at height_units=3 but not at height_units=2', () => {
+    expect(3 * HEIGHT_UNIT - TAB_H).toBeGreaterThan(floorTop)
+    expect(2 * HEIGHT_UNIT - TAB_H).toBeLessThan(floorTop)
   })
 })
 
