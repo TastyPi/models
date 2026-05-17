@@ -93,24 +93,26 @@ function GridfinityBinPage() {
         <BooleanField label="Stacking lip" value={stackingLip()} onChange={setStackingLip} />
       </SidebarSection>
 
-      <SidebarSection label="Label" defaultOpen={false}>
-        <Show when={cellsX() === 1} fallback={
-          <SelectField
-            label="Tab"
-            value={labelStyle()}
-            onChange={setLabelStyle}
-            options={[
-              { value: 'none', label: 'None' },
-              { value: 'center', label: 'Center' },
-              { value: 'left', label: 'Left' },
-              { value: 'right', label: 'Right' },
-              { value: 'full', label: 'Full width' },
-            ]}
-          />
-        }>
-          <BooleanField label="Tab" value={labelStyle() !== 'none'} onChange={v => setLabelStyle(v ? 'center' : 'none')} />
-        </Show>
-      </SidebarSection>
+      <Show when={heightUnits() > 1}>
+        <SidebarSection label="Label" defaultOpen={false}>
+          <Show when={cellsX() === 1} fallback={
+            <SelectField
+              label="Tab"
+              value={labelStyle()}
+              onChange={setLabelStyle}
+              options={[
+                { value: 'none', label: 'None' },
+                { value: 'center', label: 'Center' },
+                { value: 'left', label: 'Left' },
+                { value: 'right', label: 'Right' },
+                { value: 'full', label: 'Full width' },
+              ]}
+            />
+          }>
+            <BooleanField label="Tab" value={labelStyle() !== 'none'} onChange={v => setLabelStyle(v ? 'center' : 'none')} />
+          </Show>
+        </SidebarSection>
+      </Show>
 
       <SidebarSection label="Dividers" defaultOpen>
         <NumberSlider label="X dividers" value={dividersX()} onChange={setDividersX} min={0} max={5} />
