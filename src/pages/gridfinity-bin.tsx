@@ -23,7 +23,7 @@ function GridfinityBinPage() {
   const [cellsY, setCellsY] = createSignal(urlNum('cells_y', 1))
   const [heightUnits, setHeightUnits] = createSignal(urlNum('height_units', 3))
   const [stackingLip, setStackingLip] = createSignal(urlBool('stacking_lip', true))
-  const [hollowBase, setHollowBase] = createSignal(urlBool('hollow_base', true))
+  const [baseStyle, setBaseStyle] = createSignal(urlStr('base_style', 'flat'))
   const [dividersX, setDividersX] = createSignal(urlNum('dividers_x', 0))
   const [dividersY, setDividersY] = createSignal(urlNum('dividers_y', 0))
 
@@ -43,7 +43,7 @@ function GridfinityBinPage() {
   const params = createMemo(() => ({
     cells_x: cellsX(), cells_y: cellsY(), height_units: heightUnits(),
     stacking_lip: stackingLip(),
-    hollow_base: hollowBase(),
+    base_style: baseStyle() as 'flat' | 'hollow' | 'scoop',
     magnet_size: magnetSize(), screw_holes: screwHoles(),
     supportless: supportless(), corner_magnets: cornerMagnets(),
     dividers_x: dividersX(), dividers_y: dividersY(),
@@ -59,7 +59,7 @@ function GridfinityBinPage() {
     url.set('cells_y', String(p.cells_y))
     url.set('height_units', String(p.height_units))
     url.set('stacking_lip', String(p.stacking_lip))
-    if (p.hollow_base) url.set('hollow_base', 'true')
+    if (p.base_style !== 'flat') url.set('base_style', p.base_style)
     if (p.dividers_x > 0) url.set('dividers_x', String(p.dividers_x))
     if (p.dividers_y > 0) url.set('dividers_y', String(p.dividers_y))
     if (p.magnet_size !== null) {
@@ -94,19 +94,22 @@ function GridfinityBinPage() {
       </SidebarSection>
 
       <SidebarSection label="Label" defaultOpen={false}>
-        <SelectField
-          label="Tab"
-          value={labelStyle()}
-          onChange={setLabelStyle}
-          default="none"
-          options={[
-            { value: 'none', label: 'None' },
-            { value: 'center', label: 'Center' },
-            { value: 'left', label: 'Left' },
-            { value: 'right', label: 'Right' },
-            { value: 'full', label: 'Full width' },
-          ]}
-        />
+        <Show when={cellsX() === 1} fallback={
+          <SelectField
+            label="Tab"
+            value={labelStyle()}
+            onChange={setLabelStyle}
+            options={[
+              { value: 'none', label: 'None' },
+              { value: 'center', label: 'Center' },
+              { value: 'left', label: 'Left' },
+              { value: 'right', label: 'Right' },
+              { value: 'full', label: 'Full width' },
+            ]}
+          />
+        }>
+          <BooleanField label="Tab" value={labelStyle() !== 'none'} onChange={v => setLabelStyle(v ? 'center' : 'none')} />
+        </Show>
       </SidebarSection>
 
       <SidebarSection label="Dividers" defaultOpen>
@@ -115,7 +118,16 @@ function GridfinityBinPage() {
       </SidebarSection>
 
       <SidebarSection label="Base" defaultOpen>
-        <BooleanField label="Hollow" value={hollowBase()} onChange={setHollowBase} />
+        <SelectField
+          label="Style"
+          value={baseStyle()}
+          onChange={setBaseStyle}
+          options={[
+            { value: 'flat', label: 'Flat' },
+            { value: 'hollow', label: 'Hollow' },
+            { value: 'scoop', label: 'Scoop' },
+          ]}
+        />
       </SidebarSection>
 
       <SidebarSection label="Holes" defaultOpen>
