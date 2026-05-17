@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { info, magnetHoleDepth, holePositions, HEIGHT_UNIT, STACKING_LIP_H } from './gridfinity-bin'
+import { info, magnetHoleDepth, holePositions, HEIGHT_UNIT, STACKING_LIP_H, STACKING_LIP_D, LIP_R_TIP, LIP_SUPPORT_INNER_H, LIP_SUPPORT_OUTER_H } from './gridfinity-bin'
+
+const BOX_OUTER_R = 3.75  // OUTER_R - BIN_GAP
 
 const CELL = 42
 const BIN_GAP = 0.25
@@ -86,6 +88,21 @@ describe('holePositions', () => {
       expect(pos).toContainEqual([-expectedX,  MAG_OFFSET])
       expect(pos).toContainEqual([ expectedX,  MAG_OFFSET])
     })
+  })
+})
+
+describe('stacking lip support geometry', () => {
+  it('support chamfer is at 45°: vertical drop equals horizontal span (lip depth)', () => {
+    // tan(45°) = 1, so the drop from inner to outer edge must equal the lip depth
+    expect(LIP_SUPPORT_OUTER_H - LIP_SUPPORT_INNER_H).toBeCloseTo(STACKING_LIP_D)
+  })
+
+  it('support covers the full inner overhang at the wall-to-lip transition', () => {
+    const WALL_THICK = 1.2
+    const wallInnerR = BOX_OUTER_R - WALL_THICK  // 2.55
+    const overhang = wallInnerR - LIP_R_TIP       // 1.4mm — material with nothing below it
+    const supportHorizontalSpan = LIP_SUPPORT_OUTER_H - LIP_SUPPORT_INNER_H
+    expect(supportHorizontalSpan).toBeGreaterThanOrEqual(overhang)
   })
 })
 
