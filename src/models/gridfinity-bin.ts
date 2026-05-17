@@ -87,11 +87,13 @@ export function generate(p: {
   stacking_lip: boolean
   magnet_size: number | null; screw_holes: boolean
   supportless: boolean; corner_magnets: boolean
-  hollow_base: boolean
+  base_style: 'flat' | 'hollow' | 'scoop'
   dividers_x: number; dividers_y: number
   label_style: 'none' | 'full' | 'left' | 'center' | 'right'
 }): GeomResult {
-  const { cells_x, cells_y, height_units, stacking_lip, magnet_size, screw_holes, supportless, corner_magnets, hollow_base, dividers_x, dividers_y, label_style } = p
+  const { cells_x, cells_y, height_units, stacking_lip, magnet_size, screw_holes, supportless, corner_magnets, base_style, dividers_x, dividers_y, label_style } = p
+  const hollow_base = base_style === 'hollow'
+  const scoop = base_style === 'scoop' ? 1 : 0
   const { Manifold, CrossSection } = getManifold()
 
   const nominalH = height_units * HEIGHT_UNIT
@@ -284,6 +286,38 @@ export function generate(p: {
       )
     }
     bin = bin.add(Manifold.union(divParts))
+  }
+
+  if (scoop > 0) {
+    const cavityH = nominalH - dividerFloorZ
+    const r = scoop * cavityH / 2
+    const nYComps = dividers_x + 1
+    const nXComps = dividers_y + 1
+    const ySpacing = (cavityHalfY * 2) / nYComps
+    const xSpacing = (cavityHalfX * 2) / nXComps
+    const scoopParts: any[] = []
+
+    for (let ky = 0; ky < nYComps; ky++) {
+      const yBack = -cavityHalfY + ky * ySpacing + (ky > 0 ? WALL_THICK / 2 : 0)
+
+      for (let kx = 0; kx < nXComps; kx++) {
+        const xLeft = -cavityHalfX + kx * xSpacing + (kx > 0 ? WALL_THICK / 2 : 0)
+        const xRight = -cavityHalfX + (kx + 1) * xSpacing - (kx < nXComps - 1 ? WALL_THICK / 2 : 0)
+        const xW = xRight - xLeft
+
+        // Quarter-cylinder wedge: solid block at back-floor corner with concave arc face.
+        // Block occupies y=[yBack, yBack+r], z=[dividerFloorZ, dividerFloorZ+r].
+        // Cylinder (along X, center at y=yBack+r, z=dividerFloorZ) carves the concave surface.
+        const block = Manifold.cube([xW, r, r])
+          .translate([xLeft, yBack, dividerFloorZ])
+        const cyl = Manifold.cylinder(xW + 0.02, r, r, 32)
+          .rotate([0, 90, 0])
+          .translate([xLeft - 0.01, yBack + r, dividerFloorZ + r])
+        scoopParts.push(block.subtract(cyl))
+      }
+    }
+
+    bin = bin.add(Manifold.union(scoopParts))
   }
 
   if (label_style !== 'none' && nominalH - TAB_H >= dividerFloorZ) {
