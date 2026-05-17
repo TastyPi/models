@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { info, magnetHoleDepth, holePositions, HEIGHT_UNIT, STACKING_LIP_H, STACKING_LIP_D, STACKING_LIP_FILLET_R, LIP_R_TIP, LIP_R_MID, LIP_SUPPORT_INNER_H, LIP_SUPPORT_OUTER_H } from './gridfinity-bin'
+import { info, magnetHoleDepth, holePositions, HEIGHT_UNIT, STACKING_LIP_H, STACKING_LIP_D, LIP_R_TIP, LIP_SUPPORT_INNER_H, LIP_SUPPORT_OUTER_H } from './gridfinity-bin'
 
 const BOX_OUTER_R = 3.75  // OUTER_R - BIN_GAP
 
