@@ -45,6 +45,13 @@ export function magnetHoleDepth(supportless: boolean): { clearDepth: number; tot
 const WALL_THICK_BASE = 0.95  // d_wall — shell wall thickness for hollow base
 const LITE_FLOOR_THICK = 1.0  // bottom skin thickness for hollow base
 
+// Label tab constants (from gridfinity-rebuilt-openscad standard.scad)
+const TAB_W_NOMINAL = CELL             // TAB_WIDTH_NOMINAL = 42mm
+export const TAB_D = 15.85             // _tab_depth: how far tab protrudes into bin
+const TAB_SUPPORT_ANGLE_DEG = 36
+export const TAB_SUPPORT_H = 1.2       // _tab_support_height
+export const TAB_H = Math.tan(TAB_SUPPORT_ANGLE_DEG * Math.PI / 180) * TAB_D + TAB_SUPPORT_H
+
 export const attribution: Attribution[] = [
   { name: 'Gridfinity', author: 'Zachary Freedman / Voidstar Lab', url: 'https://www.youtube.com/watch?v=ra_9zU-mnl8', license: 'MIT' },
   { name: 'gridfinity-rebuilt-openscad', author: 'Kenneth Hodson', url: 'https://github.com/kennetek/gridfinity-rebuilt-openscad', license: 'MIT' },
@@ -82,8 +89,9 @@ export function generate(p: {
   supportless: boolean; corner_magnets: boolean
   hollow_base: boolean
   dividers_x: number; dividers_y: number
+  label_style: 'none' | 'full' | 'left' | 'center' | 'right'
 }): GeomResult {
-  const { cells_x, cells_y, height_units, stacking_lip, magnet_size, screw_holes, supportless, corner_magnets, hollow_base, dividers_x, dividers_y } = p
+  const { cells_x, cells_y, height_units, stacking_lip, magnet_size, screw_holes, supportless, corner_magnets, hollow_base, dividers_x, dividers_y, label_style } = p
   const { Manifold, CrossSection } = getManifold()
 
   const nominalH = height_units * HEIGHT_UNIT
@@ -276,6 +284,42 @@ export function generate(p: {
       )
     }
     bin = bin.add(Manifold.union(divParts))
+  }
+
+  if (label_style !== 'none' && nominalH - TAB_H >= dividerFloorZ) {
+    const nXComps = dividers_y + 1
+    const compSpacing = (cavityHalfX * 2) / nXComps
+    const frontY = cavityHalfY
+    const thinH = 0.01
+    const tabParts: any[] = []
+
+    for (let i = 0; i < nXComps; i++) {
+      const compCenterX = -cavityHalfX + (i + 0.5) * compSpacing
+      const compW = compSpacing - (nXComps > 1 ? WALL_THICK : 0)
+      const tw = label_style === 'full' ? compW : Math.min(TAB_W_NOMINAL, compW)
+
+      const tabXCenter = label_style === 'left'
+        ? compCenterX - compW / 2 + tw / 2
+        : label_style === 'right'
+          ? compCenterX + compW / 2 - tw / 2
+          : compCenterX
+
+      const slabBottom = CrossSection.square([tw, thinH], true)
+        .extrude(thinH)
+        .translate([tabXCenter, frontY - thinH / 2, nominalH - TAB_H])
+
+      const slabFull = (z: number) => CrossSection.square([tw, TAB_D], true)
+        .extrude(thinH)
+        .translate([tabXCenter, frontY - TAB_D / 2, z])
+
+      tabParts.push(Manifold.hull([
+        slabBottom,
+        slabFull(nominalH - TAB_SUPPORT_H),
+        slabFull(nominalH),
+      ]))
+    }
+
+    bin = bin.add(Manifold.union(tabParts))
   }
 
   const partSettings: Record<string, string> | undefined = hollow_base ? { fill_density: '0%' } : undefined

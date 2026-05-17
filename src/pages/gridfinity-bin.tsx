@@ -6,6 +6,7 @@ import { PageLayout } from '../components/PageLayout'
 import { ModelInfo } from '../components/ModelInfo'
 import { BooleanField } from '../components/BooleanField'
 import { NumberSlider, OptionalNumberSlider } from '../components/NumberSlider'
+import { SelectField } from '../components/SelectField'
 import { SidebarSection } from '../components/SidebarSection'
 import { DownloadFooter } from '../components/DownloadFooter'
 import { HeightReferenceDialog } from '../components/HeightReferenceDialog'
@@ -15,6 +16,7 @@ import { attribution, info } from '../models/gridfinity-bin'
 const sp = new URLSearchParams(window.location.search)
 function urlNum(key: string, def: number) { const v = sp.get(key); return v !== null ? parseFloat(v) : def }
 function urlBool(key: string, def: boolean) { const v = sp.get(key); return v !== null ? v === 'true' : def }
+function urlStr(key: string, def: string) { const v = sp.get(key); return v !== null ? v : def }
 
 function GridfinityBinPage() {
   const [cellsX, setCellsX] = createSignal(urlNum('cells_x', 1))
@@ -32,6 +34,7 @@ function GridfinityBinPage() {
   const [screwHoles, setScrewHoles] = createSignal(urlBool('screw_holes', false))
   const [supportless, setSupportless] = createSignal(urlBool('supportless', true))
   const [cornerMagnets, setCornerMagnets] = createSignal(urlBool('corner_magnets', false))
+  const [labelStyle, setLabelStyle] = createSignal(urlStr('label_style', 'none'))
 
   const hasAnyHoles = () => magnetSize() !== null || screwHoles()
 
@@ -44,6 +47,7 @@ function GridfinityBinPage() {
     magnet_size: magnetSize(), screw_holes: screwHoles(),
     supportless: supportless(), corner_magnets: cornerMagnets(),
     dividers_x: dividersX(), dividers_y: dividersY(),
+    label_style: labelStyle() as 'none' | 'full' | 'left' | 'center' | 'right',
   }))
 
   const { objects, rendering, selectedObject, toggleObject, download } = useGeometry('gridfinity-bin', params)
@@ -66,6 +70,7 @@ function GridfinityBinPage() {
     }
     if (p.screw_holes) url.set('screw_holes', 'true')
     if (hasAnyHoles() && p.corner_magnets) url.set('corner_magnets', 'true')
+    if (p.label_style !== 'none') url.set('label_style', p.label_style)
     window.history.replaceState(null, '', '?' + url.toString())
   })
 
@@ -86,6 +91,22 @@ function GridfinityBinPage() {
         <NumberSlider label="Depth (cells)" value={cellsY()} onChange={setCellsY} min={1} max={10} />
         <NumberSlider label="Height (units)" value={heightUnits()} onChange={setHeightUnits} min={1} max={9} labelAddon={<HeightReferenceDialog />} />
         <BooleanField label="Stacking lip" value={stackingLip()} onChange={setStackingLip} />
+      </SidebarSection>
+
+      <SidebarSection label="Label" defaultOpen={false}>
+        <SelectField
+          label="Tab"
+          value={labelStyle()}
+          onChange={setLabelStyle}
+          default="none"
+          options={[
+            { value: 'none', label: 'None' },
+            { value: 'center', label: 'Center' },
+            { value: 'left', label: 'Left' },
+            { value: 'right', label: 'Right' },
+            { value: 'full', label: 'Full width' },
+          ]}
+        />
       </SidebarSection>
 
       <SidebarSection label="Dividers" defaultOpen>
