@@ -21,7 +21,7 @@ function GridfinityBinPage() {
   const [cellsY, setCellsY] = createSignal(urlNum('cells_y', 1))
   const [heightUnits, setHeightUnits] = createSignal(urlNum('height_units', 3))
   const [stackingLip, setStackingLip] = createSignal(urlBool('stacking_lip', true))
-  const [hollowBase, setHollowBase] = createSignal(urlBool('hollow_base', false))
+  const [hollowBase, setHollowBase] = createSignal(urlBool('hollow_base', true))
   const [dividersX, setDividersX] = createSignal(urlNum('dividers_x', 0))
   const [dividersY, setDividersY] = createSignal(urlNum('dividers_y', 0))
 
@@ -30,7 +30,7 @@ function GridfinityBinPage() {
     sp.has('magnet_size') ? (urlNum('magnet_size', 6.2) || null) : 6.2
   )
   const [screwHoles, setScrewHoles] = createSignal(urlBool('screw_holes', false))
-  const [supportless, setSupportless] = createSignal(urlBool('supportless', false))
+  const [supportless, setSupportless] = createSignal(urlBool('supportless', true))
   const [cornerMagnets, setCornerMagnets] = createSignal(urlBool('corner_magnets', false))
 
   const hasAnyHoles = () => magnetSize() !== null || screwHoles()

@@ -22,9 +22,12 @@ const FLOOR_THICK = 1.2
 
 // Stacking lip (from gridfinity-rebuilt-openscad standard.scad STACKING_LIP_LINE)
 export const STACKING_LIP_H = 4.4
-const STACKING_LIP_D = 2.6
-const LIP_R_TIP = BOX_OUTER_R - STACKING_LIP_D   // 1.15
-const LIP_R_MID = LIP_R_TIP + 0.7                 // 1.85
+export const STACKING_LIP_D = 2.6
+export const LIP_R_TIP = BOX_OUTER_R - STACKING_LIP_D   // 1.15
+export const LIP_R_MID = LIP_R_TIP + 0.7                 // 1.85
+export const STACKING_LIP_FILLET_R = 0.6
+export const LIP_SUPPORT_INNER_H = 1.2
+export const LIP_SUPPORT_OUTER_H = LIP_SUPPORT_INNER_H + STACKING_LIP_D  // 3.8 — 45° chamfer
 
 // Base hole constants (from gridfinity-rebuilt-openscad standard.scad)
 const MAG_OFFSET = 13
@@ -221,8 +224,27 @@ export function generate(p: {
       voidCS(LIP_R_MID).extrude(1.8).translate([0, 0, nominalH + 0.7]),
       Manifold.hull([vs(LIP_R_MID, nominalH + 2.5), vs(BOX_OUTER_R - 0.01, nominalH + STACKING_LIP_H)]),
     ])
-    const lip = outerCS.extrude(STACKING_LIP_H).translate([0, 0, nominalH]).subtract(innerVoid)
-    bin = bin.add(lip)
+    // Chamfer the outer top corner from outside (not inner void) so the notch stays open for stacking.
+    // cornerToRemove = outer ring at top, tapering to zero FILLET_R below the top.
+    const cornerOuter = outerCS.extrude(STACKING_LIP_FILLET_R).translate([0, 0, nominalH + STACKING_LIP_H - STACKING_LIP_FILLET_R])
+    const cornerInner = Manifold.hull([
+      vs(BOX_OUTER_R - STACKING_LIP_FILLET_R, nominalH + STACKING_LIP_H),
+      vs(BOX_OUTER_R,                          nominalH + STACKING_LIP_H - STACKING_LIP_FILLET_R),
+    ])
+    const lip = outerCS.extrude(STACKING_LIP_H).translate([0, 0, nominalH])
+      .subtract(innerVoid)
+      .subtract(cornerOuter.subtract(cornerInner))
+    // Support: outer solid block minus a hollow frustum carved out of the interior.
+    // Hull of solid rounded squares fills the whole bin if sizes differ, so we must subtract.
+    const supportOuter = outerCS.extrude(LIP_SUPPORT_OUTER_H).translate([0, 0, nominalH - LIP_SUPPORT_OUTER_H])
+    const supportHollow = Manifold.union([
+      voidCS(LIP_R_TIP).extrude(LIP_SUPPORT_INNER_H).translate([0, 0, nominalH - LIP_SUPPORT_INNER_H]),
+      Manifold.hull([
+        vs(LIP_R_TIP,          nominalH - LIP_SUPPORT_INNER_H),
+        vs(BOX_OUTER_R - 0.02, nominalH - LIP_SUPPORT_OUTER_H),
+      ]),
+    ])
+    bin = bin.add(lip).add(supportOuter.subtract(supportHollow))
   }
 
   const dividerFloorZ = BASE_H + FLOOR_THICK
