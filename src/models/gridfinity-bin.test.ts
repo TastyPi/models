@@ -121,17 +121,17 @@ describe('label tab', () => {
   })
 
   it('full tab (wedge anchor above floor) fits at height_units=3 but not at height_units=2', () => {
-    expect(3 * HEIGHT_UNIT - TAB_H).toBeGreaterThan(floorTop)
-    expect(2 * HEIGHT_UNIT - TAB_H).toBeLessThan(floorTop)
+    expect(3 * HEIGHT_UNIT - LIP_SUPPORT_INNER_H - TAB_H).toBeGreaterThan(floorTop)
+    expect(2 * HEIGHT_UNIT - LIP_SUPPORT_INNER_H - TAB_H).toBeLessThan(floorTop)
   })
 
   it('tab overhang fits above floor at height_units=2 (tab is shown with clamped wedge)', () => {
     // At height=2 the full wedge anchor is below the floor, but the overhang part clears it
-    expect(2 * HEIGHT_UNIT - TAB_SUPPORT_H).toBeGreaterThan(floorTop)
+    expect(2 * HEIGHT_UNIT - LIP_SUPPORT_INNER_H - TAB_SUPPORT_H).toBeGreaterThan(floorTop)
   })
 
   it('tab is suppressed at height_units=1 where even the overhang does not clear the floor', () => {
-    expect(1 * HEIGHT_UNIT - TAB_SUPPORT_H).toBeLessThanOrEqual(floorTop)
+    expect(1 * HEIGHT_UNIT - LIP_SUPPORT_INNER_H - TAB_SUPPORT_H).toBeLessThanOrEqual(floorTop)
   })
 })
 
