@@ -320,7 +320,8 @@ export function generate(p: {
     bin = bin.add(Manifold.union(scoopParts))
   }
 
-  if (label_style !== 'none' && nominalH - TAB_SUPPORT_H > dividerFloorZ) {
+  const tabTopZ = nominalH - LIP_SUPPORT_INNER_H
+  if (label_style !== 'none' && tabTopZ - TAB_SUPPORT_H > dividerFloorZ) {
     const nXComps = dividers_y + 1
     const compSpacing = (cavityHalfX * 2) / nXComps
     const frontY = cavityHalfY
@@ -338,7 +339,7 @@ export function generate(p: {
           ? compCenterX + compW / 2 - tw / 2
           : compCenterX
 
-      const tabBottomZ = Math.max(nominalH - TAB_H, dividerFloorZ)
+      const tabBottomZ = Math.max(tabTopZ - TAB_H, dividerFloorZ)
       const slabBottom = CrossSection.square([tw, thinH], true)
         .extrude(thinH)
         .translate([tabXCenter, frontY - thinH / 2, tabBottomZ])
@@ -349,8 +350,8 @@ export function generate(p: {
 
       tabParts.push(Manifold.hull([
         slabBottom,
-        slabFull(nominalH - TAB_SUPPORT_H),
-        slabFull(nominalH),
+        slabFull(tabTopZ - TAB_SUPPORT_H),
+        slabFull(tabTopZ),
       ]))
     }
 
