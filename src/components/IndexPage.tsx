@@ -15,7 +15,7 @@ const MODELS: { slug: string; label: string; description: string; params: Record
     slug: 'dymo-letratag',
     label: 'Dymo LetraTag Bin',
     description: 'Gridfinity bin (3×6 cells, 6 units tall) with an exact-fit cavity for the Dymo LetraTag label maker.',
-    params: { stacking_lip: true, split: false, magnet_size: null, screw_holes: false, supportless: true, corner_magnets: false },
+    params: { height_units: 6, stacking_lip: true, split: false, magnet_size: null, screw_holes: false, supportless: true, corner_magnets: false },
   },
   {
     slug: 'gridfinity-baseplate',

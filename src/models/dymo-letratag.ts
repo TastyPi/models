@@ -12,17 +12,27 @@ export const attribution: Attribution[] = [
   },
 ]
 
-// 3×6 cells, 6 height units — minimum Gridfinity size for the Dymo LetraTag
+// 3×6 cells — minimum Gridfinity footprint for the Dymo LetraTag
 const CELLS_X = 3
 const CELLS_Y = 6
-const HEIGHT_UNITS = 6
+
+export const HEIGHT_UNITS_MIN = 3   // bottom (2 units) + top (1 unit), no middle
+export const HEIGHT_UNITS_MAX = 6   // original mesh height — middle at natural size
+
+// The 3MF mesh spans Z=0–42mm. The bottom 2 units (14mm) capture the cavity floor curve;
+// the top 1 unit (7mm) captures the rim. The 3-unit middle (14–35mm) is uniform walls
+// that can be scaled to change the bin height.
+const MESH_NOMINAL_H = HEIGHT_UNITS_MAX * HEIGHT_UNIT  // 42mm
+const SPLIT_BOTTOM_Z = 2 * HEIGHT_UNIT                // 14mm — end of bottom section (2 units)
+const SPLIT_TOP_Z    = MESH_NOMINAL_H - HEIGHT_UNIT   // 35mm — start of top section (1 unit)
+const MIDDLE_NOMINAL_H = SPLIT_TOP_Z - SPLIT_BOTTOM_Z // 21mm — 3 gridfinity units
 
 const SPLIT_GAP = 5  // display separation between the two halves (no material removed)
 
-export function info(stacking_lip: boolean): string {
+export function info(p: { stacking_lip: boolean; height_units: number }): string {
   const w = CELLS_X * 42 - 2 * 0.25
   const d = CELLS_Y * 42 - 2 * 0.25
-  const h = HEIGHT_UNITS * HEIGHT_UNIT + (stacking_lip ? STACKING_LIP_H : 0)
+  const h = p.height_units * HEIGHT_UNIT + (p.stacking_lip ? STACKING_LIP_H : 0)
   return `${w} × ${d} × ${h} mm`
 }
 
@@ -45,6 +55,7 @@ function load3mfManifold(): any {
 }
 
 function buildModel(p: {
+  height_units: number
   magnet_size: number | null
   screw_holes: boolean
   supportless: boolean
@@ -52,12 +63,11 @@ function buildModel(p: {
   stacking_lip: boolean
 }): any {
   const { Manifold } = getManifold()
-  const nominalH = HEIGHT_UNITS * HEIGHT_UNIT  // 42 mm
+  const targetH = p.height_units * HEIGHT_UNIT
   const sz = 1000
 
-  // Base posts + optional stacking lip using our gridfinity-rebuilt-openscad profile
   const ourBin = buildBinManifold({
-    cells_x: CELLS_X, cells_y: CELLS_Y, height_units: HEIGHT_UNITS,
+    cells_x: CELLS_X, cells_y: CELLS_Y, height_units: p.height_units,
     stacking_lip: p.stacking_lip,
     magnet_size: p.magnet_size, screw_holes: p.screw_holes,
     supportless: p.supportless, corner_magnets: p.corner_magnets,
@@ -66,20 +76,39 @@ function buildModel(p: {
   const baseClip = Manifold.cube([sz, sz, BASE_H]).translate([-sz / 2, -sz / 2, 0])
   const ourPosts = ourBin.intersect(baseClip)
 
-  // 3mf mesh body (Z = BASE_H to nominalH): exact Dymo cavity and walls
   const mesh3mf = load3mfManifold()
-  const bodyClip = Manifold.cube([sz, sz, nominalH - BASE_H]).translate([-sz / 2, -sz / 2, BASE_H])
-  const meshBody = mesh3mf.intersect(bodyClip)
 
-  const parts: any[] = [ourPosts, meshBody]
+  // Bottom section: BASE_H–7mm (cavity floor lead-in), fixed
+  const bottomClip = Manifold.cube([sz, sz, SPLIT_BOTTOM_Z - BASE_H])
+    .translate([-sz / 2, -sz / 2, BASE_H])
+  const meshBottom = mesh3mf.intersect(bottomClip)
+
+  // Middle section: 14–35mm in the nominal mesh, scaled vertically for target height
+  const middleTargetH = (p.height_units - 3) * HEIGHT_UNIT  // 2 bottom units + 1 top unit = 3 fixed
+  const middleClip = Manifold.cube([sz, sz, MIDDLE_NOMINAL_H])
+    .translate([-sz / 2, -sz / 2, SPLIT_BOTTOM_Z])
+  const meshMiddle = middleTargetH > 0
+    ? mesh3mf.intersect(middleClip)
+        .translate([0, 0, -SPLIT_BOTTOM_Z])
+        .scale([1, 1, middleTargetH / MIDDLE_NOMINAL_H])
+        .translate([0, 0, SPLIT_BOTTOM_Z])
+    : null
+
+  // Top section: 35–42mm in the nominal mesh, shifted up by the height increase
+  const heightIncrease = targetH - MESH_NOMINAL_H
+  const topClip = Manifold.cube([sz, sz, HEIGHT_UNIT])
+    .translate([-sz / 2, -sz / 2, SPLIT_TOP_Z])
+  const meshTop = mesh3mf.intersect(topClip).translate([0, 0, heightIncrease])
+
+  const parts: any[] = [ourPosts, meshBottom, ...(meshMiddle ? [meshMiddle] : []), meshTop]
   if (p.stacking_lip) {
-    const lipClip = Manifold.cube([sz, sz, sz]).translate([-sz / 2, -sz / 2, nominalH])
+    const lipClip = Manifold.cube([sz, sz, sz]).translate([-sz / 2, -sz / 2, targetH])
     parts.push(ourBin.intersect(lipClip))
   }
   return Manifold.union(parts)
 }
 
-// Split the model at Y=0 into two halves with alignment pins/sockets in the floor zone.
+// Split the model at Y=0 into two halves for small print beds.
 // Each half is 125.5 × 125.75 mm — fits on a Core One bed (250 × 220 mm).
 function splitModel(model: any): { front: any; back: any } {
   const { Manifold } = getManifold()
@@ -95,6 +124,7 @@ function splitModel(model: any): { front: any; back: any } {
 const PART_SETTINGS = { fill_density: '10%', fill_pattern: 'rectilinear' }
 
 export function generate(p: {
+  height_units: number
   magnet_size: number | null
   screw_holes: boolean
   supportless: boolean

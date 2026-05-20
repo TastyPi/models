@@ -4,17 +4,19 @@ import '../index.css'
 import { PageLayout } from '../components/PageLayout'
 import { ModelInfo } from '../components/ModelInfo'
 import { BooleanField } from '../components/BooleanField'
+import { NumberSlider } from '../components/NumberSlider'
 import { SidebarSection } from '../components/SidebarSection'
 import { HolesSection } from '../components/HolesSection'
 import { DownloadFooter } from '../components/DownloadFooter'
 import { useGeometry } from '../hooks/useGeometry'
-import { attribution, info } from '../models/dymo-letratag'
+import { attribution, info, HEIGHT_UNITS_MIN, HEIGHT_UNITS_MAX } from '../models/dymo-letratag'
 
 const sp = new URLSearchParams(window.location.search)
 function urlNum(key: string, def: number) { const v = sp.get(key); return v !== null ? parseFloat(v) : def }
 function urlBool(key: string, def: boolean) { const v = sp.get(key); return v !== null ? v === 'true' : def }
 
 function DymoLetraTagPage() {
+  const [heightUnits, setHeightUnits] = createSignal(urlNum('height_units', HEIGHT_UNITS_MAX))
   const [stackingLip, setStackingLip] = createSignal(urlBool('stacking_lip', true))
   const [split, setSplit] = createSignal(urlBool('split', false))
   const [magnetSize, setMagnetSize] = createSignal<number | null>(
@@ -25,6 +27,7 @@ function DymoLetraTagPage() {
   const [cornerMagnets, setCornerMagnets] = createSignal(urlBool('corner_magnets', false))
 
   const params = createMemo(() => ({
+    height_units: heightUnits(),
     stacking_lip: stackingLip(),
     split: split(),
     magnet_size: magnetSize(),
@@ -38,6 +41,7 @@ function DymoLetraTagPage() {
   createEffect(() => {
     const p = params()
     const url = new URLSearchParams()
+    if (p.height_units !== HEIGHT_UNITS_MAX) url.set('height_units', String(p.height_units))
     if (!p.stacking_lip) url.set('stacking_lip', 'false')
     if (p.split) url.set('split', 'true')
     if (p.magnet_size !== null) {
@@ -54,9 +58,9 @@ function DymoLetraTagPage() {
   return (
     <PageLayout
       title="Dymo LetraTag Bin"
-      description="Gridfinity bin (3×6 cells, 6 units tall) with an exact-fit cavity for the Dymo LetraTag label maker."
+      description="Gridfinity bin (3×6 cells) with an exact-fit cavity for the Dymo LetraTag label maker."
       attribution={attribution}
-      header={<ModelInfo>{info(stackingLip())}</ModelInfo>}
+      header={<ModelInfo>{info({ stacking_lip: stackingLip(), height_units: heightUnits() })}</ModelInfo>}
       objects={objects}
       selectedObject={selectedObject}
       onObjectClick={toggleObject}
@@ -64,6 +68,7 @@ function DymoLetraTagPage() {
       footer={<DownloadFooter label="Download" onStl={() => download()} on3mf={() => download('3mf')} />}
     >
       <SidebarSection label="Bin" defaultOpen>
+        <NumberSlider label="Height (units)" value={heightUnits()} onChange={setHeightUnits} min={HEIGHT_UNITS_MIN} max={HEIGHT_UNITS_MAX} />
         <BooleanField label="Stacking lip" value={stackingLip()} onChange={setStackingLip} />
         <BooleanField label="Split for small beds" value={split()} onChange={setSplit} />
       </SidebarSection>
