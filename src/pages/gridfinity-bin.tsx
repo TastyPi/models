@@ -67,7 +67,7 @@ function GridfinityBinPage() {
       url.set('magnet_size', '0')
     }
     if (p.screw_holes) url.set('screw_holes', 'true')
-    if (hasAnyHoles() && p.corner_magnets) url.set('corner_magnets', 'true')
+    if ((p.magnet_size !== null || p.screw_holes) && p.corner_magnets) url.set('corner_magnets', 'true')
     if (p.label_style !== 'none') url.set('label_style', p.label_style)
     window.history.replaceState(null, '', '?' + url.toString())
   })
