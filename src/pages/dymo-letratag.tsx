@@ -6,10 +6,11 @@ import { ModelInfo } from '../components/ModelInfo'
 import { BooleanField } from '../components/BooleanField'
 import { NumberSlider } from '../components/NumberSlider'
 import { SidebarSection } from '../components/SidebarSection'
-import { HolesSection } from '../components/HolesSection'
+import { BinHolesSection } from '../components/BinHolesSection'
 import { DownloadFooter } from '../components/DownloadFooter'
 import { useGeometry } from '../hooks/useGeometry'
 import { attribution, info, HEIGHT_UNITS_MIN, HEIGHT_UNITS_MAX } from '../models/dymo-letratag'
+import { type BinHoleSettings, binHoleSettingsFromUrl, binHoleSettingsToUrl } from '../models/gridfinity-bin'
 
 const sp = new URLSearchParams(window.location.search)
 function urlNum(key: string, def: number) { const v = sp.get(key); return v !== null ? parseFloat(v) : def }
@@ -19,21 +20,13 @@ function DymoLetraTagPage() {
   const [heightUnits, setHeightUnits] = createSignal(urlNum('height_units', HEIGHT_UNITS_MAX))
   const [stackingLip, setStackingLip] = createSignal(urlBool('stacking_lip', true))
   const [split, setSplit] = createSignal(urlBool('split', false))
-  const [magnetSize, setMagnetSize] = createSignal<number | null>(
-    sp.has('magnet_size') ? (urlNum('magnet_size', 6.2) || null) : null
-  )
-  const [screwHoles, setScrewHoles] = createSignal(urlBool('screw_holes', false))
-  const [supportless, setSupportless] = createSignal(urlBool('supportless', true))
-  const [cornerMagnets, setCornerMagnets] = createSignal(urlBool('corner_magnets', false))
+  const [holeSettings, setHoleSettings] = createSignal<BinHoleSettings>(binHoleSettingsFromUrl(sp, null))
 
   const params = createMemo(() => ({
     height_units: heightUnits(),
     stacking_lip: stackingLip(),
     split: split(),
-    magnet_size: magnetSize(),
-    screw_holes: screwHoles(),
-    supportless: supportless(),
-    corner_magnets: cornerMagnets(),
+    holes: holeSettings(),
   }))
 
   const { objects, rendering, selectedObject, toggleObject, download } = useGeometry('dymo-letratag', params)
@@ -44,14 +37,7 @@ function DymoLetraTagPage() {
     if (p.height_units !== HEIGHT_UNITS_MAX) url.set('height_units', String(p.height_units))
     if (!p.stacking_lip) url.set('stacking_lip', 'false')
     if (p.split) url.set('split', 'true')
-    if (p.magnet_size !== null) {
-      if (p.magnet_size !== 6.2) url.set('magnet_size', String(p.magnet_size))
-      if (p.supportless) url.set('supportless', 'true')
-    } else {
-      url.set('magnet_size', '0')
-    }
-    if (p.screw_holes) url.set('screw_holes', 'true')
-    if ((p.magnet_size !== null || p.screw_holes) && p.corner_magnets) url.set('corner_magnets', 'true')
+    binHoleSettingsToUrl(url, p.holes)
     window.history.replaceState(null, '', '?' + url.toString())
   })
 
@@ -72,12 +58,7 @@ function DymoLetraTagPage() {
         <BooleanField label="Stacking lip" value={stackingLip()} onChange={setStackingLip} />
         <BooleanField label="Split for small beds" value={split()} onChange={setSplit} />
       </SidebarSection>
-      <HolesSection
-        magnetSize={magnetSize()} onMagnetSize={setMagnetSize}
-        screwHoles={screwHoles()} onScrewHoles={setScrewHoles}
-        supportless={supportless()} onSupportless={setSupportless}
-        cornerMagnets={cornerMagnets()} onCornerMagnets={setCornerMagnets}
-      />
+      <BinHolesSection value={holeSettings()} onChange={setHoleSettings} />
     </PageLayout>
   )
 }
