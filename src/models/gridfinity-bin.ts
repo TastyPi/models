@@ -82,18 +82,46 @@ export function info(cells_x: number, cells_y: number, height_units: number, sta
   return `${w} × ${d} × ${h} mm`
 }
 
+export type BinHoleSettings = {
+  magnet_size: number | null
+  screw_holes: boolean
+  supportless: boolean
+  corner_magnets: boolean
+}
+
+export function binHoleSettingsFromUrl(sp: URLSearchParams, defaultMagnetSize: number | null): BinHoleSettings {
+  const ms = sp.get('magnet_size')
+  return {
+    magnet_size: ms !== null ? (parseFloat(ms) || null) : defaultMagnetSize,
+    screw_holes: sp.get('screw_holes') === 'true',
+    supportless: sp.has('supportless') ? sp.get('supportless') === 'true' : true,
+    corner_magnets: sp.get('corner_magnets') === 'true',
+  }
+}
+
+export function binHoleSettingsToUrl(url: URLSearchParams, holes: BinHoleSettings): void {
+  if (holes.magnet_size !== null) {
+    if (holes.magnet_size !== 6.2) url.set('magnet_size', String(holes.magnet_size))
+    if (holes.supportless) url.set('supportless', 'true')
+  } else {
+    url.set('magnet_size', '0')
+  }
+  if (holes.screw_holes) url.set('screw_holes', 'true')
+  if ((holes.magnet_size !== null || holes.screw_holes) && holes.corner_magnets) url.set('corner_magnets', 'true')
+}
+
 type BinParams = {
   cells_x: number; cells_y: number; height_units: number
   stacking_lip: boolean
-  magnet_size: number | null; screw_holes: boolean
-  supportless: boolean; corner_magnets: boolean
+  holes: BinHoleSettings
   base_style: 'flat' | 'hollow' | 'scoop'
   dividers_x: number; dividers_y: number
   label_style: 'none' | 'full' | 'left' | 'center' | 'right'
 }
 
 export function buildBinManifold(p: BinParams): any {
-  const { cells_x, cells_y, height_units, stacking_lip, magnet_size, screw_holes, supportless, corner_magnets, base_style, dividers_x, dividers_y, label_style } = p
+  const { cells_x, cells_y, height_units, stacking_lip, holes, base_style, dividers_x, dividers_y, label_style } = p
+  const { magnet_size, screw_holes, supportless, corner_magnets } = holes
   const hollow_base = base_style === 'hollow'
   const scoop = base_style === 'scoop' ? 1 : 0
   const { Manifold, CrossSection } = getManifold()

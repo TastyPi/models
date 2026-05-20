@@ -1,6 +1,6 @@
 import { getManifold, manifoldToBufferGeometry } from '../manifold'
 import type { Attribution, GeomResult } from '../types'
-import { buildBinManifold, BASE_H, HEIGHT_UNIT, STACKING_LIP_H } from './gridfinity-bin'
+import { buildBinManifold, BASE_H, HEIGHT_UNIT, STACKING_LIP_H, type BinHoleSettings } from './gridfinity-bin'
 import { MESH_B64 } from './dymo-letratag-mesh'
 
 export const attribution: Attribution[] = [
@@ -54,14 +54,7 @@ function load3mfManifold(): any {
   return _mesh3mf
 }
 
-function buildModel(p: {
-  height_units: number
-  magnet_size: number | null
-  screw_holes: boolean
-  supportless: boolean
-  corner_magnets: boolean
-  stacking_lip: boolean
-}): any {
+function buildModel(p: { holes: BinHoleSettings; height_units: number; stacking_lip: boolean }): any {
   const { Manifold } = getManifold()
   const targetH = p.height_units * HEIGHT_UNIT
   const sz = 1000
@@ -69,8 +62,7 @@ function buildModel(p: {
   const ourBin = buildBinManifold({
     cells_x: CELLS_X, cells_y: CELLS_Y, height_units: p.height_units,
     stacking_lip: p.stacking_lip,
-    magnet_size: p.magnet_size, screw_holes: p.screw_holes,
-    supportless: p.supportless, corner_magnets: p.corner_magnets,
+    holes: p.holes,
     base_style: 'flat', dividers_x: 0, dividers_y: 0, label_style: 'none',
   })
   const baseClip = Manifold.cube([sz, sz, BASE_H]).translate([-sz / 2, -sz / 2, 0])
@@ -123,15 +115,7 @@ function splitModel(model: any): { front: any; back: any } {
 
 const PART_SETTINGS = { fill_density: '10%', fill_pattern: 'rectilinear' }
 
-export function generate(p: {
-  height_units: number
-  magnet_size: number | null
-  screw_holes: boolean
-  supportless: boolean
-  corner_magnets: boolean
-  stacking_lip: boolean
-  split: boolean
-}): GeomResult {
+export function generate(p: { holes: BinHoleSettings; height_units: number; stacking_lip: boolean; split: boolean }): GeomResult {
   const model = buildModel(p)
 
   if (!p.split) {
