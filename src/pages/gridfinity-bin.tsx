@@ -1,13 +1,13 @@
 import { createEffect, createMemo, createSignal, Show } from 'solid-js'
 import { render } from 'solid-js/web'
 import '../index.css'
-import styles from './gridfinity-bin.module.css'
 import { PageLayout } from '../components/PageLayout'
 import { ModelInfo } from '../components/ModelInfo'
 import { BooleanField } from '../components/BooleanField'
-import { NumberSlider, OptionalNumberSlider } from '../components/NumberSlider'
+import { NumberSlider } from '../components/NumberSlider'
 import { SelectField } from '../components/SelectField'
 import { SidebarSection } from '../components/SidebarSection'
+import { HolesSection } from '../components/HolesSection'
 import { DownloadFooter } from '../components/DownloadFooter'
 import { HeightReferenceDialog } from '../components/HeightReferenceDialog'
 import { useGeometry } from '../hooks/useGeometry'
@@ -35,8 +35,6 @@ function GridfinityBinPage() {
   const [supportless, setSupportless] = createSignal(urlBool('supportless', true))
   const [cornerMagnets, setCornerMagnets] = createSignal(urlBool('corner_magnets', false))
   const [labelStyle, setLabelStyle] = createSignal(urlStr('label_style', 'none'))
-
-  const hasAnyHoles = () => magnetSize() !== null || screwHoles()
 
   const infoStr = createMemo(() => info(cellsX(), cellsY(), heightUnits(), stackingLip()))
 
@@ -132,21 +130,12 @@ function GridfinityBinPage() {
         />
       </SidebarSection>
 
-      <SidebarSection label="Holes" defaultOpen>
-        <OptionalNumberSlider label="Magnet diameter (mm)" value={magnetSize()} onChange={setMagnetSize} min={6.0} max={6.5} step={0.1} default={6.2} />
-        <Show when={magnetSize() !== null}>
-          <p class={styles.magnetNote}>
-            6.2 mm gives a good press-fit in testing. Try the{' '}
-            <a href="../magnet-test/" class={styles.testerLink}>magnet tester</a>
-            {' '}to find your ideal size.
-          </p>
-          <BooleanField label="Supportless" value={supportless()} onChange={setSupportless} />
-        </Show>
-        <BooleanField label="Screw holes (M3)" value={screwHoles()} onChange={setScrewHoles} />
-        <Show when={hasAnyHoles()}>
-          <BooleanField label="Corners only" value={cornerMagnets()} onChange={setCornerMagnets} />
-        </Show>
-      </SidebarSection>
+      <HolesSection
+        magnetSize={magnetSize()} onMagnetSize={setMagnetSize}
+        screwHoles={screwHoles()} onScrewHoles={setScrewHoles}
+        supportless={supportless()} onSupportless={setSupportless}
+        cornerMagnets={cornerMagnets()} onCornerMagnets={setCornerMagnets}
+      />
     </PageLayout>
   )
 }

@@ -6,7 +6,7 @@ import { MAGNET_HOLE_DEPTH } from '../magnets'
 // Profile coordinates sourced from gridfinity-rebuilt-openscad by Kenneth Hodson
 const CELL = 42
 const OUTER_R = 4
-const BASE_H = 5
+export const BASE_H = 5
 const CORE_HALF = CELL / 2 - OUTER_R  // 17
 const R1 = OUTER_R - 2.85             // 1.15
 const H1 = BASE_H - 4.65              // 0.35
@@ -18,7 +18,7 @@ const BIN_GAP = 0.25
 const BOX_OUTER_R = OUTER_R - BIN_GAP  // 3.75
 export const HEIGHT_UNIT = 7
 const WALL_THICK = 1.2
-const FLOOR_THICK = 1.2
+export const FLOOR_THICK = 1.2
 
 // Stacking lip (from gridfinity-rebuilt-openscad standard.scad STACKING_LIP_LINE)
 export const STACKING_LIP_H = 4.4
@@ -82,7 +82,7 @@ export function info(cells_x: number, cells_y: number, height_units: number, sta
   return `${w} × ${d} × ${h} mm`
 }
 
-export function generate(p: {
+type BinParams = {
   cells_x: number; cells_y: number; height_units: number
   stacking_lip: boolean
   magnet_size: number | null; screw_holes: boolean
@@ -90,7 +90,9 @@ export function generate(p: {
   base_style: 'flat' | 'hollow' | 'scoop'
   dividers_x: number; dividers_y: number
   label_style: 'none' | 'full' | 'left' | 'center' | 'right'
-}): GeomResult {
+}
+
+export function buildBinManifold(p: BinParams): any {
   const { cells_x, cells_y, height_units, stacking_lip, magnet_size, screw_holes, supportless, corner_magnets, base_style, dividers_x, dividers_y, label_style } = p
   const hollow_base = base_style === 'hollow'
   const scoop = base_style === 'scoop' ? 1 : 0
@@ -358,7 +360,12 @@ export function generate(p: {
     bin = bin.add(Manifold.union(tabParts))
   }
 
-  const partSettings: Record<string, string> = hollow_base
+  return bin
+}
+
+export function generate(p: BinParams): GeomResult {
+  const bin = buildBinManifold(p)
+  const partSettings: Record<string, string> = p.base_style === 'hollow'
     ? { fill_density: '0%' }
     : { fill_density: '10%', fill_pattern: 'rectilinear' }
   return { objects: [{ label: 'Gridfinity Bin', parts: [{ label: 'Gridfinity Bin', geom: manifoldToBufferGeometry(bin), settings: partSettings }] }] }
