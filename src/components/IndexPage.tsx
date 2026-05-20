@@ -12,14 +12,10 @@ const MODELS: { slug: string; label: string; description: string; params: Record
     params: { text_style: 'debossed', text_top: true, text_bottom: false },
   },
   {
-    slug: 'gridfinity-bin',
-    label: 'Gridfinity Bin',
-    description: 'Parametric Gridfinity bin with optional magnets, stacking lip, and X/Y dividers.',
-    params: {
-      cells_x: 2, cells_y: 2, height_units: 3, stacking_lip: true,
-      magnets: false, magnet_style: 'smooth', magnet_size: 6.2,
-      chamfer: false, supportless: false, corner_magnets: false, dividers_x: 0, dividers_y: 0,
-    },
+    slug: 'dymo-letratag',
+    label: 'Dymo LetraTag Bin',
+    description: 'Gridfinity bin (3×6 cells, 6 units tall) with an exact-fit cavity for the Dymo LetraTag label maker.',
+    params: { height_units: 6, stacking_lip: true, split: false, magnet_size: null, screw_holes: false, supportless: true, corner_magnets: false },
   },
   {
     slug: 'gridfinity-baseplate',
@@ -33,6 +29,16 @@ const MODELS: { slug: string; label: string; description: string; params: Record
       corner_radius_sw: 0, corner_radius_se: 0, corner_radius_ne: 0, corner_radius_nw: 0,
       base_style: 'open', magnets: false,
       restrict_bed: false, bed_type: 'prusa_core_one', bed_x: 250, bed_y: 220,
+    },
+  },
+  {
+    slug: 'gridfinity-bin',
+    label: 'Gridfinity Bin',
+    description: 'Parametric Gridfinity bin with optional magnets, stacking lip, and X/Y dividers.',
+    params: {
+      cells_x: 2, cells_y: 2, height_units: 3, stacking_lip: true,
+      magnets: false, magnet_style: 'smooth', magnet_size: 6.2,
+      chamfer: false, supportless: false, corner_magnets: false, dividers_x: 0, dividers_y: 0,
     },
   },
   {

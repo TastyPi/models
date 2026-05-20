@@ -17,6 +17,7 @@ export default defineConfig({
         'corner-radius-gauge': resolve(__dirname, 'corner-radius-gauge/index.html'),
         'gridfinity-bin': resolve(__dirname, 'gridfinity-bin/index.html'),
         'magnet-test': resolve(__dirname, 'magnet-test/index.html'),
+        'dymo-letratag': resolve(__dirname, 'dymo-letratag/index.html'),
       },
     },
   },

@@ -6,6 +6,7 @@ import * as gridfinityBaseplate from './models/gridfinity-baseplate'
 import * as cornerRadiusGauge from './models/corner-radius-gauge'
 import * as gridfinityBin from './models/gridfinity-bin'
 import * as magnetTest from './models/magnet-test'
+import * as dymoLetraTag from './models/dymo-letratag'
 import type { RawMesh, GeomResult, ObjGeom, PreviewMesh } from './types'
 import type { ModelSlug } from './models/registry'
 
@@ -17,6 +18,7 @@ export const MODELS: Record<ModelSlug, {
   'corner-radius-gauge':  { generate: cornerRadiusGauge.generate },
   'gridfinity-bin':       { generate: gridfinityBin.generate },
   'magnet-test':          { generate: magnetTest.generate },
+  'dymo-letratag':        { generate: dymoLetraTag.generate },
 }
 
 export function buildPreviewMeshes(obj: ObjGeom): PreviewMesh['meshes'] {

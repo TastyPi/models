@@ -1,4 +1,7 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
+
+// The 600KB base64 blob causes a stack overflow when loaded in the test runner
+vi.mock('./models/dymo-letratag-mesh', () => ({ MESH_B64: '' }))
 import { BufferGeometry, BufferAttribute } from 'three'
 import { buildPreviewMeshes } from './workerShared'
 import type { ObjGeom } from './types'
