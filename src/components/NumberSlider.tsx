@@ -73,7 +73,7 @@ export function OptionalNumberSlider(props: OptionalProps) {
     setUrl(props.urlKey, atDefault ? null : (props.value === null ? 'null' : String(props.value)))
   })
 
-  const [lastValue, setLastValue] = createSignal<number>(props.value ?? props.min ?? 0)
+  const [lastValue, setLastValue] = createSignal<number>(props.value ?? (typeof props.default === 'number' ? props.default : undefined) ?? props.min ?? 0)
   createEffect(() => { if (props.value !== null) setLastValue(props.value) })
 
   const enabled = () => props.value !== null

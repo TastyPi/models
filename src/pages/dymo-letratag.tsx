@@ -55,7 +55,7 @@ function DymoLetraTagPage() {
     >
       <SidebarSection label="Bin" defaultOpen>
         <NumberSlider label="Height (units)" value={heightUnits()} onChange={setHeightUnits} min={HEIGHT_UNITS_MIN} max={HEIGHT_UNITS_MAX} />
-        <BooleanField label="Stacking lip" value={stackingLip()} onChange={setStackingLip} />
+        <BooleanField label="Stacking lip" value={stackingLip()} onChange={setStackingLip} description={stackingLip() ? 'The label maker is taller than the bin, so stacking is not possible — aesthetic only.' : undefined} />
         <BooleanField label="Split for small beds" value={split()} onChange={setSplit} />
       </SidebarSection>
       <BinHolesSection value={holeSettings()} onChange={setHoleSettings} />
