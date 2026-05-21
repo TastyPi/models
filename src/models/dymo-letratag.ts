@@ -131,12 +131,12 @@ export function generate(p: { holes: BinHoleSettings; height_units: number; stac
   return {
     objects: [
       {
-        label: 'Front half (−Y)',
-        parts: [{ label: 'Front half (−Y)', geom: manifoldToBufferGeometry(front), settings: PART_SETTINGS }],
+        label: 'Front half',
+        parts: [{ label: 'Front half', geom: manifoldToBufferGeometry(front), settings: PART_SETTINGS }],
       },
       {
-        label: 'Back half (+Y)',
-        parts: [{ label: 'Back half (+Y)', geom: manifoldToBufferGeometry(back), settings: PART_SETTINGS }],
+        label: 'Back half',
+        parts: [{ label: 'Back half', geom: manifoldToBufferGeometry(back), settings: PART_SETTINGS }],
       },
     ],
   }
