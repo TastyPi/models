@@ -7,7 +7,6 @@ import { BooleanField } from '../components/BooleanField'
 import { NumberSlider } from '../components/NumberSlider'
 import { SidebarSection } from '../components/SidebarSection'
 import { BinHolesSection } from '../components/BinHolesSection'
-import { DownloadFooter } from '../components/DownloadFooter'
 import { useGeometry } from '../hooks/useGeometry'
 import { attribution, info, HEIGHT_UNITS_MIN, HEIGHT_UNITS_MAX } from '../models/dymo-letratag'
 import { type BinHoleSettings, binHoleSettingsFromUrl, binHoleSettingsToUrl } from '../models/gridfinity-bin'
@@ -51,7 +50,8 @@ function DymoLetraTagPage() {
       selectedObject={selectedObject}
       onObjectClick={toggleObject}
       rendering={rendering}
-      footer={<DownloadFooter label="Download" onStl={() => download()} on3mf={() => download('3mf')} />}
+      download={download}
+      downloadNote="3MF includes per-part infill settings"
     >
       <SidebarSection label="Bin" defaultOpen>
         <NumberSlider label="Height (units)" value={heightUnits()} onChange={setHeightUnits} min={HEIGHT_UNITS_MIN} max={HEIGHT_UNITS_MAX} />
