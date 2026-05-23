@@ -1,6 +1,6 @@
 import { getManifold, manifoldToBufferGeometry } from '../manifold'
 import type { Attribution, GeomResult } from '../types'
-import { buildBinManifold, BASE_H, HEIGHT_UNIT, STACKING_LIP_H, type BinHoleSettings } from './gridfinity-bin'
+import { buildBinManifold, BASE_H, HEIGHT_UNIT, type BinHoleSettings } from './gridfinity-bin'
 import { MESH_B64 } from './dymo-letratag-mesh'
 
 export const attribution: Attribution[] = [
@@ -27,12 +27,17 @@ const SPLIT_BOTTOM_Z = 2 * HEIGHT_UNIT                // 14mm — end of bottom 
 const SPLIT_TOP_Z    = MESH_NOMINAL_H - HEIGHT_UNIT   // 35mm — start of top section (1 unit)
 const MIDDLE_NOMINAL_H = SPLIT_TOP_Z - SPLIT_BOTTOM_Z // 21mm — 3 gridfinity units
 
+// The mesh cavity floor sits at z=8mm. Shift the mesh down to leave 0.6mm (3 layers at 0.2mm)
+// of floor above the posts — enough to connect them without adding significant height.
+const CAVITY_FLOOR_Z = 8
+const MESH_SHIFT = CAVITY_FLOOR_Z - BASE_H - 0.6  // 2.4mm
+
 const SPLIT_GAP = 5  // display separation between the two halves (no material removed)
 
-export function info(p: { stacking_lip: boolean; height_units: number }): string {
+export function info(height_units: number): string {
   const w = CELLS_X * 42 - 2 * 0.25
   const d = CELLS_Y * 42 - 2 * 0.25
-  const h = p.height_units * HEIGHT_UNIT + (p.stacking_lip ? STACKING_LIP_H : 0)
+  const h = height_units * HEIGHT_UNIT
   return `${w} × ${d} × ${h} mm`
 }
 
@@ -54,50 +59,46 @@ function load3mfManifold(): any {
   return _mesh3mf
 }
 
-function buildModel(p: { holes: BinHoleSettings; height_units: number; stacking_lip: boolean }): any {
+function buildModel(p: { holes: BinHoleSettings; height_units: number }): any {
   const { Manifold } = getManifold()
   const targetH = p.height_units * HEIGHT_UNIT
   const sz = 1000
 
   const ourBin = buildBinManifold({
     cells_x: CELLS_X, cells_y: CELLS_Y, height_units: p.height_units,
-    stacking_lip: p.stacking_lip,
+    stacking_lip: false,
     holes: p.holes,
     base_style: 'flat', dividers_x: 0, dividers_y: 0, label_style: 'none',
   })
   const baseClip = Manifold.cube([sz, sz, BASE_H]).translate([-sz / 2, -sz / 2, 0])
   const ourPosts = ourBin.intersect(baseClip)
 
-  const mesh3mf = load3mfManifold()
+  // Shift mesh down so cavity floor (at mesh z=8) lands at BASE_H (z=5) in world space.
+  const mesh3mf = load3mfManifold().translate([0, 0, -MESH_SHIFT])
+  const SBZ = SPLIT_BOTTOM_Z - MESH_SHIFT  // world-space bottom/middle split: 11mm
+  const STZ = SPLIT_TOP_Z - MESH_SHIFT      // world-space middle/top split: 32mm
 
-  // Bottom section: BASE_H–7mm (cavity floor lead-in), fixed
-  const bottomClip = Manifold.cube([sz, sz, SPLIT_BOTTOM_Z - BASE_H])
+  // Bottom section: BASE_H to SBZ (cavity floor up to split), fixed
+  const bottomClip = Manifold.cube([sz, sz, SBZ - BASE_H])
     .translate([-sz / 2, -sz / 2, BASE_H])
   const meshBottom = mesh3mf.intersect(bottomClip)
 
-  // Middle section: 14–35mm in the nominal mesh, scaled vertically for target height
-  const middleTargetH = (p.height_units - 3) * HEIGHT_UNIT  // 2 bottom units + 1 top unit = 3 fixed
+  // Middle section: SBZ–STZ in world space (MIDDLE_NOMINAL_H mm of uniform walls), scaled
+  const middleTargetH = (p.height_units - 3) * HEIGHT_UNIT + MESH_SHIFT
   const middleClip = Manifold.cube([sz, sz, MIDDLE_NOMINAL_H])
-    .translate([-sz / 2, -sz / 2, SPLIT_BOTTOM_Z])
-  const meshMiddle = middleTargetH > 0
-    ? mesh3mf.intersect(middleClip)
-        .translate([0, 0, -SPLIT_BOTTOM_Z])
-        .scale([1, 1, middleTargetH / MIDDLE_NOMINAL_H])
-        .translate([0, 0, SPLIT_BOTTOM_Z])
-    : null
+    .translate([-sz / 2, -sz / 2, SBZ])
+  const meshMiddle = mesh3mf.intersect(middleClip)
+    .translate([0, 0, -SBZ])
+    .scale([1, 1, middleTargetH / MIDDLE_NOMINAL_H])
+    .translate([0, 0, SBZ])
 
-  // Top section: 35–42mm in the nominal mesh, shifted up by the height increase
-  const heightIncrease = targetH - MESH_NOMINAL_H
+  // Top section: STZ to STZ+HEIGHT_UNIT in world space, shifted to meet middle section top
+  const heightIncrease = targetH - (MESH_NOMINAL_H - MESH_SHIFT)
   const topClip = Manifold.cube([sz, sz, HEIGHT_UNIT])
-    .translate([-sz / 2, -sz / 2, SPLIT_TOP_Z])
+    .translate([-sz / 2, -sz / 2, STZ])
   const meshTop = mesh3mf.intersect(topClip).translate([0, 0, heightIncrease])
 
-  const parts: any[] = [ourPosts, meshBottom, ...(meshMiddle ? [meshMiddle] : []), meshTop]
-  if (p.stacking_lip) {
-    const lipClip = Manifold.cube([sz, sz, sz]).translate([-sz / 2, -sz / 2, targetH])
-    parts.push(ourBin.intersect(lipClip))
-  }
-  return Manifold.union(parts)
+  return Manifold.union([ourPosts, meshBottom, meshMiddle, meshTop])
 }
 
 // Split the model at Y=0 into two halves for small print beds.
@@ -115,7 +116,7 @@ function splitModel(model: any): { front: any; back: any } {
 
 const PART_SETTINGS = { fill_density: '10%', fill_pattern: 'rectilinear' }
 
-export function generate(p: { holes: BinHoleSettings; height_units: number; stacking_lip: boolean; split: boolean }): GeomResult {
+export function generate(p: { holes: BinHoleSettings; height_units: number; split: boolean }): GeomResult {
   const model = buildModel(p)
 
   if (!p.split) {
