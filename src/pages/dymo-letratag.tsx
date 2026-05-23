@@ -17,13 +17,11 @@ function urlBool(key: string, def: boolean) { const v = sp.get(key); return v !=
 
 function DymoLetraTagPage() {
   const [heightUnits, setHeightUnits] = createSignal(urlNum('height_units', HEIGHT_UNITS_MAX))
-  const [stackingLip, setStackingLip] = createSignal(urlBool('stacking_lip', true))
   const [split, setSplit] = createSignal(urlBool('split', false))
-  const [holeSettings, setHoleSettings] = createSignal<BinHoleSettings>(binHoleSettingsFromUrl(sp, null))
+  const [holeSettings, setHoleSettings] = createSignal<BinHoleSettings>(binHoleSettingsFromUrl(sp, 6.2))
 
   const params = createMemo(() => ({
     height_units: heightUnits(),
-    stacking_lip: stackingLip(),
     split: split(),
     holes: holeSettings(),
   }))
@@ -34,7 +32,6 @@ function DymoLetraTagPage() {
     const p = params()
     const url = new URLSearchParams()
     if (p.height_units !== HEIGHT_UNITS_MAX) url.set('height_units', String(p.height_units))
-    if (!p.stacking_lip) url.set('stacking_lip', 'false')
     if (p.split) url.set('split', 'true')
     binHoleSettingsToUrl(url, p.holes)
     window.history.replaceState(null, '', '?' + url.toString())
@@ -45,7 +42,7 @@ function DymoLetraTagPage() {
       title="Dymo LetraTag Bin"
       description="Gridfinity bin (3×6 cells) with an exact-fit cavity for the Dymo LetraTag label maker."
       attribution={attribution}
-      header={<ModelInfo>{info({ stacking_lip: stackingLip(), height_units: heightUnits() })}</ModelInfo>}
+      header={<ModelInfo>{info(heightUnits())}</ModelInfo>}
       objects={objects}
       selectedObject={selectedObject}
       onObjectClick={toggleObject}
@@ -55,7 +52,6 @@ function DymoLetraTagPage() {
     >
       <SidebarSection label="Bin" defaultOpen>
         <NumberSlider label="Height (units)" value={heightUnits()} onChange={setHeightUnits} min={HEIGHT_UNITS_MIN} max={HEIGHT_UNITS_MAX} />
-        <BooleanField label="Stacking lip" value={stackingLip()} onChange={setStackingLip} description={stackingLip() ? 'The label maker is taller than the bin, so stacking is not possible — aesthetic only.' : undefined} />
         <BooleanField label="Split for small beds" value={split()} onChange={setSplit} />
       </SidebarSection>
       <BinHolesSection value={holeSettings()} onChange={setHoleSettings} />
