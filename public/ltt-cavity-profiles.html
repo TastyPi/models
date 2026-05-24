@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>LTT Cavity Profiles — Z=22.39mm</title>
+</head>
+<body>
+  <h1>LTT Cavity Profiles at Z=22.39mm</h1>
+  <p id="summary"></p>
+
+  <h2>All loops (by area)</h2>
+  <div id="loops"></div>
+
+  <script>
+    function makeSvg(points, fillColor, strokeColor) {
+      const xs = points.map(p => p[0])
+      const ys = points.map(p => p[1])
+      const minX = Math.min(...xs), maxX = Math.max(...xs)
+      const minY = Math.min(...ys), maxY = Math.max(...ys)
+      const W = maxX - minX, H = maxY - minY
+      const pad = Math.max(W, H) * 0.05
+      const vbX = minX - pad, vbY = minY - pad
+      const vbW = W + 2 * pad, vbH = H + 2 * pad
+      // Flip Y: SVG Y goes down, physical Y we want pointing up
+      const flipY = (y) => (minY + maxY) - y
+      const pts = points.map(p => `${p[0]},${flipY(p[1])}`).join(' ')
+      const svgW = Math.round(Math.min(600, vbW * 2))
+      const svgH = Math.round(svgW * vbH / vbW)
+      return `<svg width="${svgW}" height="${svgH}" viewBox="${vbX} ${vbY} ${vbW} ${vbH}" xmlns="http://www.w3.org/2000/svg">
+  <polygon points="${pts}" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${vbW * 0.005}" vector-effect="non-scaling-stroke"/>
+</svg>`
+    }
+
+    function classify(loop, i) {
+      const a = Math.abs(loop.area)
+      if (loop.area > 100) return 'outer-wall'
+      if (a > 1000) return 'major-cavity'
+      if (a > 30 && a < 60) return 'bit-hole'
+      if (a > 1) return 'minor-opening'
+      return 'artifact'
+    }
+
+    const colorMap = {
+      'outer-wall':    { fill: '#ddeeff', stroke: '#3366cc' },
+      'major-cavity':  { fill: '#ffe0e0', stroke: '#cc3333' },
+      'bit-hole':      { fill: '#e8ffe8', stroke: '#338833' },
+      'minor-opening': { fill: '#fff8e0', stroke: '#cc8833' },
+      'artifact':      { fill: '#f8f8f8', stroke: '#999999' },
+    }
+
+    fetch('ltt-cavity-profiles.json')
+      .then(r => r.json())
+      .then(data => {
+        const { z, loops } = data
+        const openings = loops.filter(l => l.area < 0)
+        const bitHoles = openings.filter(l => Math.abs(l.area) > 30 && Math.abs(l.area) < 60)
+
+        document.getElementById('summary').innerHTML =
+          `Extracted from STL at Z=${z}mm &mdash; ` +
+          `<strong>${loops.length}</strong> total loops, ` +
+          `<strong>${openings.length}</strong> openings (negative area), ` +
+          `<strong>${bitHoles.length}</strong> bit holes (~6.8&times;7.8mm)`
+
+        const container = document.getElementById('loops')
+
+        loops.forEach((loop, i) => {
+          const cls = classify(loop, i)
+          const { fill, stroke } = colorMap[cls]
+          const n = loop.loop.length
+
+          const section = document.createElement('div')
+          section.style.marginBottom = '24px'
+          section.style.borderTop = '1px solid #ccc'
+          section.style.paddingTop = '8px'
+
+          const heading = document.createElement('h3')
+          heading.textContent = `Loop ${i} — ${cls}`
+          section.appendChild(heading)
+
+          const stats = document.createElement('pre')
+          stats.textContent = [
+            `vertices : ${n}`,
+            `area     : ${loop.area.toFixed(2)} mm² (${loop.area < 0 ? 'opening/CW' : 'solid/CCW'})`,
+            `bounds   : ${loop.w.toFixed(2)} × ${loop.h.toFixed(2)} mm`,
+          ].join('\n')
+          section.appendChild(stats)
+
+          if (cls !== 'artifact') {
+            const svgDiv = document.createElement('div')
+            svgDiv.innerHTML = makeSvg(loop.loop, fill, stroke)
+            section.appendChild(svgDiv)
+          } else {
+            const note = document.createElement('em')
+            note.textContent = '(tiny artifact — not rendered)'
+            section.appendChild(note)
+          }
+
+          container.appendChild(section)
+        })
+      })
+      .catch(err => {
+        document.getElementById('summary').textContent = 'Error loading JSON: ' + err
+      })
+  </script>
+</body>
+</html>

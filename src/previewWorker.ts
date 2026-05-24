@@ -12,7 +12,7 @@ self.onmessage = async (e: MessageEvent<InMsg>) => {
   const entry = MODELS[slug]
   if (!entry) { self.postMessage({ type: 'error', key } satisfies OutMsg); return }
   try {
-    const result = entry.generate(params)
+    const result = await entry.generate(params)
 
     const objects: PreviewMesh[] = result.objects.map(obj => {
       const meshes = buildPreviewMeshes(obj)

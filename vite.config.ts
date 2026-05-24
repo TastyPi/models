@@ -18,6 +18,7 @@ export default defineConfig({
         'gridfinity-bin': resolve(__dirname, 'gridfinity-bin/index.html'),
         'magnet-test': resolve(__dirname, 'magnet-test/index.html'),
         'dymo-letratag': resolve(__dirname, 'dymo-letratag/index.html'),
+        'ltt-screwdriver-bin': resolve(__dirname, 'ltt-screwdriver-bin/index.html'),
       },
     },
   },

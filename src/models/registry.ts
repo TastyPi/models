@@ -5,6 +5,7 @@ export const MODEL_SLUGS = [
   'gridfinity-bin',
   'magnet-test',
   'dymo-letratag',
+  'ltt-screwdriver-bin',
 ] as const
 
 export type ModelSlug = typeof MODEL_SLUGS[number]

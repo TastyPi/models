@@ -1,4 +1,5 @@
 import { getManifold, manifoldToBufferGeometry } from '../manifold'
+import { SOLID_INFILL } from '../types'
 import type { Attribution, GeomResult } from '../types'
 import { MAGNET_HOLE_DEPTH } from '../magnets'
 
@@ -391,10 +392,37 @@ export function buildBinManifold(p: BinParams): any {
   return bin
 }
 
+export type FilledBinParams = {
+  cells_x: number; cells_y: number; height_units: number
+  stacking_lip: boolean
+  holes: BinHoleSettings
+}
+
+export function buildBinFillManifold(p: FilledBinParams, fillTopZ?: number): any {
+  const { cells_x, cells_y, height_units } = p
+  const { CrossSection } = getManifold()
+  const nominalH = height_units * HEIGHT_UNIT
+  const fillH = Math.min(fillTopZ ?? nominalH, nominalH) - BASE_H - FLOOR_THICK
+  if (fillH <= 0) return null
+  const sqW = cells_x * CELL - 2 * OUTER_R
+  const sqD = cells_y * CELL - 2 * OUTER_R
+  const innerCS = CrossSection.square([sqW, sqD], true)
+    .offset(Math.max(0.01, BOX_OUTER_R - WALL_THICK))
+  return innerCS.extrude(fillH).translate([0, 0, BASE_H + FLOOR_THICK])
+}
+
+export function buildFilledBinManifold(p: FilledBinParams, fillTopZ?: number): any {
+  const bin = buildBinManifold({
+    ...p, base_style: 'flat', dividers_x: 0, dividers_y: 0, label_style: 'none',
+  })
+  const fill = buildBinFillManifold(p, fillTopZ)
+  return fill ? bin.add(fill) : bin
+}
+
 export function generate(p: BinParams): GeomResult {
   const bin = buildBinManifold(p)
   const partSettings: Record<string, string> = p.base_style === 'hollow'
     ? { fill_density: '0%' }
-    : { fill_density: '10%', fill_pattern: 'rectilinear' }
+    : SOLID_INFILL
   return { objects: [{ label: 'Gridfinity Bin', parts: [{ label: 'Gridfinity Bin', geom: manifoldToBufferGeometry(bin), settings: partSettings }] }] }
 }

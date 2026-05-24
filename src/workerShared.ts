@@ -7,11 +7,12 @@ import * as cornerRadiusGauge from './models/corner-radius-gauge'
 import * as gridfinityBin from './models/gridfinity-bin'
 import * as magnetTest from './models/magnet-test'
 import * as dymoLetraTag from './models/dymo-letratag'
+import * as lttScrewdriverBin from './models/ltt-screwdriver-bin'
 import type { RawMesh, GeomResult, ObjGeom, PreviewMesh } from './types'
 import type { ModelSlug } from './models/registry'
 
 export const MODELS: Record<ModelSlug, {
-  generate: (p: any) => GeomResult
+  generate: (p: any) => GeomResult | Promise<GeomResult>
 }> = {
   'wall-hook':            { generate: wallHook.generate },
   'gridfinity-baseplate': { generate: gridfinityBaseplate.generate },
@@ -19,6 +20,7 @@ export const MODELS: Record<ModelSlug, {
   'gridfinity-bin':       { generate: gridfinityBin.generate },
   'magnet-test':          { generate: magnetTest.generate },
   'dymo-letratag':        { generate: dymoLetraTag.generate },
+  'ltt-screwdriver-bin':  { generate: lttScrewdriverBin.generate },
 }
 
 export function buildPreviewMeshes(obj: ObjGeom): PreviewMesh['meshes'] {

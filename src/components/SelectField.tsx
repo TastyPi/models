@@ -20,6 +20,15 @@ export function SelectField(props: Props) {
     const atDefault = props.default != null && props.value === props.default
     setUrl(props.urlKey, atDefault ? null : props.value)
   })
+  createEffect(() => {
+    const opts = props.options
+    if (!opts.some(o => o.value === props.value)) {
+      const fallback = props.default != null && opts.some(o => o.value === props.default)
+        ? props.default!
+        : opts[0]?.value
+      if (fallback != null) props.onChange(fallback)
+    }
+  })
 
   return (
     <div>
@@ -34,9 +43,9 @@ export function SelectField(props: Props) {
           </div>
         </div>
       </Show>
-      <select value={props.value} onChange={(e) => props.onChange(e.currentTarget.value)} class={styles.select}>
+      <select onChange={(e) => props.onChange(e.currentTarget.value)} class={styles.select}>
         <For each={props.options}>
-          {(opt) => <option value={opt.value}>{opt.label}</option>}
+          {(opt) => <option value={opt.value} selected={opt.value === props.value}>{opt.label}</option>}
         </For>
       </select>
       <Show when={props.description}>
