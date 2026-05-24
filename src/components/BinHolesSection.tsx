@@ -15,7 +15,7 @@ export function BinHolesSection(props: Props) {
     props.onChange({ ...props.value, [key]: v })
 
   return (
-    <SidebarSection label="Holes" defaultOpen>
+    <SidebarSection label="Base holes" defaultOpen>
       <OptionalNumberSlider label="Magnet diameter (mm)" value={props.value.magnet_size} onChange={v => set('magnet_size', v)} min={6.0} max={6.5} step={0.1} default={6.2} />
       <Show when={props.value.magnet_size !== null}>
         <p class={styles.magnetNote}>

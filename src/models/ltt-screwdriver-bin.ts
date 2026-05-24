@@ -1,5 +1,5 @@
 import { getManifold, manifoldToBufferGeometry } from '../manifold'
-import { SOLID_INFILL } from '../types'
+import { HONEYCOMB_INFILL } from '../types'
 import type { Attribution, GeomResult, RawMesh } from '../types'
 import {
   BASE_H, FLOOR_THICK, HEIGHT_UNIT,
@@ -496,7 +496,7 @@ export async function generate(p: {
   return {
     objects: [{
       label,
-      parts: [{ label, geom: manifoldToBufferGeometry(bin), settings: SOLID_INFILL }],
+      parts: [{ label, geom: manifoldToBufferGeometry(bin), settings: HONEYCOMB_INFILL }],
     }],
   }
 }

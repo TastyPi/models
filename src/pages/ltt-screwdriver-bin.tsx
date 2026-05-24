@@ -9,7 +9,7 @@ import { SidebarSection } from '../components/SidebarSection'
 import { BinHolesSection } from '../components/BinHolesSection'
 import { DownloadFooter } from '../components/DownloadFooter'
 import { useGeometry } from '../hooks/useGeometry'
-import { attribution, info, type BitZoneSettings } from '../models/ltt-screwdriver-bin'
+import { attribution, info, collectBitHoles, type BitZoneSettings } from '../models/ltt-screwdriver-bin'
 import { type BinHoleSettings, binHoleSettingsFromUrl, binHoleSettingsToUrl } from '../models/gridfinity-bin'
 
 const sp = new URLSearchParams(window.location.search)
@@ -28,11 +28,13 @@ function urlScrewType(): 'standard' | 'stubby' {
 function LttScrewdriverBinPage() {
   const [screwType, setScrewType] = createSignal<'standard' | 'stubby'>(urlScrewType())
   const [bitHoles, setBitHoles] = createSignal(urlBool('bit_holes', false))
-  const [holeSettings, setHoleSettings] = createSignal<BinHoleSettings>(binHoleSettingsFromUrl(sp, null))
+  const [holeSettings, setHoleSettings] = createSignal<BinHoleSettings>(binHoleSettingsFromUrl(sp, 6.2))
   const [zones, setZones] = createSignal<BitZoneSettings>({
     left:  urlZoneSide('zone_left'),
     right: urlZoneSide('zone_right'),
   })
+
+  const bitHoleCount = createMemo(() => collectBitHoles(screwType(), zones().left, zones().right).length)
 
   const params = createMemo(() => ({
     type: screwType(),
@@ -83,7 +85,7 @@ function LttScrewdriverBinPage() {
         />
       </SidebarSection>
       <SidebarSection label="Extras" defaultOpen>
-        <BooleanField label="Bit holes" value={bitHoles()} onChange={v => { setBitHoles(v); updateUrl() }} />
+        <BooleanField label={`Bit holes (${bitHoleCount()})`} value={bitHoles()} onChange={v => { setBitHoles(v); updateUrl() }} />
         <SelectField
           label="Left groove"
           value={zones().left}
