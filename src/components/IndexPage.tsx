@@ -42,6 +42,12 @@ const MODELS: { slug: string; label: string; description: string; params: Record
     },
   },
   {
+    slug: 'ltt-screwdriver-bin',
+    label: 'LTT Screwdriver Bin',
+    description: 'Gridfinity bin with an exact-fit cavity for the LTT Standard (6×1 cells) or Stubby (3×2 cells) screwdriver.',
+    params: { type: 'standard', holes: { magnet_size: null, screw_holes: false, supportless: true, corner_magnets: false }, zones: { end: false, left: false, right: false } },
+  },
+  {
     slug: 'magnet-test',
     label: 'Magnet Press-Fit Test',
     description: 'Six pockets left to right: crush ribs, then plain bores at 6.0, 6.1, 6.2, 6.3, 6.4 mm. Centre push-out hole in each.',
@@ -164,9 +170,7 @@ export function IndexPage() {
         <div>© 2026 Graham Rogers</div>
         <div>
           <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer" class={styles.footerLink}>MIT</a>
-          {' '}(code) ·{' '}
-          <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer" class={styles.footerLink}>CC BY 4.0</a>
-          {' '}(designs)
+          {' '}(code)
         </div>
       </footer>
     </div>

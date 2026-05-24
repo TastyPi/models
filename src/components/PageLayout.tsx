@@ -8,6 +8,7 @@ interface Props {
   title: string
   description?: string
   attribution?: Attribution[]
+  designLicense?: { label: string; url: string }
   header?: JSX.Element
   footer?: JSX.Element
   objects?: () => PreviewMesh[] | null
@@ -67,24 +68,23 @@ export function PageLayout(props: Props) {
             <div>
               <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer" title="MIT licence (source code)" class={styles.attrLink}>MIT</a>
               {' (code) · '}
-              <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer" title="CC BY 4.0 (generated designs)" class={styles.attrLink}>CC BY 4.0</a>
+              <a href={props.designLicense?.url ?? 'https://creativecommons.org/licenses/by/4.0/'} target="_blank" rel="noopener noreferrer" title={`${props.designLicense?.label ?? 'CC BY 4.0'} (generated designs)`} class={styles.attrLink}>{props.designLicense?.label ?? 'CC BY 4.0'}</a>
               {' (designs)'}
             </div>
             <Show when={props.attribution && props.attribution!.length > 0}>
-              <div style={{ 'margin-top': '2px' }}>
-                {'Based on '}
+              <div>{'Based on:'}</div>
+              <ul class={styles.attributionList}>
                 <For each={props.attribution}>
-                  {(credit, i) => (
-                    <>
-                      {i() > 0 && ' · '}
+                  {(credit) => (
+                    <li>
                       <a href={credit.url} target="_blank" rel="noopener noreferrer"
                         title={`${credit.name} by ${credit.author} (${credit.license})`}
-                        classList={{ [styles.attrLink]: true, [styles.attrLinkNowrap]: true }}
-                      >{credit.name}</a>
-                    </>
+                        class={styles.attrLink}
+                      >{credit.name}</a>{` by ${credit.author}`}
+                    </li>
                   )}
                 </For>
-              </div>
+              </ul>
             </Show>
           </div>
         </div>

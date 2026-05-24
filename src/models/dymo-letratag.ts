@@ -1,4 +1,5 @@
 import { getManifold, manifoldToBufferGeometry } from '../manifold'
+import { SOLID_INFILL } from '../types'
 import type { Attribution, GeomResult } from '../types'
 import { buildBinManifold, BASE_H, HEIGHT_UNIT, type BinHoleSettings } from './gridfinity-bin'
 import { MESH_B64 } from './dymo-letratag-mesh'
@@ -114,7 +115,7 @@ function splitModel(model: any): { front: any; back: any } {
   return { front, back }
 }
 
-const PART_SETTINGS = { fill_density: '10%', fill_pattern: 'rectilinear' }
+const PART_SETTINGS = SOLID_INFILL
 
 export function generate(p: { holes: BinHoleSettings; height_units: number; split: boolean }): GeomResult {
   const model = buildModel(p)
