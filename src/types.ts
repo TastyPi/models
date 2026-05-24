@@ -17,8 +17,6 @@ export type ObjGeom = {
   settings?: Record<string, string>
 }
 
-export const SOLID_INFILL: Record<string, string> = { fill_density: '10%', fill_pattern: 'rectilinear' }
-export const HONEYCOMB_INFILL: Record<string, string> = { fill_density: '10%', fill_pattern: 'honeycomb' }
 
 export type GeomResult = {
   objects: ObjGeom[]

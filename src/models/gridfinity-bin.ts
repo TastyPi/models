@@ -1,5 +1,4 @@
 import { getManifold, manifoldToBufferGeometry } from '../manifold'
-import { SOLID_INFILL } from '../types'
 import type { Attribution, GeomResult } from '../types'
 import { MAGNET_HOLE_DEPTH } from '../magnets'
 
@@ -52,6 +51,8 @@ export const TAB_D = 15.85             // _tab_depth: how far tab protrudes into
 const TAB_SUPPORT_ANGLE_DEG = 36
 export const TAB_SUPPORT_H = 1.2       // _tab_support_height
 export const TAB_H = Math.tan(TAB_SUPPORT_ANGLE_DEG * Math.PI / 180) * TAB_D + TAB_SUPPORT_H
+
+export const GRIDFINITY_BIN_SETTINGS: Record<string, string> = { fill_density: '10%', fill_pattern: 'rectilinear', brim_type: 'outer_only', brim_width: '5', brim_separation: '0.1' }
 
 export const attribution: Attribution[] = [
   { name: 'Gridfinity', author: 'Zachary Freedman / Voidstar Lab', url: 'https://www.youtube.com/watch?v=ra_9zU-mnl8', license: 'MIT' },
@@ -420,8 +421,8 @@ export function buildFilledBinManifold(p: FilledBinParams, fillTopZ?: number): a
 
 export function generate(p: BinParams): GeomResult {
   const bin = buildBinManifold(p)
-  const partSettings: Record<string, string> = p.base_style === 'hollow'
-    ? { fill_density: '0%' }
-    : SOLID_INFILL
-  return { objects: [{ label: 'Gridfinity Bin', parts: [{ label: 'Gridfinity Bin', geom: manifoldToBufferGeometry(bin), settings: partSettings }] }] }
+  const objSettings = p.base_style === 'hollow'
+    ? { ...GRIDFINITY_BIN_SETTINGS, fill_density: '0%' }
+    : GRIDFINITY_BIN_SETTINGS
+  return { objects: [{ label: 'Gridfinity Bin', parts: [{ label: 'Gridfinity Bin', geom: manifoldToBufferGeometry(bin) }], settings: objSettings }] }
 }

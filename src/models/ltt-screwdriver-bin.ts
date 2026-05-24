@@ -1,8 +1,8 @@
 import { getManifold, manifoldToBufferGeometry } from '../manifold'
-import { HONEYCOMB_INFILL } from '../types'
 import type { Attribution, GeomResult, RawMesh } from '../types'
 import {
   BASE_H, FLOOR_THICK, HEIGHT_UNIT,
+  GRIDFINITY_BIN_SETTINGS,
   attribution as gridfinityAttribution, type BinHoleSettings,
   buildBinManifold, buildBinFillManifold,
 } from './gridfinity-bin'
@@ -492,7 +492,8 @@ export async function generate(p: {
   return {
     objects: [{
       label,
-      parts: [{ label, geom: manifoldToBufferGeometry(bin), settings: HONEYCOMB_INFILL }],
+      parts: [{ label, geom: manifoldToBufferGeometry(bin) }],
+      settings: { ...GRIDFINITY_BIN_SETTINGS, fill_pattern: 'honeycomb' },
     }],
   }
 }
