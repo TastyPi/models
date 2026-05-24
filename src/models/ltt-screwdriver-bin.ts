@@ -13,7 +13,10 @@ import {
 } from './ltt-groove'
 export type { BitZoneSettings } from './ltt-groove'
 
-export const attribution: Attribution[] = gridfinityAttribution
+export const attribution: Attribution[] = [
+  ...gridfinityAttribution,
+  { name: 'LTT Dual Screwdriver, Shaft Extender, Pen, and 60 bit holder', author: 'Haroldhues', url: 'https://www.printables.com/model/1129159-ltt-dual-screwdriver-shaft-extender-pen-and-60-bit', license: 'CC BY-NC 4.0' },
+]
 
 // Standard screwdriver: 6×1 cells
 const STANDARD_CELLS_X = 6
