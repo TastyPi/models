@@ -66,6 +66,7 @@ function LttScrewdriverBinPage() {
       title="LTT Screwdriver Bin"
       description="Gridfinity bin with an exact-fit cavity for the LTT Standard or Stubby screwdriver."
       attribution={attribution}
+      designLicense={{ label: 'CC BY-NC 4.0', url: 'https://creativecommons.org/licenses/by-nc/4.0/' }}
       header={<ModelInfo>{info(screwType(), zones())}</ModelInfo>}
       objects={objects}
       selectedObject={selectedObject}

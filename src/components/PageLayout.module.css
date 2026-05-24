@@ -77,7 +77,11 @@
 }
 .attrLink:hover { color: #aabbdd; }
 
-.attrLinkNowrap { white-space: nowrap; }
+
+.attributionList {
+  margin: 2px 0 0;
+  padding-left: 16px;
+}
 
 .main {
   flex: 1;

@@ -170,9 +170,7 @@ export function IndexPage() {
         <div>© 2026 Graham Rogers</div>
         <div>
           <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer" class={styles.footerLink}>MIT</a>
-          {' '}(code) ·{' '}
-          <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer" class={styles.footerLink}>CC BY 4.0</a>
-          {' '}(designs)
+          {' '}(code)
         </div>
       </footer>
     </div>
