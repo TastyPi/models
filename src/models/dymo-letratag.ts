@@ -1,7 +1,6 @@
 import { getManifold, manifoldToBufferGeometry } from '../manifold'
-import { SOLID_INFILL } from '../types'
 import type { Attribution, GeomResult } from '../types'
-import { buildBinManifold, BASE_H, HEIGHT_UNIT, type BinHoleSettings } from './gridfinity-bin'
+import { buildBinManifold, BASE_H, HEIGHT_UNIT, GRIDFINITY_BIN_SETTINGS, type BinHoleSettings } from './gridfinity-bin'
 import { MESH_B64 } from './dymo-letratag-mesh'
 
 export const attribution: Attribution[] = [
@@ -115,8 +114,6 @@ function splitModel(model: any): { front: any; back: any } {
   return { front, back }
 }
 
-const PART_SETTINGS = SOLID_INFILL
-
 export function generate(p: { holes: BinHoleSettings; height_units: number; split: boolean }): GeomResult {
   const model = buildModel(p)
 
@@ -124,7 +121,8 @@ export function generate(p: { holes: BinHoleSettings; height_units: number; spli
     return {
       objects: [{
         label: 'Dymo LetraTag Bin',
-        parts: [{ label: 'Dymo LetraTag Bin', geom: manifoldToBufferGeometry(model), settings: PART_SETTINGS }],
+        parts: [{ label: 'Dymo LetraTag Bin', geom: manifoldToBufferGeometry(model) }],
+        settings: GRIDFINITY_BIN_SETTINGS,
       }],
     }
   }
@@ -134,11 +132,13 @@ export function generate(p: { holes: BinHoleSettings; height_units: number; spli
     objects: [
       {
         label: 'Front half',
-        parts: [{ label: 'Front half', geom: manifoldToBufferGeometry(front), settings: PART_SETTINGS }],
+        parts: [{ label: 'Front half', geom: manifoldToBufferGeometry(front) }],
+        settings: GRIDFINITY_BIN_SETTINGS,
       },
       {
         label: 'Back half',
-        parts: [{ label: 'Back half', geom: manifoldToBufferGeometry(back), settings: PART_SETTINGS }],
+        parts: [{ label: 'Back half', geom: manifoldToBufferGeometry(back) }],
+        settings: GRIDFINITY_BIN_SETTINGS,
       },
     ],
   }

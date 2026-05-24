@@ -28,7 +28,7 @@ function GridfinityBinPage() {
   const [dividersY, setDividersY] = createSignal(urlNum('dividers_y', 0))
 
   // magnet_size: null = no magnet holes, number = hole diameter in mm; 0 in URL encodes null
-  const [holeSettings, setHoleSettings] = createSignal<BinHoleSettings>(binHoleSettingsFromUrl(sp, 6.2))
+  const [holeSettings, setHoleSettings] = createSignal<BinHoleSettings>(binHoleSettingsFromUrl(sp, 6.1))
   const [labelStyle, setLabelStyle] = createSignal(urlStr('label_style', 'none'))
 
   const infoStr = createMemo(() => info(cellsX(), cellsY(), heightUnits(), stackingLip()))
@@ -54,7 +54,7 @@ function GridfinityBinPage() {
     if (p.base_style !== 'flat') url.set('base_style', p.base_style)
     if (p.dividers_x > 0) url.set('dividers_x', String(p.dividers_x))
     if (p.dividers_y > 0) url.set('dividers_y', String(p.dividers_y))
-    binHoleSettingsToUrl(url, p.holes)
+    binHoleSettingsToUrl(url, p.holes, 6.1)
     if (p.label_style !== 'none') url.set('label_style', p.label_style)
     window.history.replaceState(null, '', '?' + url.toString())
   })
