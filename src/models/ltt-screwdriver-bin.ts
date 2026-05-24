@@ -31,11 +31,7 @@ const STANDARD_HEIGHT_UNITS = 4
 const STUBBY_HEIGHT_UNITS    = 4
 
 // Cavity positions in STL space.
-// Standard: handle end (max-X = 221.502) flush against inner −X wall (6×1 = 124.55 mm). Rotated 180°.
-const STANDARD_CAVITY_DX = -(221.502 - 124.55)  // = −96.952
 const STANDARD_CAVITY_CY = 35.447               // centred in Y
-// Stubby: handle end (min-X = 11.872) flush against inner −X wall (3×2 = 61.55 mm). No rotation.
-const STUBBY_CAVITY_DX = -(11.872 + 61.55)      // = −73.422
 const STUBBY_CAVITY_CY = 83.751                  // centred in Y
 
 // Cavity Z extents in STL space
@@ -91,9 +87,6 @@ type LeftNode    = { holes: GridPos[]; right: Record<ZoneOpt, RightNode> }
 type ModelNode   = { holes: GridPos[]; left:  Record<ZoneOpt, LeftNode>  }
 type BitHoleTree = Record<'standard' | 'stubby', ModelNode>
 
-function emptyRight(): RightNode { return { holes: [] } }
-function emptyLeft():  LeftNode  { return { holes: [], right: { none: emptyRight(), extension: emptyRight(), pen: emptyRight() } } }
-function emptyModel(): ModelNode { return { holes: [], left:  { none: emptyLeft(),  extension: emptyLeft(),  pen: emptyLeft()  } } }
 
 const BIT_HOLE_TREE: BitHoleTree = {
   standard: {
