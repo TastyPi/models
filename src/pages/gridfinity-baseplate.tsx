@@ -11,10 +11,9 @@ import { SidebarSection } from '../components/SidebarSection'
 import { useGeometry } from '../hooks/useGeometry'
 import { createUrlSync, UrlSyncContext } from '../hooks/urlSync'
 import { attribution, EP_WALL_MIN, OUTER_R } from '../models/gridfinity-baseplate'
+import { CELL } from '../models/gridfinity-bin'
 import { BED_OPTIONS } from '../printBed'
 import styles from './gridfinity-baseplate.module.css'
-
-const CELL = 42
 
 const LS_KEY = 'persistent-params'
 function readLS<T>(key: string, def: T): T {
@@ -91,6 +90,7 @@ function GridfinityBaseplatePage() {
   const [cornerNW, setCornerNW] = createSignal(urlNum('corner_radius_nw', base.corner_radius_nw))
   const [baseStyle, setBaseStyle] = createSignal(urlStr('base_style', base.base_style))
   const [magnets, setMagnets] = createSignal(urlBool('magnets', base.magnets))
+  const [cellSize, setCellSize] = createSignal(urlNum('cell_size', CELL))
 
   // Print bed params — stored in localStorage, not URL
   const [restrictBed, _setRestrictBed] = createSignal(readLS('restrict_bed', false))
@@ -110,8 +110,8 @@ function GridfinityBaseplatePage() {
     const wS = edgeS() === 'wall' ? (wallS() ?? 0) : 0
     const wE = edgeE() === 'wall' ? (wallE() ?? 0) : 0
     const wW = edgeW() === 'wall' ? (wallW() ?? 0) : 0
-    const w = cellsX() * CELL + wW + wE
-    const d = cellsY() * CELL + wN + wS
+    const w = cellsX() * cellSize() + wW + wE
+    const d = cellsY() * cellSize() + wN + wS
     return `${w} × ${d} mm`
   })
 
@@ -124,6 +124,7 @@ function GridfinityBaseplatePage() {
     corner_radius_ne: cornerNE(), corner_radius_nw: cornerNW(),
     base_style: baseStyle(), magnets: magnets(),
     restrict_bed: restrictBed(), bed_type: bedType(), bed_x: bedX(), bed_y: bedY(),
+    cell_size: cellSize(),
   }))
 
   const { objects, rendering, selectedObject, toggleObject, download } = useGeometry('gridfinity-baseplate', params)
@@ -206,6 +207,7 @@ function GridfinityBaseplatePage() {
         <SidebarSection label="Size" defaultOpen>
           <NumberSlider label="Width (cells)" value={cellsX()} onChange={setCellsX} min={1} max={20} default={presetBase()?.cells_x} urlKey="cells_x" />
           <NumberSlider label="Depth (cells)" value={cellsY()} onChange={setCellsY} min={1} max={20} default={presetBase()?.cells_y} urlKey="cells_y" />
+          <NumberSlider label="Cell size (mm)" value={cellSize()} onChange={setCellSize} min={21} max={84} step={1} default={CELL} urlKey="cell_size" />
         </SidebarSection>
         <SidebarSection label="Corners" defaultOpen>
           <p class={styles.cornerLabel}>Radius (mm)</p>
