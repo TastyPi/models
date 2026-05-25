@@ -156,3 +156,45 @@ describe('magnetHoleDepth', () => {
     expect(totalDepth - clearDepth).toBeCloseTo(0.6)
   })
 })
+
+describe('custom cell_size', () => {
+  const CUSTOM = 50
+  const BIN_GAP = 0.25
+  const MAG_OFFSET = 13
+
+  describe('info', () => {
+    it('uses custom cell size for outer dimensions', () => {
+      const w = CUSTOM - 2 * BIN_GAP
+      expect(info(1, 1, 1, false, CUSTOM)).toBe(`${w} × ${w} × 7 mm`)
+    })
+
+    it('scales width and depth with custom cell size and cell count', () => {
+      const w = 2 * CUSTOM - 2 * BIN_GAP
+      const d = 3 * CUSTOM - 2 * BIN_GAP
+      expect(info(2, 3, 1, false, CUSTOM)).toContain(`${w} × ${d}`)
+    })
+  })
+
+  describe('holePositions', () => {
+    it('places per-cell holes at the correct pitch', () => {
+      const pos = holePositions(1, 1, false, CUSTOM)
+      expect(pos).toHaveLength(4)
+      expect(pos).toContainEqual([MAG_OFFSET, MAG_OFFSET])
+      expect(pos).toContainEqual([-MAG_OFFSET, MAG_OFFSET])
+    })
+
+    it('cell centers are spaced by the custom cell size in 2×1', () => {
+      const pos = holePositions(2, 1, false, CUSTOM)
+      // Cell centers at ±25; holes at ±25±13
+      expect(pos).toContainEqual([CUSTOM / 2 + MAG_OFFSET, MAG_OFFSET])
+      expect(pos).toContainEqual([-CUSTOM / 2 - MAG_OFFSET, -MAG_OFFSET])
+    })
+
+    it('corner_magnets positions reflect custom cell size', () => {
+      const pos = holePositions(3, 3, true, CUSTOM)
+      const expected = CUSTOM + MAG_OFFSET
+      expect(pos).toContainEqual([-expected, -expected])
+      expect(pos).toContainEqual([expected, expected])
+    })
+  })
+})

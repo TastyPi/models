@@ -28,7 +28,7 @@ function urlScrewType(): 'standard' | 'stubby' {
 function LttScrewdriverBinPage() {
   const [screwType, setScrewType] = createSignal<'standard' | 'stubby'>(urlScrewType())
   const [bitHoles, setBitHoles] = createSignal(urlBool('bit_holes', false))
-  const [holeSettings, setHoleSettings] = createSignal<BinHoleSettings>(binHoleSettingsFromUrl(sp, 6.2))
+  const [holeSettings, setHoleSettings] = createSignal<BinHoleSettings>(binHoleSettingsFromUrl(sp, 6.1))
   const [zones, setZones] = createSignal<BitZoneSettings>({
     left:  urlZoneSide('zone_left'),
     right: urlZoneSide('zone_right'),

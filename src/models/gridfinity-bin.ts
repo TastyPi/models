@@ -4,10 +4,9 @@ import { MAGNET_HOLE_DEPTH } from '../magnets'
 
 // Gridfinity spec constants (from https://gridfinity.xyz/specification/)
 // Profile coordinates sourced from gridfinity-rebuilt-openscad by Kenneth Hodson
-const CELL = 42
+export const CELL = 42
 const OUTER_R = 4
 export const BASE_H = 5
-const CORE_HALF = CELL / 2 - OUTER_R  // 17
 const R1 = OUTER_R - 2.85             // 1.15
 const H1 = BASE_H - 4.65              // 0.35
 const R2 = R1 + 0.7                   // 1.85
@@ -46,7 +45,6 @@ const WALL_THICK_BASE = 0.95  // d_wall — shell wall thickness for hollow base
 const LITE_FLOOR_THICK = 1.0  // bottom skin thickness for hollow base
 
 // Label tab constants (from gridfinity-rebuilt-openscad standard.scad)
-const TAB_W_NOMINAL = CELL             // TAB_WIDTH_NOMINAL = 42mm
 export const TAB_D = 15.85             // _tab_depth: how far tab protrudes into bin
 const TAB_SUPPORT_ANGLE_DEG = 36
 export const TAB_SUPPORT_H = 1.2       // _tab_support_height
@@ -59,9 +57,9 @@ export const attribution: Attribution[] = [
   { name: 'gridfinity-rebuilt-openscad', author: 'Kenneth Hodson', url: 'https://github.com/kennetek/gridfinity-rebuilt-openscad', license: 'MIT' },
 ]
 
-export function holePositions(cells_x: number, cells_y: number, corner_magnets: boolean): [number, number][] {
-  const cellXC = Array.from({ length: cells_x }, (_, i) => (i - (cells_x - 1) / 2) * CELL)
-  const cellYC = Array.from({ length: cells_y }, (_, j) => (j - (cells_y - 1) / 2) * CELL)
+export function holePositions(cells_x: number, cells_y: number, corner_magnets: boolean, cell_size = CELL): [number, number][] {
+  const cellXC = Array.from({ length: cells_x }, (_, i) => (i - (cells_x - 1) / 2) * cell_size)
+  const cellYC = Array.from({ length: cells_y }, (_, j) => (j - (cells_y - 1) / 2) * cell_size)
   return corner_magnets
     ? [
         [cellXC[0] - MAG_OFFSET,                 cellYC[0] - MAG_OFFSET],
@@ -77,9 +75,9 @@ export function holePositions(cells_x: number, cells_y: number, corner_magnets: 
       ] as [number, number][]))
 }
 
-export function info(cells_x: number, cells_y: number, height_units: number, stacking_lip: boolean): string {
-  const w = cells_x * CELL - 2 * BIN_GAP
-  const d = cells_y * CELL - 2 * BIN_GAP
+export function info(cells_x: number, cells_y: number, height_units: number, stacking_lip: boolean, cell_size = CELL): string {
+  const w = cells_x * cell_size - 2 * BIN_GAP
+  const d = cells_y * cell_size - 2 * BIN_GAP
   const h = height_units * HEIGHT_UNIT + (stacking_lip ? STACKING_LIP_H : 0)
   return `${w} × ${d} × ${h} mm`
 }
@@ -101,7 +99,7 @@ export function binHoleSettingsFromUrl(sp: URLSearchParams, defaultMagnetSize: n
   }
 }
 
-export function binHoleSettingsToUrl(url: URLSearchParams, holes: BinHoleSettings, defaultMagnetSize: number | null = 6.2): void {
+export function binHoleSettingsToUrl(url: URLSearchParams, holes: BinHoleSettings, defaultMagnetSize: number | null = 6.1): void {
   if (holes.magnet_size !== defaultMagnetSize) {
     if (holes.magnet_size !== null) url.set('magnet_size', String(holes.magnet_size))
     else url.set('magnet_size', '0')
@@ -118,6 +116,7 @@ type BinParams = {
   base_style: 'flat' | 'hollow' | 'scoop'
   dividers_x: number; dividers_y: number
   label_style: 'none' | 'full' | 'left' | 'center' | 'right'
+  cell_size?: number
 }
 
 export function buildBinManifold(p: BinParams): any {
@@ -126,14 +125,17 @@ export function buildBinManifold(p: BinParams): any {
   const hollow_base = base_style === 'hollow'
   const scoop = base_style === 'scoop' ? 1 : 0
   const { Manifold, CrossSection } = getManifold()
+  const cell = p.cell_size ?? CELL
+  const coreHalf = cell / 2 - OUTER_R
+  const tabWNominal = cell
 
   const nominalH = height_units * HEIGHT_UNIT
 
-  const cellXC = Array.from({ length: cells_x }, (_, i) => (i - (cells_x - 1) / 2) * CELL)
-  const cellYC = Array.from({ length: cells_y }, (_, j) => (j - (cells_y - 1) / 2) * CELL)
+  const cellXC = Array.from({ length: cells_x }, (_, i) => (i - (cells_x - 1) / 2) * cell)
+  const cellYC = Array.from({ length: cells_y }, (_, j) => (j - (cells_y - 1) / 2) * cell)
 
   const postCS = (r: number) =>
-    CrossSection.square([2 * CORE_HALF, 2 * CORE_HALF], true).offset(r - BIN_GAP)
+    CrossSection.square([2 * coreHalf, 2 * coreHalf], true).offset(r - BIN_GAP)
 
   const postSlab = (r: number, cx: number, cy: number, z: number): any =>
     postCS(r).extrude(0.01).translate([cx, cy, z])
@@ -145,8 +147,8 @@ export function buildBinManifold(p: BinParams): any {
     Manifold.hull([postSlab(R2,       cx, cy, H3),    postSlab(OUTER_R, cx, cy, BASE_H)]),
   ])
 
-  const sqW = cells_x * CELL - 2 * OUTER_R
-  const sqD = cells_y * CELL - 2 * OUTER_R
+  const sqW = cells_x * cell - 2 * OUTER_R
+  const sqD = cells_y * cell - 2 * OUTER_R
   const outerCS = CrossSection.square([sqW, sqD], true).offset(BOX_OUTER_R)
   const innerCS = CrossSection.square([sqW, sqD], true)
     .offset(Math.max(0.01, BOX_OUTER_R - WALL_THICK))
@@ -163,16 +165,16 @@ export function buildBinManifold(p: BinParams): any {
   // Uses the same absolute profile heights as the outer post but with radii reduced by WALL_THICK_BASE,
   // then intersects with a zone that starts at LITE_FLOOR_THICK to preserve the bottom skin.
   // Floor slab above BASE_H stays solid, sealing the hollow space from the bin interior.
-  const positions = holePositions(cells_x, cells_y, corner_magnets)
+  const positions = holePositions(cells_x, cells_y, corner_magnets, cell)
 
   if (hollow_base) {
     const iR = (r: number) => Math.max(BIN_GAP + 0.01, r - WALL_THICK_BASE)
     const iCS = (r: number) =>
-      CrossSection.square([2 * CORE_HALF, 2 * CORE_HALF], true).offset(iR(r) - BIN_GAP)
+      CrossSection.square([2 * coreHalf, 2 * coreHalf], true).offset(iR(r) - BIN_GAP)
     const iSlab = (r: number, cx: number, cy: number, z: number): any =>
       iCS(r).extrude(0.01).translate([cx, cy, z])
 
-    const sz = (cells_x + cells_y) * CELL + 100
+    const sz = (cells_x + cells_y) * cell + 100
     const clipZone = Manifold.cube([sz * 2, sz * 2, BASE_H - LITE_FLOOR_THICK])
       .translate([-sz, -sz, LITE_FLOOR_THICK])
 
@@ -187,7 +189,7 @@ export function buildBinManifold(p: BinParams): any {
     }))
 
     // Open floor per-cell so hollow is visible from bin interior
-    const perCellInnerCS = CrossSection.square([2 * CORE_HALF, 2 * CORE_HALF], true)
+    const perCellInnerCS = CrossSection.square([2 * coreHalf, 2 * coreHalf], true)
       .offset(Math.max(0.01, BOX_OUTER_R - WALL_THICK))
     const floorVoids = cellXC.flatMap(cx => cellYC.map(cy =>
       perCellInnerCS.extrude(FLOOR_THICK + 0.02).translate([cx, cy, BASE_H - 0.01])
@@ -290,8 +292,8 @@ export function buildBinManifold(p: BinParams): any {
 
   const dividerFloorZ = BASE_H + FLOOR_THICK
   const dividerH = nominalH - dividerFloorZ
-  const cavityHalfX = cells_x * CELL / 2 - BIN_GAP - WALL_THICK
-  const cavityHalfY = cells_y * CELL / 2 - BIN_GAP - WALL_THICK
+  const cavityHalfX = cells_x * cell / 2 - BIN_GAP - WALL_THICK
+  const cavityHalfY = cells_y * cell / 2 - BIN_GAP - WALL_THICK
 
   if (dividers_x > 0) {
     const spacing = (cavityHalfY * 2) / (dividers_x + 1)
@@ -362,7 +364,7 @@ export function buildBinManifold(p: BinParams): any {
     for (let i = 0; i < nXComps; i++) {
       const compCenterX = -cavityHalfX + (i + 0.5) * compSpacing
       const compW = compSpacing - (nXComps > 1 ? WALL_THICK : 0)
-      const tw = label_style === 'full' ? compW : Math.min(TAB_W_NOMINAL, compW)
+      const tw = label_style === 'full' ? compW : Math.min(tabWNominal, compW)
 
       const tabXCenter = label_style === 'left'
         ? compCenterX - compW / 2 + tw / 2
@@ -396,16 +398,18 @@ export type FilledBinParams = {
   cells_x: number; cells_y: number; height_units: number
   stacking_lip: boolean
   holes: BinHoleSettings
+  cell_size?: number
 }
 
 export function buildBinFillManifold(p: FilledBinParams, fillTopZ?: number): any {
   const { cells_x, cells_y, height_units } = p
   const { CrossSection } = getManifold()
+  const cell = p.cell_size ?? CELL
   const nominalH = height_units * HEIGHT_UNIT
   const fillH = Math.min(fillTopZ ?? nominalH, nominalH) - BASE_H - FLOOR_THICK
   if (fillH <= 0) return null
-  const sqW = cells_x * CELL - 2 * OUTER_R
-  const sqD = cells_y * CELL - 2 * OUTER_R
+  const sqW = cells_x * cell - 2 * OUTER_R
+  const sqD = cells_y * cell - 2 * OUTER_R
   const innerCS = CrossSection.square([sqW, sqD], true)
     .offset(Math.max(0.01, BOX_OUTER_R - WALL_THICK))
   return innerCS.extrude(fillH).translate([0, 0, BASE_H + FLOOR_THICK])
