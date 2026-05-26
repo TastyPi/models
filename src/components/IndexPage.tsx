@@ -54,6 +54,12 @@ const MODELS: { slug: string; label: string; description: string; params: Record
     params: {},
   },
   {
+    slug: 'pole-socket',
+    label: 'Pole Socket',
+    description: 'Female threaded socket for large pole fittings. All thread dimensions are fully parametric — dial in diameter, pitch, depth, and engagement length to match your pole.',
+    params: { thread_diameter: 30, thread_root_diameter: 26, thread_pitch: 5, thread_ridge_root: 2.5, thread_ridge_peak: 2.5, thread_length: 30, tolerance: 0.4, wall_thickness: 5, floor_thickness: 3 },
+  },
+  {
     slug: 'wall-hook',
     label: 'Wall Hook',
     description: 'Triangular prism hook. Side (a) mounts against the wall with screw holes, side (b) is the hook arm with a retention lip, side (c) is the hypotenuse — print flat on side (c), no supports needed.',
