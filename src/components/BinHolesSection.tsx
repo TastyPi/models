@@ -16,18 +16,18 @@ export function BinHolesSection(props: Props) {
 
   return (
     <SidebarSection label="Base holes" defaultOpen>
-      <OptionalNumberSlider label="Magnet diameter (mm)" value={props.value.magnet_size} onChange={v => set('magnet_size', v)} min={6.0} max={6.5} step={0.1} default={6.2} />
+      <OptionalNumberSlider label="Magnet diameter (mm)" value={props.value.magnet_size} onChange={v => set('magnet_size', v)} min={6.0} max={6.5} step={0.1} default={6.1} />
       <Show when={props.value.magnet_size !== null}>
         <p class={styles.magnetNote}>
-          6.2 mm gives a good press-fit in testing. Try the{' '}
+          6.1 mm gives a good press-fit in testing. Try the{' '}
           <a href="../magnet-test/" class={styles.testerLink}>magnet tester</a>
           {' '}to find your ideal size.
         </p>
-        <BooleanField label="Supportless" value={props.value.supportless} onChange={v => set('supportless', v)} />
+        <BooleanField label="Supportless" value={props.value.supportless} onChange={v => set('supportless', v)} default={true} />
       </Show>
-      <BooleanField label="Screw holes (M3)" value={props.value.screw_holes} onChange={v => set('screw_holes', v)} />
+      <BooleanField label="Screw holes (M3)" value={props.value.screw_holes} onChange={v => set('screw_holes', v)} default={false} />
       <Show when={props.value.magnet_size !== null || props.value.screw_holes}>
-        <BooleanField label="Corners only" value={props.value.corner_magnets} onChange={v => set('corner_magnets', v)} />
+        <BooleanField label="Corners only" value={props.value.corner_magnets} onChange={v => set('corner_magnets', v)} default={false} />
       </Show>
     </SidebarSection>
   )

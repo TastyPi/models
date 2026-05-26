@@ -13,6 +13,9 @@ interface Props {
 
 export function BooleanField(props: Props) {
   const setUrl = useContext(UrlSyncContext)
+
+  const checked = () => props.value
+
   createEffect(() => {
     if (!props.urlKey || !setUrl) return
     const atDefault = props.default != null && props.value === props.default
@@ -26,7 +29,7 @@ export function BooleanField(props: Props) {
         <span class={styles.right}>
           <input
             type="checkbox"
-            checked={props.value}
+            checked={checked()}
             onChange={(e) => props.onChange(e.currentTarget.checked)}
             class={styles.checkbox}
           />

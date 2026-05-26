@@ -2,18 +2,18 @@ import { createEffect, For, Show, useContext, type JSX } from 'solid-js'
 import { UrlSyncContext } from '../hooks/urlSync'
 import styles from './SelectField.module.css'
 
-interface Props {
+interface Props<T extends string = string> {
   label?: string
-  value: string
-  onChange: (v: string) => void
-  options: { value: string; label: string }[]
+  value: T
+  onChange: (v: T) => void
+  options: { value: T; label: string }[]
   description?: string
-  default?: string | null
+  default?: T | null
   urlKey?: string
   labelAction?: JSX.Element
 }
 
-export function SelectField(props: Props) {
+export function SelectField<T extends string = string>(props: Props<T>) {
   const setUrl = useContext(UrlSyncContext)
   createEffect(() => {
     if (!props.urlKey || !setUrl) return
@@ -43,7 +43,7 @@ export function SelectField(props: Props) {
           </div>
         </div>
       </Show>
-      <select onChange={(e) => props.onChange(e.currentTarget.value)} class={styles.select}>
+      <select onChange={(e) => props.onChange(e.currentTarget.value as T)} class={styles.select}>
         <For each={props.options}>
           {(opt) => <option value={opt.value} selected={opt.value === props.value}>{opt.label}</option>}
         </For>
