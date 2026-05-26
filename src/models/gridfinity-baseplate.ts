@@ -9,7 +9,6 @@ const CELL = 42
 const OUTER_R = 4
 const BASE_H = 5
 const CLEARANCE = BASE_H - 4.65
-const CORE_HALF = CELL / 2 - OUTER_R
 const R1 = OUTER_R - 2.85
 const H1 = CLEARANCE
 const R2 = R1 + 0.7
@@ -28,7 +27,6 @@ const EP_WALL_MIN = Math.ceil((EP_NECK_D + EP_TAB_D) / 0.5) * 0.5  // min wall d
 
 const MAG_D = 6.0
 const MAG_H = 2.4
-const MAG_CORNER = CELL / 2 - 8.0
 
 const PIECE_GAP = 5
 
@@ -84,22 +82,23 @@ function computeSplits(
   wall_n: number, wall_s: number, wall_e: number, wall_w: number,
   separate_walls: boolean,
   bedX: number, bedY: number,
+  cell: number,
 ): { sizesX: number[]; sizesY: number[] } {
   if (separate_walls) {
     return {
-      sizesX: splitSizes(cells_x, Math.max(1, Math.floor(bedX / CELL))),
-      sizesY: splitSizes(cells_y, Math.max(1, Math.floor(bedY / CELL))),
+      sizesX: splitSizes(cells_x, Math.max(1, Math.floor(bedX / cell))),
+      sizesY: splitSizes(cells_y, Math.max(1, Math.floor(bedY / cell))),
     }
   }
   return {
-    sizesX: splitMaxInterior(cells_x, Math.floor(bedX / CELL),
-      Math.max(1, Math.floor((bedX - wall_w) / CELL)),
-      Math.max(1, Math.floor((bedX - wall_e) / CELL)),
-      Math.max(1, Math.floor((bedX - wall_w - wall_e) / CELL))),
-    sizesY: splitMaxInterior(cells_y, Math.floor(bedY / CELL),
-      Math.max(1, Math.floor((bedY - wall_s) / CELL)),
-      Math.max(1, Math.floor((bedY - wall_n) / CELL)),
-      Math.max(1, Math.floor((bedY - wall_s - wall_n) / CELL))),
+    sizesX: splitMaxInterior(cells_x, Math.floor(bedX / cell),
+      Math.max(1, Math.floor((bedX - wall_w) / cell)),
+      Math.max(1, Math.floor((bedX - wall_e) / cell)),
+      Math.max(1, Math.floor((bedX - wall_w - wall_e) / cell))),
+    sizesY: splitMaxInterior(cells_y, Math.floor(bedY / cell),
+      Math.max(1, Math.floor((bedY - wall_s) / cell)),
+      Math.max(1, Math.floor((bedY - wall_n) / cell)),
+      Math.max(1, Math.floor((bedY - wall_s - wall_n) / cell))),
   }
 }
 
@@ -108,11 +107,13 @@ export function planTiles(p: {
   wall_n: number; wall_s: number; wall_e: number; wall_w: number
   separate_walls: boolean
   bed: { x: number; y: number }
+  cell_size?: number
 }): { tiles: TilePlan[]; sizesX: number[]; sizesY: number[]; bed: { x: number; y: number }; swapped: boolean } {
   const { cells_x, cells_y, wall_n, wall_s, wall_e, wall_w, separate_walls, bed: rawBed } = p
+  const cell = p.cell_size ?? CELL
 
-  const standard = computeSplits(cells_x, cells_y, wall_n, wall_s, wall_e, wall_w, separate_walls, rawBed.x, rawBed.y)
-  const swapped  = computeSplits(cells_x, cells_y, wall_n, wall_s, wall_e, wall_w, separate_walls, rawBed.y, rawBed.x)
+  const standard = computeSplits(cells_x, cells_y, wall_n, wall_s, wall_e, wall_w, separate_walls, rawBed.x, rawBed.y, cell)
+  const swapped  = computeSplits(cells_x, cells_y, wall_n, wall_s, wall_e, wall_w, separate_walls, rawBed.y, rawBed.x, cell)
   const useSwap = swapped.sizesX.length * swapped.sizesY.length < standard.sizesX.length * standard.sizesY.length
   const { sizesX, sizesY } = useSwap ? swapped : standard
   const bed = useSwap ? { x: rawBed.y, y: rawBed.x } : rawBed
@@ -167,6 +168,7 @@ export interface Params {
   edge_s?: string
   edge_e?: string
   edge_w?: string
+  cell_size?: number
 }
 
 export function generate(params: Params): GeomResult {
@@ -175,6 +177,9 @@ export function generate(params: Params): GeomResult {
   const wall_s = params.wall_s ?? 0
   const wall_e = params.wall_e ?? 0
   const wall_w = params.wall_w ?? 0
+  const cell = params.cell_size ?? CELL
+  const coreHalf = cell / 2 - OUTER_R
+  const magCorner = cell / 2 - 8.0
     const { Manifold, CrossSection } = getManifold()
     const wallFemale = wall_connector === 'wall_female'
     const rSW = corner_radius_sw, rSE = corner_radius_se, rNE = corner_radius_ne, rNW = corner_radius_nw
@@ -225,7 +230,7 @@ export function generate(params: Params): GeomResult {
 
     // ── Gridfinity cell void ─────────────────────────────────────────────────
     const voidCS = (r: number) =>
-      CrossSection.square([2 * CORE_HALF, 2 * CORE_HALF], true).offset(r)
+      CrossSection.square([2 * coreHalf, 2 * coreHalf], true).offset(r)
 
     const voidSlab = (r: number, cx: number, cy: number, z: number) =>
       voidCS(r).extrude(0.01).translate([cx, cy, z])
@@ -237,7 +242,7 @@ export function generate(params: Params): GeomResult {
     ])
 
     const adjCellSolid = (cx: number, cy: number) =>
-      CrossSection.square([CELL, CELL]).translate([cx - CELL / 2, cy - CELL / 2]).extrude(BASE_H)
+      CrossSection.square([cell, cell]).translate([cx - cell / 2, cy - cell / 2]).extrude(BASE_H)
         .subtract(cellVoid(cx, cy))
 
     // ── Connector profiles ───────────────────────────────────────────────────
@@ -272,13 +277,13 @@ export function generate(params: Params): GeomResult {
       hasNConn: boolean, hasSConn: boolean, hasEConn: boolean, hasWConn: boolean,
       wallsSep: boolean,
     ) => {
-      const cellXC = Array.from({ length: nX }, (_, i) => (startX + i - (cells_x - 1) / 2) * CELL)
-      const cellYC = Array.from({ length: nY }, (_, j) => (startY + j - (cells_y - 1) / 2) * CELL)
+      const cellXC = Array.from({ length: nX }, (_, i) => (startX + i - (cells_x - 1) / 2) * cell)
+      const cellYC = Array.from({ length: nY }, (_, j) => (startY + j - (cells_y - 1) / 2) * cell)
 
-      const tileL = cellXC[0]     - CELL / 2
-      const tileR = cellXC[nX-1]  + CELL / 2
-      const tileB = cellYC[0]     - CELL / 2
-      const tileT = cellYC[nY-1]  + CELL / 2
+      const tileL = cellXC[0]     - cell / 2
+      const tileR = cellXC[nX-1]  + cell / 2
+      const tileB = cellYC[0]     - cell / 2
+      const tileT = cellYC[nY-1]  + cell / 2
 
       // ── Footprint ───────────────────────────────────────────────────────────
       // Fused walls form a simple bounding rectangle; separate-walls tile is just the cell area.
@@ -317,10 +322,10 @@ export function generate(params: Params): GeomResult {
       const toAdd: any[] = []
       const toSub: any[] = []
 
-      const maleN = (cx: number) => maleNorth.translate([cx, tileT]).extrude(EP_H_MALE).intersect(adjCellSolid(cx, tileT + CELL / 2))
-      const maleS = (cx: number) => maleSouth.translate([cx, tileB]).extrude(EP_H_MALE).intersect(adjCellSolid(cx, tileB - CELL / 2))
-      const maleE = (cy: number) => maleEast.translate([tileR, cy]).extrude(EP_H_MALE).intersect(adjCellSolid(tileR + CELL / 2, cy))
-      const maleW = (cy: number) => maleWest.translate([tileL, cy]).extrude(EP_H_MALE).intersect(adjCellSolid(tileL - CELL / 2, cy))
+      const maleN = (cx: number) => maleNorth.translate([cx, tileT]).extrude(EP_H_MALE).intersect(adjCellSolid(cx, tileT + cell / 2))
+      const maleS = (cx: number) => maleSouth.translate([cx, tileB]).extrude(EP_H_MALE).intersect(adjCellSolid(cx, tileB - cell / 2))
+      const maleE = (cy: number) => maleEast.translate([tileR, cy]).extrude(EP_H_MALE).intersect(adjCellSolid(tileR + cell / 2, cy))
+      const maleW = (cy: number) => maleWest.translate([tileL, cy]).extrude(EP_H_MALE).intersect(adjCellSolid(tileL - cell / 2, cy))
 
       // Inner split connectors (E/S faces get male, N/W get female)
       if (hasNConn) for (const cx of cellXC) toSub.push(femaleNorth.translate([cx, tileT]).extrude(EP_H_FEMALE))
@@ -355,8 +360,8 @@ export function generate(params: Params): GeomResult {
       if (base_style === 'solid' && magnets) {
         piece = piece.subtract(Manifold.union(
           cellXC.flatMap(cx => cellYC.flatMap(cy =>
-            [[cx + MAG_CORNER, cy + MAG_CORNER], [cx - MAG_CORNER, cy + MAG_CORNER],
-             [cx - MAG_CORNER, cy - MAG_CORNER], [cx + MAG_CORNER, cy - MAG_CORNER]]
+            [[cx + magCorner, cy + magCorner], [cx - magCorner, cy + magCorner],
+             [cx - magCorner, cy - magCorner], [cx + magCorner, cy - magCorner]]
               .map(([mx, my]) => Manifold.cylinder(MAG_H, MAG_D / 2, MAG_D / 2, 32).translate([mx, my, 0]))
           ))
         ))
@@ -374,10 +379,10 @@ export function generate(params: Params): GeomResult {
       outerL = true, outerR = true, // whether each end faces the outer plate boundary
     ): any => {
       const nX = cellXC.length, nY = cellYC.length
-      const tileL = cellXC[0]     - CELL / 2
-      const tileR = cellXC[nX-1]  + CELL / 2
-      const tileB = cellYC[0]     - CELL / 2
-      const tileT = cellYC[nY-1]  + CELL / 2
+      const tileL = cellXC[0]     - cell / 2
+      const tileR = cellXC[nX-1]  + cell / 2
+      const tileB = cellYC[0]     - cell / 2
+      const tileT = cellYC[nY-1]  + cell / 2
       const toAdd: any[] = []
       const toSub: any[] = []
       let strip: any
@@ -392,9 +397,9 @@ export function generate(params: Params): GeomResult {
         const nNE = outerR
         strip = selRRect(x0, tileT, x1, tileT + wallN, 0, 0, nNE ? rNE : 0, nNW ? rNW : 0).extrude(BASE_H)
         for (const cx of cellXC) {
-          if (cx < x0 + CELL / 2 || cx > x1 - CELL / 2) continue
+          if (cx < x0 + cell / 2 || cx > x1 - cell / 2) continue
           if (wallFemale) toSub.push(femaleSouth.translate([cx, tileT]).extrude(EP_H_FEMALE))
-          else            toAdd.push(maleSouth.translate([cx, tileT]).extrude(EP_H_MALE).intersect(adjCellSolid(cx, tileT - CELL / 2)))
+          else            toAdd.push(maleSouth.translate([cx, tileT]).extrude(EP_H_MALE).intersect(adjCellSolid(cx, tileT - cell / 2)))
         }
       } else if (side === 'S') {
         const { min: x0, max: x1 } = ext
@@ -402,9 +407,9 @@ export function generate(params: Params): GeomResult {
         const sSE = outerR && !(wallE > 0)
         strip = selRRect(x0, tileB - wallS, x1, tileB, sSW ? rSW : 0, sSE ? rSE : 0, 0, 0).extrude(BASE_H)
         for (const cx of cellXC) {
-          if (cx < x0 + CELL / 2 || cx > x1 - CELL / 2) continue
+          if (cx < x0 + cell / 2 || cx > x1 - cell / 2) continue
           if (wallFemale) toSub.push(femaleNorth.translate([cx, tileB]).extrude(EP_H_FEMALE))
-          else            toAdd.push(maleNorth.translate([cx, tileB]).extrude(EP_H_MALE).intersect(adjCellSolid(cx, tileB + CELL / 2)))
+          else            toAdd.push(maleNorth.translate([cx, tileB]).extrude(EP_H_MALE).intersect(adjCellSolid(cx, tileB + cell / 2)))
         }
       } else if (side === 'E') {
         const { min: y0, max: y1 } = ext
@@ -412,9 +417,9 @@ export function generate(params: Params): GeomResult {
         const eNE = outerR && !(wallN > 0)
         strip = selRRect(tileR, y0, tileR + wallE, y1, 0, eSE ? rSE : 0, eNE ? rNE : 0, 0).extrude(BASE_H)
         for (const cy of cellYC) {
-          if (cy < y0 + CELL / 2 || cy > y1 - CELL / 2) continue
+          if (cy < y0 + cell / 2 || cy > y1 - cell / 2) continue
           if (wallFemale) toSub.push(femaleWest.translate([tileR, cy]).extrude(EP_H_FEMALE))
-          else            toAdd.push(maleWest.translate([tileR, cy]).extrude(EP_H_MALE).intersect(adjCellSolid(tileR - CELL / 2, cy)))
+          else            toAdd.push(maleWest.translate([tileR, cy]).extrude(EP_H_MALE).intersect(adjCellSolid(tileR - cell / 2, cy)))
         }
       } else {
         const { min: y0, max: y1 } = ext
@@ -422,9 +427,9 @@ export function generate(params: Params): GeomResult {
         const wNW = outerR
         strip = selRRect(tileL - wallW, y0, tileL, y1, wSW ? rSW : 0, 0, 0, wNW ? rNW : 0).extrude(BASE_H)
         for (const cy of cellYC) {
-          if (cy < y0 + CELL / 2 || cy > y1 - CELL / 2) continue
+          if (cy < y0 + cell / 2 || cy > y1 - cell / 2) continue
           if (wallFemale) toSub.push(femaleEast.translate([tileL, cy]).extrude(EP_H_FEMALE))
-          else            toAdd.push(maleEast.translate([tileL, cy]).extrude(EP_H_MALE).intersect(adjCellSolid(tileL + CELL / 2, cy)))
+          else            toAdd.push(maleEast.translate([tileL, cy]).extrude(EP_H_MALE).intersect(adjCellSolid(tileL + cell / 2, cy)))
         }
       }
 
@@ -446,12 +451,12 @@ export function generate(params: Params): GeomResult {
     let exportTransform: ((g: BufferGeometry) => BufferGeometry) | undefined
 
     if (!restrict_bed) {
-      const cellXC = Array.from({ length: cells_x }, (_, i) => (i - (cells_x - 1) / 2) * CELL)
-      const cellYC = Array.from({ length: cells_y }, (_, j) => (j - (cells_y - 1) / 2) * CELL)
-      const tileL = -(cells_x / 2) * CELL
-      const tileR =  (cells_x / 2) * CELL
-      const tileB = -(cells_y / 2) * CELL
-      const tileT =  (cells_y / 2) * CELL
+      const cellXC = Array.from({ length: cells_x }, (_, i) => (i - (cells_x - 1) / 2) * cell)
+      const cellYC = Array.from({ length: cells_y }, (_, j) => (j - (cells_y - 1) / 2) * cell)
+      const tileL = -(cells_x / 2) * cell
+      const tileR =  (cells_x / 2) * cell
+      const tileB = -(cells_y / 2) * cell
+      const tileT =  (cells_y / 2) * cell
 
       const eN = edge_n ?? 'wall'
       const eS = edge_s ?? 'wall'
@@ -466,13 +471,13 @@ export function generate(params: Params): GeomResult {
 
       const toAdd: any[] = [], toSub: any[] = []
 
-      if (eN === 'male')   for (const cx of cellXC) toAdd.push(maleNorth.translate([cx, tileT]).extrude(EP_H_MALE).intersect(adjCellSolid(cx, tileT + CELL / 2)))
+      if (eN === 'male')   for (const cx of cellXC) toAdd.push(maleNorth.translate([cx, tileT]).extrude(EP_H_MALE).intersect(adjCellSolid(cx, tileT + cell / 2)))
       if (eN === 'female') for (const cx of cellXC) toSub.push(femaleNorth.translate([cx, tileT]).extrude(EP_H_FEMALE))
-      if (eS === 'male')   for (const cx of cellXC) toAdd.push(maleSouth.translate([cx, tileB]).extrude(EP_H_MALE).intersect(adjCellSolid(cx, tileB - CELL / 2)))
+      if (eS === 'male')   for (const cx of cellXC) toAdd.push(maleSouth.translate([cx, tileB]).extrude(EP_H_MALE).intersect(adjCellSolid(cx, tileB - cell / 2)))
       if (eS === 'female') for (const cx of cellXC) toSub.push(femaleSouth.translate([cx, tileB]).extrude(EP_H_FEMALE))
-      if (eE === 'male')   for (const cy of cellYC) toAdd.push(maleEast.translate([tileR, cy]).extrude(EP_H_MALE).intersect(adjCellSolid(tileR + CELL / 2, cy)))
+      if (eE === 'male')   for (const cy of cellYC) toAdd.push(maleEast.translate([tileR, cy]).extrude(EP_H_MALE).intersect(adjCellSolid(tileR + cell / 2, cy)))
       if (eE === 'female') for (const cy of cellYC) toSub.push(femaleEast.translate([tileR, cy]).extrude(EP_H_FEMALE))
-      if (eW === 'male')   for (const cy of cellYC) toAdd.push(maleWest.translate([tileL, cy]).extrude(EP_H_MALE).intersect(adjCellSolid(tileL - CELL / 2, cy)))
+      if (eW === 'male')   for (const cy of cellYC) toAdd.push(maleWest.translate([tileL, cy]).extrude(EP_H_MALE).intersect(adjCellSolid(tileL - cell / 2, cy)))
       if (eW === 'female') for (const cy of cellYC) toSub.push(femaleWest.translate([tileL, cy]).extrude(EP_H_FEMALE))
 
       if (toAdd.length > 0) tile = tile.add(Manifold.union(toAdd))
@@ -495,10 +500,10 @@ export function generate(params: Params): GeomResult {
       }
     } else {
       const rawBed = resolveBed(bed_type, bed_x, bed_y)
-      const { tiles, sizesX, sizesY, bed, swapped } = planTiles({ cells_x, cells_y, wall_n, wall_s, wall_e, wall_w, separate_walls, bed: rawBed })
+      const { tiles, sizesX, sizesY, bed, swapped } = planTiles({ cells_x, cells_y, wall_n, wall_s, wall_e, wall_w, separate_walls, bed: rawBed, cell_size: cell })
       if (swapped) exportTransform = (g: BufferGeometry) => { g.applyMatrix4(new Matrix4().makeRotationZ(Math.PI / 2)); return g }
-      const maxCellsX = Math.max(1, Math.floor(bed.x / CELL))
-      const maxCellsY = Math.max(1, Math.floor(bed.y / CELL))
+      const maxCellsX = Math.max(1, Math.floor(bed.x / cell))
+      const maxCellsY = Math.max(1, Math.floor(bed.y / cell))
       const cols = sizesX.length, rows = sizesY.length
       const baseX = -(cols - 1) / 2 * PIECE_GAP
       const baseY = -(rows - 1) / 2 * PIECE_GAP
@@ -515,10 +520,10 @@ export function generate(params: Params): GeomResult {
         const ty = tile.row * PIECE_GAP + baseY
         const tileHasWall = !separate_walls && (tile.wallN > 0 || tile.wallS > 0 || tile.wallE > 0 || tile.wallW > 0)
         if (tileHasWall) {
-          const tL = (tile.startX - (cells_x - 1) / 2) * CELL - CELL / 2
-          const tR = (tile.startX + tile.nX - 1 - (cells_x - 1) / 2) * CELL + CELL / 2
-          const tB = (tile.startY - (cells_y - 1) / 2) * CELL - CELL / 2
-          const tT = (tile.startY + tile.nY - 1 - (cells_y - 1) / 2) * CELL + CELL / 2
+          const tL = (tile.startX - (cells_x - 1) / 2) * cell - cell / 2
+          const tR = (tile.startX + tile.nX - 1 - (cells_x - 1) / 2) * cell + cell / 2
+          const tB = (tile.startY - (cells_y - 1) / 2) * cell - cell / 2
+          const tT = (tile.startY + tile.nY - 1 - (cells_y - 1) / 2) * cell + cell / 2
           const extS = tile.hasSConn ? EP_TAB_D + EP_NECK_D + 1 : 0
           const extE = tile.hasEConn ? EP_TAB_D + EP_NECK_D + 1 : 0
           const clipBox = Manifold.cube([tR - tL + extE, tT - tB + extS, BASE_H + 2])
@@ -533,18 +538,18 @@ export function generate(params: Params): GeomResult {
       }
 
       if (separate_walls) {
-        const fullCellXC = Array.from({ length: cells_x }, (_, i) => (i - (cells_x - 1) / 2) * CELL)
-        const fullCellYC = Array.from({ length: cells_y }, (_, j) => (j - (cells_y - 1) / 2) * CELL)
+        const fullCellXC = Array.from({ length: cells_x }, (_, i) => (i - (cells_x - 1) / 2) * cell)
+        const fullCellYC = Array.from({ length: cells_y }, (_, j) => (j - (cells_y - 1) / 2) * cell)
 
         // N corner is at right end (NE, adds wall_e width); S corner is at left end (SW, adds wall_w width).
-        const mcNX = Math.max(1, Math.floor((bed.x - wall_e) / CELL))
-        const mcSX = Math.max(1, Math.floor((bed.x - wall_w) / CELL))
+        const mcNX = Math.max(1, Math.floor((bed.x - wall_e) / cell))
+        const mcSX = Math.max(1, Math.floor((bed.x - wall_w) / cell))
         const wallSizesN = splitWallSizes(cells_x, maxCellsX, mcNX, wall_e > 0 ? true : null)
         const wallSizesS = splitWallSizes(cells_x, maxCellsX, mcSX, wall_w > 0 ? false : null)
         let wallNStartX = 0
         if (wall_n > 0) {
           for (let pi = 0; pi < wallSizesN.length; pi++) {
-            const segCellXC = Array.from({ length: wallSizesN[pi] }, (_, i) => (wallNStartX + i - (cells_x - 1) / 2) * CELL)
+            const segCellXC = Array.from({ length: wallSizesN[pi] }, (_, i) => (wallNStartX + i - (cells_x - 1) / 2) * cell)
             pushStrip(wallLabel('North', wallSizesN.length, pi), buildWallStrip('N', segCellXC, fullCellYC, wall_n, wall_s, wall_e, wall_w, pi === 0, pi === wallSizesN.length - 1), pi * PIECE_GAP + baseX, rows * PIECE_GAP + baseY)
             wallNStartX += wallSizesN[pi]
           }
@@ -552,20 +557,20 @@ export function generate(params: Params): GeomResult {
         let wallSStartX = 0
         if (wall_s > 0) {
           for (let pi = 0; pi < wallSizesS.length; pi++) {
-            const segCellXC = Array.from({ length: wallSizesS[pi] }, (_, i) => (wallSStartX + i - (cells_x - 1) / 2) * CELL)
+            const segCellXC = Array.from({ length: wallSizesS[pi] }, (_, i) => (wallSStartX + i - (cells_x - 1) / 2) * cell)
             pushStrip(wallLabel('South', wallSizesS.length, pi), buildWallStrip('S', segCellXC, fullCellYC, wall_n, wall_s, wall_e, wall_w, pi === 0, pi === wallSizesS.length - 1), pi * PIECE_GAP + baseX, -PIECE_GAP + baseY)
             wallSStartX += wallSizesS[pi]
           }
         }
         // E corner is at bottom end (SE, adds wall_s height); W corner is at top end (NW, adds wall_n height).
-        const mcEY = Math.max(1, Math.floor((bed.y - wall_s) / CELL))
-        const mcWY = Math.max(1, Math.floor((bed.y - wall_n) / CELL))
+        const mcEY = Math.max(1, Math.floor((bed.y - wall_s) / cell))
+        const mcWY = Math.max(1, Math.floor((bed.y - wall_n) / cell))
         const wallSizesE = splitWallSizes(cells_y, maxCellsY, mcEY, wall_s > 0 ? false : null)
         const wallSizesW = splitWallSizes(cells_y, maxCellsY, mcWY, wall_n > 0 ? true : null)
         let wallEStartY = 0
         if (wall_e > 0) {
           for (let pj = 0; pj < wallSizesE.length; pj++) {
-            const segCellYC = Array.from({ length: wallSizesE[pj] }, (_, j) => (wallEStartY + j - (cells_y - 1) / 2) * CELL)
+            const segCellYC = Array.from({ length: wallSizesE[pj] }, (_, j) => (wallEStartY + j - (cells_y - 1) / 2) * cell)
             pushStrip(wallLabel('East', wallSizesE.length, pj), buildWallStrip('E', fullCellXC, segCellYC, wall_n, wall_s, wall_e, wall_w, pj === 0, pj === wallSizesE.length - 1), cols * PIECE_GAP + baseX, pj * PIECE_GAP + baseY)
             wallEStartY += wallSizesE[pj]
           }
@@ -573,7 +578,7 @@ export function generate(params: Params): GeomResult {
         let wallWStartY = 0
         if (wall_w > 0) {
           for (let pj = 0; pj < wallSizesW.length; pj++) {
-            const segCellYC = Array.from({ length: wallSizesW[pj] }, (_, j) => (wallWStartY + j - (cells_y - 1) / 2) * CELL)
+            const segCellYC = Array.from({ length: wallSizesW[pj] }, (_, j) => (wallWStartY + j - (cells_y - 1) / 2) * cell)
             pushStrip(wallLabel('West', wallSizesW.length, pj), buildWallStrip('W', fullCellXC, segCellYC, wall_n, wall_s, wall_e, wall_w, pj === 0, pj === wallSizesW.length - 1), -PIECE_GAP + baseX, pj * PIECE_GAP + baseY)
             wallWStartY += wallSizesW[pj]
           }

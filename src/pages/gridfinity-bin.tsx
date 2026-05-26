@@ -13,7 +13,7 @@ import { HeightReferenceDialog } from '../components/HeightReferenceDialog'
 import { PresetSelect } from '../components/PresetSelect'
 import { useGeometry } from '../hooks/useGeometry'
 import { createUrlSync, UrlSyncContext } from '../hooks/urlSync'
-import { attribution, info, type BinHoleSettings, binHoleSettingsFromUrl } from '../models/gridfinity-bin'
+import { attribution, info, CELL, type BinHoleSettings, binHoleSettingsFromUrl } from '../models/gridfinity-bin'
 
 const sp = new URLSearchParams(window.location.search)
 function urlNum(key: string, def: number) { const v = sp.get(key); return v !== null ? parseFloat(v) : def }
@@ -52,6 +52,7 @@ function GridfinityBinPage() {
 
   const [cellsX, setCellsX] = createSignal(urlNum('cells_x', base.cells_x ?? 1))
   const [cellsY, setCellsY] = createSignal(urlNum('cells_y', base.cells_y ?? 1))
+  const [cellSize, setCellSize] = createSignal(urlNum('cell_size', CELL))
   const [heightUnits, setHeightUnits] = createSignal(urlNum('height_units', base.height_units ?? 3))
   const [stackingLip, setStackingLip] = createSignal(urlBool('stacking_lip', base.stacking_lip ?? true))
   const [baseStyle, setBaseStyle] = createSignal(urlStr('base_style', base.base_style ?? 'flat'))
@@ -111,6 +112,7 @@ function GridfinityBinPage() {
     const h = holeSettings()
     setUrl('cells_x', cellsX() !== (p.cells_x ?? 1) ? String(cellsX()) : null)
     setUrl('cells_y', cellsY() !== (p.cells_y ?? 1) ? String(cellsY()) : null)
+    setUrl('cell_size', cellSize() !== CELL ? String(cellSize()) : null)
     setUrl('height_units', heightUnits() !== (p.height_units ?? 3) ? String(heightUnits()) : null)
     setUrl('stacking_lip', stackingLip() !== (p.stacking_lip ?? true) ? String(stackingLip()) : null)
     setUrl('base_style', baseStyle() !== (p.base_style ?? 'flat') ? baseStyle() : null)
@@ -123,10 +125,10 @@ function GridfinityBinPage() {
     setUrl('corner_magnets', h.corner_magnets !== (p.holes?.corner_magnets ?? false) ? String(h.corner_magnets) : null)
   })
 
-  const infoStr = createMemo(() => info(cellsX(), cellsY(), heightUnits(), stackingLip()))
+  const infoStr = createMemo(() => info(cellsX(), cellsY(), heightUnits(), stackingLip(), cellSize()))
 
   const params = createMemo(() => ({
-    cells_x: cellsX(), cells_y: cellsY(), height_units: heightUnits(),
+    cells_x: cellsX(), cells_y: cellsY(), cell_size: cellSize(), height_units: heightUnits(),
     stacking_lip: stackingLip(),
     base_style: baseStyle() as 'flat' | 'hollow' | 'scoop',
     holes: holeSettings(),
@@ -163,6 +165,7 @@ function GridfinityBinPage() {
         <SidebarSection label="Size" defaultOpen>
           <NumberSlider label="Width (cells)" value={cellsX()} onChange={setCellsX} min={1} max={10} default={d('cells_x')} />
           <NumberSlider label="Depth (cells)" value={cellsY()} onChange={setCellsY} min={1} max={10} default={d('cells_y')} />
+          <NumberSlider label="Cell size (mm)" value={cellSize()} onChange={setCellSize} min={21} max={84} step={1} />
           <NumberSlider label="Height (units)" value={heightUnits()} onChange={setHeightUnits} min={1} max={9} labelAddon={<HeightReferenceDialog />} default={d('height_units')} />
           <BooleanField label="Stacking lip" value={stackingLip()} onChange={setStackingLip} default={d('stacking_lip')} />
         </SidebarSection>
