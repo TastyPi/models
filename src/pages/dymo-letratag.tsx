@@ -8,8 +8,9 @@ import { NumberSlider } from '../components/NumberSlider'
 import { SidebarSection } from '../components/SidebarSection'
 import { BinHolesSection } from '../components/BinHolesSection'
 import { useGeometry } from '../hooks/useGeometry'
+import { createUrlSync } from '../hooks/urlSync'
 import { attribution, info, HEIGHT_UNITS_MIN, HEIGHT_UNITS_MAX } from '../models/dymo-letratag'
-import { type BinHoleSettings, binHoleSettingsFromUrl, binHoleSettingsToUrl } from '../models/gridfinity-bin'
+import { type BinHoleSettings, binHoleSettingsFromUrl } from '../models/gridfinity-bin'
 
 const sp = new URLSearchParams(window.location.search)
 function urlNum(key: string, def: number) { const v = sp.get(key); return v !== null ? parseFloat(v) : def }
@@ -18,7 +19,19 @@ function urlBool(key: string, def: boolean) { const v = sp.get(key); return v !=
 function DymoLetraTagPage() {
   const [heightUnits, setHeightUnits] = createSignal(urlNum('height_units', HEIGHT_UNITS_MAX))
   const [split, setSplit] = createSignal(urlBool('split', false))
-  const [holeSettings, setHoleSettings] = createSignal<BinHoleSettings>(binHoleSettingsFromUrl(sp, 6.2))
+  const [holeSettings, setHoleSettings] = createSignal<BinHoleSettings>(binHoleSettingsFromUrl(sp, 6.1))
+
+  const setUrl = createUrlSync()
+
+  createEffect(() => {
+    const h = holeSettings()
+    setUrl('height_units', heightUnits() !== HEIGHT_UNITS_MAX ? String(heightUnits()) : null)
+    setUrl('split', split() ? 'true' : null)
+    setUrl('magnet_size', h.magnet_size !== 6.1 ? String(h.magnet_size ?? 0) : null)
+    setUrl('supportless', !h.supportless ? 'false' : null)
+    setUrl('screw_holes', h.screw_holes ? 'true' : null)
+    setUrl('corner_magnets', h.corner_magnets ? 'true' : null)
+  })
 
   const params = createMemo(() => ({
     height_units: heightUnits(),
@@ -27,15 +40,6 @@ function DymoLetraTagPage() {
   }))
 
   const { objects, rendering, selectedObject, toggleObject, download } = useGeometry('dymo-letratag', params)
-
-  createEffect(() => {
-    const p = params()
-    const url = new URLSearchParams()
-    if (p.height_units !== HEIGHT_UNITS_MAX) url.set('height_units', String(p.height_units))
-    if (p.split) url.set('split', 'true')
-    binHoleSettingsToUrl(url, p.holes)
-    window.history.replaceState(null, '', '?' + url.toString())
-  })
 
   return (
     <PageLayout

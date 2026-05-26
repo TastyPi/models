@@ -1,4 +1,4 @@
-import { createMemo, createSignal } from 'solid-js'
+import { createEffect, createMemo, createSignal } from 'solid-js'
 import { render } from 'solid-js/web'
 import '../index.css'
 import { PageLayout } from '../components/PageLayout'
@@ -9,8 +9,9 @@ import { SidebarSection } from '../components/SidebarSection'
 import { BinHolesSection } from '../components/BinHolesSection'
 import { DownloadFooter } from '../components/DownloadFooter'
 import { useGeometry } from '../hooks/useGeometry'
+import { createUrlSync } from '../hooks/urlSync'
 import { attribution, info, collectBitHoles, type BitZoneSettings } from '../models/ltt-screwdriver-bin'
-import { type BinHoleSettings, binHoleSettingsFromUrl, binHoleSettingsToUrl } from '../models/gridfinity-bin'
+import { type BinHoleSettings, binHoleSettingsFromUrl } from '../models/gridfinity-bin'
 
 const sp = new URLSearchParams(window.location.search)
 function urlBool(key: string, def: boolean) { const v = sp.get(key); return v !== null ? v === 'true' : def }
@@ -28,13 +29,27 @@ function urlScrewType(): 'standard' | 'stubby' {
 function LttScrewdriverBinPage() {
   const [screwType, setScrewType] = createSignal<'standard' | 'stubby'>(urlScrewType())
   const [bitHoles, setBitHoles] = createSignal(urlBool('bit_holes', false))
-  const [holeSettings, setHoleSettings] = createSignal<BinHoleSettings>(binHoleSettingsFromUrl(sp, 6.2))
+  const [holeSettings, setHoleSettings] = createSignal<BinHoleSettings>(binHoleSettingsFromUrl(sp, 6.1))
   const [zones, setZones] = createSignal<BitZoneSettings>({
     left:  urlZoneSide('zone_left'),
     right: urlZoneSide('zone_right'),
   })
 
   const bitHoleCount = createMemo(() => collectBitHoles(screwType(), zones().left, zones().right).length)
+
+  const setUrl = createUrlSync()
+
+  createEffect(() => {
+    const h = holeSettings()
+    setUrl('type', screwType() !== 'standard' ? screwType() : null)
+    setUrl('bit_holes', bitHoles() ? 'true' : null)
+    setUrl('zone_left', zones().left !== 'none' ? zones().left : null)
+    setUrl('zone_right', zones().right !== 'none' ? zones().right : null)
+    setUrl('magnet_size', h.magnet_size !== 6.1 ? String(h.magnet_size ?? 0) : null)
+    setUrl('supportless', !h.supportless ? 'false' : null)
+    setUrl('screw_holes', h.screw_holes ? 'true' : null)
+    setUrl('corner_magnets', h.corner_magnets ? 'true' : null)
+  })
 
   const params = createMemo(() => ({
     type: screwType(),
@@ -45,21 +60,8 @@ function LttScrewdriverBinPage() {
 
   const { objects, rendering, selectedObject, toggleObject, download } = useGeometry('ltt-screwdriver-bin', params)
 
-  const updateUrl = () => {
-    const p = params()
-    const url = new URLSearchParams()
-    if (p.type !== 'standard') url.set('type', p.type)
-    if (p.bitHoles)             url.set('bit_holes', 'true')
-    if (p.zones.left  !== 'none') url.set('zone_left',  p.zones.left)
-    if (p.zones.right !== 'none') url.set('zone_right', p.zones.right)
-    binHoleSettingsToUrl(url, p.holes)
-    window.history.replaceState(null, '', '?' + url.toString())
-  }
-
-  const setZone = <K extends keyof BitZoneSettings>(key: K, v: BitZoneSettings[K]) => {
+  const setZone = <K extends keyof BitZoneSettings>(key: K, v: BitZoneSettings[K]) =>
     setZones(prev => ({ ...prev, [key]: v }))
-    updateUrl()
-  }
 
   return (
     <PageLayout
@@ -78,7 +80,7 @@ function LttScrewdriverBinPage() {
         <SelectField
           label="Model"
           value={screwType()}
-          onChange={(v) => { setScrewType(v as 'standard' | 'stubby'); updateUrl() }}
+          onChange={setScrewType}
           options={[
             { value: 'standard', label: 'Standard' },
             { value: 'stubby', label: 'Stubby' },
@@ -86,11 +88,11 @@ function LttScrewdriverBinPage() {
         />
       </SidebarSection>
       <SidebarSection label="Extras" defaultOpen>
-        <BooleanField label={`Bit holes (${bitHoleCount()})`} value={bitHoles()} onChange={v => { setBitHoles(v); updateUrl() }} />
+        <BooleanField label={`Bit holes (${bitHoleCount()})`} value={bitHoles()} onChange={setBitHoles} />
         <SelectField
           label="Left groove"
           value={zones().left}
-          onChange={v => setZone('left', v as 'none' | 'extension' | 'pen')}
+          onChange={v => setZone('left', v)}
           options={[
             { value: 'none', label: 'None' },
             { value: 'extension', label: 'Shaft extension' },
@@ -100,7 +102,7 @@ function LttScrewdriverBinPage() {
         <SelectField
           label="Right groove"
           value={zones().right}
-          onChange={v => setZone('right', v as 'none' | 'extension' | 'pen')}
+          onChange={v => setZone('right', v)}
           options={[
             { value: 'none', label: 'None' },
             { value: 'extension', label: 'Shaft extension' },
@@ -108,7 +110,7 @@ function LttScrewdriverBinPage() {
           ]}
         />
       </SidebarSection>
-      <BinHolesSection value={holeSettings()} onChange={(v) => { setHoleSettings(v); updateUrl() }} />
+      <BinHolesSection value={holeSettings()} onChange={setHoleSettings} />
     </PageLayout>
   )
 }

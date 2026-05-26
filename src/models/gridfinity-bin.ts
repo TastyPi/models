@@ -101,16 +101,6 @@ export function binHoleSettingsFromUrl(sp: URLSearchParams, defaultMagnetSize: n
   }
 }
 
-export function binHoleSettingsToUrl(url: URLSearchParams, holes: BinHoleSettings, defaultMagnetSize: number | null = 6.2): void {
-  if (holes.magnet_size !== defaultMagnetSize) {
-    if (holes.magnet_size !== null) url.set('magnet_size', String(holes.magnet_size))
-    else url.set('magnet_size', '0')
-  }
-  if (!holes.supportless) url.set('supportless', 'false')
-  if (holes.screw_holes) url.set('screw_holes', 'true')
-  if ((holes.magnet_size !== null || holes.screw_holes) && holes.corner_magnets) url.set('corner_magnets', 'true')
-}
-
 type BinParams = {
   cells_x: number; cells_y: number; height_units: number
   stacking_lip: boolean
