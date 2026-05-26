@@ -28,6 +28,8 @@ Each model has four parts that must all be added together:
 | `<slug>/index.html` | Entry HTML for the page |
 | Entry in `src/models/registry.ts` | Model registry (slug, label, group) |
 | Entry in `vite.config.ts` `build.rollupOptions.input` | Vite multi-page build |
+| Entry in `src/components/IndexPage.tsx` `MODELS` array | Index page card (keep array sorted alphabetically by slug) |
+| Entry in `src/workerShared.ts` `MODELS` record | Preview worker registration |
 
 Model `generate()` functions use manifold-3d (WASM) and are not unit-tested directly. Pure utility functions (e.g. `src/screws.ts`) can be unit-tested without any special setup.
 

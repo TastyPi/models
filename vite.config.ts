@@ -20,6 +20,7 @@ export default defineConfig({
         'dymo-letratag': resolve(__dirname, 'dymo-letratag/index.html'),
         'ltt-screwdriver-bin': resolve(__dirname, 'ltt-screwdriver-bin/index.html'),
         'pole-socket':         resolve(__dirname, 'pole-socket/index.html'),
+        'aa-battery-bin':      resolve(__dirname, 'aa-battery-bin/index.html'),
       },
     },
   },

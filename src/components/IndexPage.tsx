@@ -6,6 +6,12 @@ import { VIEW_DIR, addSceneLights, setupCamera } from './sceneHelpers'
 
 const MODELS: { slug: string; label: string; description: string; params: Record<string, unknown> }[] = [
   {
+    slug: 'aa-battery-bin',
+    label: 'AA Battery Bin',
+    description: 'Gridfinity 1×1 bin (5 units tall) with cylindrical pockets for 4 or 5 AA batteries. Fits in the bottom drawer of a Halfords 3 Drawer Middle Chest.',
+    params: { holes: { magnet_size: 6.1, screw_holes: false, supportless: true, corner_magnets: false } },
+  },
+  {
     slug: 'corner-radius-gauge',
     label: 'Corner Radius Gauge',
     description: 'Set of 10 gauge tiles for corner radii from 0.5 to 5 mm in 0.5 mm steps.',
