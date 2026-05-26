@@ -50,7 +50,7 @@ const TAB_SUPPORT_ANGLE_DEG = 36
 export const TAB_SUPPORT_H = 1.2       // _tab_support_height
 export const TAB_H = Math.tan(TAB_SUPPORT_ANGLE_DEG * Math.PI / 180) * TAB_D + TAB_SUPPORT_H
 
-export const GRIDFINITY_BIN_SETTINGS: Record<string, string> = { fill_density: '10%', fill_pattern: 'rectilinear', brim_type: 'outer_only', brim_width: '5', brim_separation: '0.1' }
+export const GRIDFINITY_BIN_SETTINGS: Record<string, string> = { fill_density: '10%', fill_pattern: 'rectilinear', brim_type: 'outer_only', brim_width: '5', brim_separation: '4.5' }
 
 export const attribution: Attribution[] = [
   { name: 'Gridfinity', author: 'Zachary Freedman / Voidstar Lab', url: 'https://www.youtube.com/watch?v=ra_9zU-mnl8', license: 'MIT' },
