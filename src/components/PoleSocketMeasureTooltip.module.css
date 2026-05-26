@@ -1,0 +1,38 @@
+.wrapper {
+  display: inline-flex;
+  align-items: center;
+}
+
+.icon {
+  font-size: 14px;
+  color: #555;
+  cursor: default;
+  transition: color 0.15s;
+}
+
+.wrapper:hover .icon {
+  color: #6688cc;
+}
+
+.tooltip {
+  position: fixed;
+  transform: translateY(-50%);
+  z-index: 1000;
+  background: #141428;
+  border: 1px solid #2a2a4a;
+  border-radius: 8px;
+  padding: 8px 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.65);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s;
+}
+
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.svg {
+  display: block;
+}

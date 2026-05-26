@@ -6,6 +6,7 @@ export const MODEL_SLUGS = [
   'magnet-test',
   'dymo-letratag',
   'ltt-screwdriver-bin',
+  'pole-socket',
 ] as const
 
 export type ModelSlug = typeof MODEL_SLUGS[number]
