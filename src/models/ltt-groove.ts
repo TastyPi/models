@@ -175,8 +175,8 @@ export function buildPenGroove(zones: BitZoneSettings, binTopZ: number, geom: Bi
   const yRight = -(yCenter + PEN_NOTCH_W)
   const all: any[] = []
   for (const y of (left && right ? [yCenter, yRight] : left ? [yCenter] : [yRight])) {
-    const notchYMin = y + PEN_R
-    const notch = Manifold.cube([PEN_NOTCH_L, PEN_NOTCH_W, PEN_NOTCH_DEPTH])
+    const notchYMin = y
+    const notch = Manifold.cube([PEN_NOTCH_L, PEN_R + PEN_NOTCH_W, PEN_NOTCH_DEPTH])
       .translate([x0 + PEN_NOTCH_FROM_END, notchYMin, binTopZ - PEN_NOTCH_DEPTH])
     all.push(Manifold.union([
       makeSemiCyl(CrossSection, PEN_R, PEN_BARREL_L).translate([x0, y, binTopZ]),
