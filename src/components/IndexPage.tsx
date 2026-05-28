@@ -12,6 +12,12 @@ const MODELS: { slug: string; label: string; description: string; params: Record
     params: { holes: { magnet_size: 6.1, screw_holes: false, supportless: true, corner_magnets: false } },
   },
   {
+    slug: 'battery-tester-bin',
+    label: 'BT-168 Battery Tester Bin',
+    description: 'Gridfinity bin (3×1 cells, 6 units tall) with an exact-fit cavity for the BT-168 digital battery tester.',
+    params: { stacking_lip: false, holes: { magnet_size: 6.1, screw_holes: false, supportless: true, corner_magnets: false } },
+  },
+  {
     slug: 'corner-radius-gauge',
     label: 'Corner Radius Gauge',
     description: 'Set of 10 gauge tiles for corner radii from 0.5 to 5 mm in 0.5 mm steps.',
