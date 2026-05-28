@@ -48,6 +48,12 @@ const MODELS: { slug: string; label: string; description: string; params: Record
     },
   },
   {
+    slug: 'elmers-glue-bin',
+    label: "Elmer's Glue Bin",
+    description: "Gridfinity bin (4×2 cells) with a cradle for an Elmer's school glue 118ml bottle lying flat. Open cradle (3u) or stackable enclosed (6u).",
+    params: { stackable: false, holes: { magnet_size: 6.1, screw_holes: false, supportless: true, corner_magnets: false } },
+  },
+  {
     slug: 'ltt-screwdriver-bin',
     label: 'LTT Screwdriver Bin',
     description: 'Gridfinity bin with an exact-fit cavity for the LTT Standard (6×1 cells) or Stubby (3×2 cells) screwdriver.',

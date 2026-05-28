@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cross-Section Debug</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #12121f; color: #ccc; font-family: sans-serif; padding: 20px; }
+    h2 { margin: 0 0 4px; font-size: 18px; }
+    p.sub { margin: 0 0 16px; font-size: 12px; color: #888; }
+    .controls { display: flex; gap: 32px; margin-bottom: 16px; flex-wrap: wrap; align-items: flex-end; }
+    .control { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+    .control span { color: #aaa; }
+    .hint { font-size: 11px; color: #666; }
+    input[type=range] { width: 200px; }
+    svg { display: block; border: 1px solid #333; background: #1a1a2e; }
+    .legend { display: flex; gap: 20px; margin-top: 10px; font-size: 12px; align-items: center; }
+    .swatch { width: 24px; height: 3px; display: inline-block; vertical-align: middle; margin-right: 4px; border-radius: 2px; }
+    .cal { margin-top: 20px; }
+    .cal-label { font-size: 12px; color: #888; margin-bottom: 6px; }
+    .cal-buttons { display: flex; gap: 10px; margin-top: 8px; }
+    button { padding: 6px 16px; border: 1px solid #444; background: #2a2a3e; color: #ccc; border-radius: 4px; cursor: pointer; font-size: 13px; }
+    button:hover { background: #3a3a5e; }
+    button.done { border-color: #4a8; color: #4a8; }
+    #calStatus { font-size: 12px; color: #666; margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <h2>Bottle cross-section — 63 × 29 mm</h2>
+  <p class="sub">
+    Step 1: calibrate using the gray bar — hold your 63mm bottle widthwise against it and click the buttons.<br>
+    Step 2: hold the bottle end-on and drag <em>n</em> until the red curve matches.
+  </p>
+
+  <div class="controls">
+    <div class="control">
+      <span>Superellipse n — <strong id="nVal">4.0</strong></span>
+      <input type="range" id="nSlider" min="2" max="10" step="0.1" value="4.0">
+      <span class="hint">2 = ellipse · 4 = squircle-ish · ∞ = rectangle</span>
+    </div>
+  </div>
+
+  <svg id="svg"></svg>
+
+  <div class="legend">
+    <div><span class="swatch" style="background:#4488ff"></span>Ellipse (n = 2)</div>
+    <div><span class="swatch" style="background:#ff5555"></span>Superellipse (n = <span id="nLabel">4.0</span>)</div>
+  </div>
+
+  <h2 style="margin-top:32px">Bottle profile — 146 × 63 mm</h2>
+  <p class="sub">Hold the bottle flat (lying on its side) against this outline to compare overall shape.</p>
+  <svg id="profile"></svg>
+  <div class="legend">
+    <div><span class="swatch" style="background:#aaaaaa"></span>Bottle outline (side view)</div>
+  </div>
+
+  <script>
+    const MAJOR = 63, MINOR = 29
+    const a = MAJOR / 2, b = MINOR / 2
+    const PAD = 15
+    const W_MM = MAJOR + PAD * 2
+    const H_MM = MINOR + PAD * 2
+    const cx = W_MM / 2, cy = H_MM / 2
+
+    const pxPerMm = 6.786  // calibrated for this screen (3840×2560 @ 290mm)
+
+    const svg = document.getElementById('svg')
+    svg.setAttribute('viewBox', `0 0 ${W_MM} ${H_MM}`)
+
+    function ns(tag) { return document.createElementNS('http://www.w3.org/2000/svg', tag) }
+
+    function superellipsePoints(rx, ry, n, segs = 256) {
+      const pts = []
+      for (let i = 0; i < segs; i++) {
+        const θ = (2 * Math.PI * i) / segs
+        const cosθ = Math.cos(θ), sinθ = Math.sin(θ)
+        const x = cx + rx * Math.sign(cosθ) * Math.pow(Math.abs(cosθ), 2 / n)
+        const y = cy + ry * Math.sign(sinθ) * Math.pow(Math.abs(sinθ), 2 / n)
+        pts.push(`${x.toFixed(3)},${y.toFixed(3)}`)
+      }
+      return pts
+    }
+
+    function makePath(pts, color, width) {
+      const el = ns('path')
+      el.setAttribute('d', 'M ' + pts.join(' L ') + ' Z')
+      el.setAttribute('fill', 'none')
+      el.setAttribute('stroke', color)
+      el.setAttribute('stroke-width', width)
+      return el
+    }
+
+    function render() {
+      svg.setAttribute('width',  (W_MM * pxPerMm).toFixed(1))
+      svg.setAttribute('height', (H_MM * pxPerMm).toFixed(1))
+      const n = parseFloat(document.getElementById('nSlider').value)
+      document.getElementById('nVal').textContent   = n.toFixed(1)
+      document.getElementById('nLabel').textContent = n.toFixed(1)
+
+      svg.innerHTML = ''
+
+      // Reference bar: exactly MAJOR mm wide
+      const barY = 3, barH = 2
+      const bar = ns('rect')
+      bar.setAttribute('x', cx - a); bar.setAttribute('y', barY)
+      bar.setAttribute('width', MAJOR); bar.setAttribute('height', barH)
+      bar.setAttribute('fill', '#555')
+      svg.appendChild(bar)
+      const lbl = ns('text')
+      lbl.setAttribute('x', cx); lbl.setAttribute('y', barY + barH + 3)
+      lbl.setAttribute('text-anchor', 'middle'); lbl.setAttribute('fill', '#888')
+      lbl.setAttribute('font-size', '3'); lbl.textContent = '← 63 mm →'
+      svg.appendChild(lbl)
+
+      // Grid every 5 mm
+      for (let x = 0; x <= W_MM; x += 5) {
+        const l = ns('line')
+        l.setAttribute('x1', x); l.setAttribute('x2', x)
+        l.setAttribute('y1', 0); l.setAttribute('y2', H_MM)
+        l.setAttribute('stroke', x % 10 === 0 ? '#2a2a40' : '#1e1e30')
+        l.setAttribute('stroke-width', x % 10 === 0 ? 0.3 : 0.15)
+        svg.appendChild(l)
+      }
+      for (let y = 0; y <= H_MM; y += 5) {
+        const l = ns('line')
+        l.setAttribute('x1', 0); l.setAttribute('x2', W_MM)
+        l.setAttribute('y1', y); l.setAttribute('y2', y)
+        l.setAttribute('stroke', y % 10 === 0 ? '#2a2a40' : '#1e1e30')
+        l.setAttribute('stroke-width', y % 10 === 0 ? 0.3 : 0.15)
+        svg.appendChild(l)
+      }
+
+      svg.appendChild(makePath(superellipsePoints(a, b, 2), '#4488ff', 0.4))
+      svg.appendChild(makePath(superellipsePoints(a, b, n), '#ff5555', 0.5))
+    }
+
+    document.getElementById('nSlider').addEventListener('input', render)
+    render()
+
+    // Bottle profile (side view, lying flat)
+    const BODY_LEN = 100, BODY_W = 63
+    const NECK_LEN = 18, NECK_W = 28
+    const NOZZLE_LEN = 20.5, NOZZLE_W = 15  // cylinder only; dome radius = 7.5
+    const DOME_R = NOZZLE_W / 2
+    const TOTAL_LEN = BODY_LEN + NECK_LEN + NOZZLE_LEN + DOME_R  // 146mm
+    const P_PAD = 10
+    const PW = TOTAL_LEN + P_PAD * 2   // 166mm
+    const PH = BODY_W + P_PAD * 2       // 83mm
+    const pcx = P_PAD + TOTAL_LEN / 2  // horizontal center of bottle in SVG
+    const pcy = PH / 2                  // vertical center
+
+    // X positions of key transitions (relative to bottle center)
+    const xBodyL   = -TOTAL_LEN / 2                                  // -73
+    const xShoulder = xBodyL + BODY_LEN                              // +27
+    const xNeckEnd  = xShoulder + NECK_LEN                          // +45
+    const xDomeCtr  = xNeckEnd + NOZZLE_LEN                         // +65.5
+
+    function p(x, y) { return `${(pcx + x).toFixed(2)},${(pcy + y).toFixed(2)}` }
+
+    const halfBody = BODY_W / 2, halfNeck = NECK_W / 2, halfNozzle = NOZZLE_W / 2
+
+    // Outline path clockwise from bottom-left
+    const d = [
+      `M ${p(xBodyL, halfBody)}`,
+      `L ${p(xShoulder, halfBody)}`,
+      `L ${p(xShoulder, halfNeck)}`,
+      `L ${p(xNeckEnd, halfNeck)}`,
+      `L ${p(xNeckEnd, halfNozzle)}`,
+      `L ${p(xDomeCtr, halfNozzle)}`,
+      // Dome: semicircle from bottom to top, curving right (sweep=0 = CCW in Y-down = rightward)
+      `A ${DOME_R},${DOME_R} 0 0,0 ${p(xDomeCtr, -halfNozzle)}`,
+      `L ${p(xNeckEnd, -halfNozzle)}`,
+      `L ${p(xNeckEnd, -halfNeck)}`,
+      `L ${p(xShoulder, -halfNeck)}`,
+      `L ${p(xShoulder, -halfBody)}`,
+      `L ${p(xBodyL, -halfBody)}`,
+      'Z',
+    ].join(' ')
+
+    const profile = document.getElementById('profile')
+    profile.setAttribute('viewBox', `0 0 ${PW} ${PH}`)
+    profile.setAttribute('width',  (PW * pxPerMm).toFixed(1))
+    profile.setAttribute('height', (PH * pxPerMm).toFixed(1))
+
+    // Grid
+    for (let x = 0; x <= PW; x += 5) {
+      const l = ns('line')
+      l.setAttribute('x1', x); l.setAttribute('x2', x)
+      l.setAttribute('y1', 0); l.setAttribute('y2', PH)
+      l.setAttribute('stroke', x % 10 === 0 ? '#2a2a40' : '#1e1e30')
+      l.setAttribute('stroke-width', x % 10 === 0 ? 0.3 : 0.15)
+      profile.appendChild(l)
+    }
+    for (let y = 0; y <= PH; y += 5) {
+      const l = ns('line')
+      l.setAttribute('x1', 0); l.setAttribute('x2', PW)
+      l.setAttribute('y1', y); l.setAttribute('y2', y)
+      l.setAttribute('stroke', y % 10 === 0 ? '#2a2a40' : '#1e1e30')
+      l.setAttribute('stroke-width', y % 10 === 0 ? 0.3 : 0.15)
+      profile.appendChild(l)
+    }
+
+    const outline = ns('path')
+    outline.setAttribute('d', d)
+    outline.setAttribute('fill', 'none')
+    outline.setAttribute('stroke', '#aaaaaa')
+    outline.setAttribute('stroke-width', '0.15')
+    profile.appendChild(outline)
+  </script>
+</body>
+</html>

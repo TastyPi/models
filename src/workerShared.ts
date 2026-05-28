@@ -10,6 +10,7 @@ import * as dymoLetraTag from './models/dymo-letratag'
 import * as lttScrewdriverBin from './models/ltt-screwdriver-bin'
 import * as poleSocket from './models/pole-socket'
 import * as aaBatteryBin from './models/aa-battery-bin'
+import * as elmersGlueBin from './models/elmers-glue-bin'
 import type { RawMesh, GeomResult, ObjGeom, PreviewMesh } from './types'
 import type { ModelSlug } from './models/registry'
 
@@ -25,6 +26,7 @@ export const MODELS: Record<ModelSlug, {
   'ltt-screwdriver-bin':  { generate: lttScrewdriverBin.generate },
   'pole-socket':          { generate: poleSocket.generate },
   'aa-battery-bin':       { generate: aaBatteryBin.generate },
+  'elmers-glue-bin':      { generate: elmersGlueBin.generate },
 }
 
 export function buildPreviewMeshes(obj: ObjGeom): PreviewMesh['meshes'] {

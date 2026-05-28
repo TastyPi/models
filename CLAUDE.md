@@ -38,7 +38,12 @@ Model `generate()` functions use manifold-3d (WASM) and are not unit-tested dire
 - Test files live alongside source as `<name>.test.ts`
 - **When fixing a bug or issue, always write a test that covers the fix**
 
+## Verifying models
+
+Models are 3D geometry rendered in the browser. To verify a model, ask the user to open the dev server URL and visually inspect it — do not attempt to use Playwright, headless browsers, or screenshot tools.
+
 ## Code style
 
 - No comments unless the WHY is non-obvious
 - Use CSS `:hover`/transitions for visual behaviour, not JS event handlers
+- Always use standard field components (`BooleanField`, `NumberSlider`, `SelectField`) for page inputs — no raw `<input>` elements or inline styles. If no existing component fits, create a new one with a co-located `*.module.css` file.
