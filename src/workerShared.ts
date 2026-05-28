@@ -11,6 +11,7 @@ import * as lttScrewdriverBin from './models/ltt-screwdriver-bin'
 import * as poleSocket from './models/pole-socket'
 import * as aaBatteryBin from './models/aa-battery-bin'
 import * as elmersGlueBin from './models/elmers-glue-bin'
+import * as batteryTesterBin from './models/battery-tester-bin'
 import type { RawMesh, GeomResult, ObjGeom, PreviewMesh } from './types'
 import type { ModelSlug } from './models/registry'
 
@@ -27,6 +28,7 @@ export const MODELS: Record<ModelSlug, {
   'pole-socket':          { generate: poleSocket.generate },
   'aa-battery-bin':       { generate: aaBatteryBin.generate },
   'elmers-glue-bin':      { generate: elmersGlueBin.generate },
+  'battery-tester-bin':   { generate: batteryTesterBin.generate },
 }
 
 export function buildPreviewMeshes(obj: ObjGeom): PreviewMesh['meshes'] {

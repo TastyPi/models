@@ -11,7 +11,7 @@
 ## Commands
 
 ```bash
-yarn dev          # start dev server at http://localhost:5173
+yarn dev          # start dev server (port varies per worktree)
 yarn build        # type-check + production build
 yarn test         # run unit tests (watch mode)
 yarn test --run   # run unit tests once

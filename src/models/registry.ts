@@ -9,6 +9,7 @@ export const MODEL_SLUGS = [
   'pole-socket',
   'aa-battery-bin',
   'elmers-glue-bin',
+  'battery-tester-bin',
 ] as const
 
 export type ModelSlug = typeof MODEL_SLUGS[number]
