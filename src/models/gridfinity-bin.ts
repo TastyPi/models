@@ -14,7 +14,7 @@ const H2 = H1 + 0.7                   // 1.05
 const H3 = H2 + 1.8                   // 2.85
 
 const BIN_GAP = 0.25
-const BOX_OUTER_R = OUTER_R - BIN_GAP  // 3.75
+export const BOX_OUTER_R = OUTER_R - BIN_GAP  // 3.75
 export const HEIGHT_UNIT = 7
 const WALL_THICK = 1.2
 export const FLOOR_THICK = 1.2
@@ -391,18 +391,36 @@ export type FilledBinParams = {
   cell_size?: number
 }
 
-export function buildBinFillManifold(p: FilledBinParams, fillTopZ?: number): any {
+export function buildCellPosts(cellXC: number[], cellYC: number[], cell = CELL): any {
+  const { Manifold, CrossSection } = getManifold()
+  const coreHalf = cell / 2 - OUTER_R
+  const postCS = (r: number) =>
+    CrossSection.square([2 * coreHalf, 2 * coreHalf], true).offset(r - BIN_GAP)
+  const postSlab = (r: number, cx: number, cy: number, z: number): any =>
+    postCS(r).extrude(0.01).translate([cx, cy, z])
+  const cellPost = (cx: number, cy: number): any => Manifold.union([
+    Manifold.hull([postSlab(R1 - 0.5, cx, cy, 0), postSlab(R1,      cx, cy, H1)]),
+    Manifold.hull([postSlab(R1,       cx, cy, H1), postSlab(R2,      cx, cy, H2)]),
+    postCS(R2).extrude(H3 - H2).translate([cx, cy, H2]),
+    Manifold.hull([postSlab(R2,       cx, cy, H3), postSlab(OUTER_R, cx, cy, BASE_H)]),
+  ])
+  const all = cellXC.flatMap(cx => cellYC.map(cy => cellPost(cx, cy)))
+  return all.length === 0 ? null : Manifold.union(all)
+}
+
+export function buildBinFillManifold(p: FilledBinParams, fillTopZ?: number, fillBottomZ?: number): any {
   const { cells_x, cells_y, height_units } = p
   const { CrossSection } = getManifold()
   const cell = p.cell_size ?? CELL
   const nominalH = height_units * HEIGHT_UNIT
-  const fillH = Math.min(fillTopZ ?? nominalH, nominalH) - BASE_H - FLOOR_THICK
+  const startZ = Math.max(fillBottomZ ?? (BASE_H + FLOOR_THICK), BASE_H + FLOOR_THICK)
+  const fillH = Math.min(fillTopZ ?? nominalH, nominalH) - startZ
   if (fillH <= 0) return null
   const sqW = cells_x * cell - 2 * OUTER_R
   const sqD = cells_y * cell - 2 * OUTER_R
   const innerCS = CrossSection.square([sqW, sqD], true)
     .offset(Math.max(0.01, BOX_OUTER_R - WALL_THICK))
-  return innerCS.extrude(fillH).translate([0, 0, BASE_H + FLOOR_THICK])
+  return innerCS.extrude(fillH).translate([0, 0, startZ])
 }
 
 export function buildFilledBinManifold(p: FilledBinParams, fillTopZ?: number): any {

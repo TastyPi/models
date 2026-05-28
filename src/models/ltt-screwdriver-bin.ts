@@ -1,10 +1,10 @@
 import { getManifold, manifoldToBufferGeometry } from '../manifold'
 import type { Attribution, GeomResult, RawMesh } from '../types'
 import {
-  BASE_H, FLOOR_THICK, HEIGHT_UNIT,
+  BASE_H, FLOOR_THICK, HEIGHT_UNIT, CELL, BOX_OUTER_R,
   GRIDFINITY_BIN_SETTINGS,
   attribution as gridfinityAttribution, type BinHoleSettings,
-  buildBinManifold, buildBinFillManifold,
+  buildBinManifold, buildBinFillManifold, buildCellPosts,
 } from './gridfinity-bin'
 import {
   BIT_DEPTH, BIT_R, BIT_PITCH_LONG, BIT_PITCH_SHORT,
@@ -409,7 +409,7 @@ async function loadMesh(filename: string): Promise<RawMesh> {
   return mesh
 }
 
-export function info(type: 'standard' | 'stubby', zones?: BitZoneSettings): string {
+export function info(type: 'standard' | 'stubby', zones?: BitZoneSettings, lower_units = 0): string {
   const hasPenSide   = zones?.left === 'pen'       || zones?.right === 'pen'
   const hasExtension = zones?.left === 'extension'  || zones?.right === 'extension'
   const cx = type === 'standard'
@@ -420,7 +420,8 @@ export function info(type: 'standard' | 'stubby', zones?: BitZoneSettings): stri
   const w = cx * 42 - 2 * 0.25
   const d = cy * 42 - 2 * 0.25
   const h = hu * HEIGHT_UNIT
-  return `${cx}×${cy}, ${hu}u — ${w} × ${d} × ${h} mm`
+  const clearance = lower_units > 0 ? `, ${lower_units * HEIGHT_UNIT}mm shaft clearance` : ''
+  return `${cx}×${cy}, ${hu}u — ${w} × ${d} × ${h} mm${clearance}`
 }
 
 export async function generate(p: {
@@ -428,6 +429,7 @@ export async function generate(p: {
   holes: BinHoleSettings
   zones?: BitZoneSettings
   bitHoles?: boolean
+  lower_units?: number
 }): Promise<GeomResult> {
   const { Manifold, Mesh } = getManifold()
 
@@ -439,6 +441,7 @@ export async function generate(p: {
     : (hasPenSide ? 7 : STANDARD_CELLS_X)
   const cells_y = isStubby ? STUBBY_CELLS_Y : STANDARD_CELLS_Y
   const height_units = isStubby ? STUBBY_HEIGHT_UNITS : STANDARD_HEIGHT_UNITS
+  const lower_units = p.lower_units ?? 0
 
   const rawMesh = await loadMesh(isStubby ? 'ltt-stubby.bin' : 'ltt-screwdriver.bin')
   const cavity = new Manifold(new Mesh(rawMesh))
@@ -486,7 +489,41 @@ export async function generate(p: {
   if (filledWithCuts && bitHoles)   filledWithCuts = filledWithCuts.subtract(bitHoles)
   if (filledWithCuts && extensions) filledWithCuts = filledWithCuts.subtract(extensions)
   if (filledWithCuts && penGroove)  filledWithCuts = filledWithCuts.subtract(penGroove)
-  const bin = filledWithCuts ? binShell.add(filledWithCuts) : binShell
+  let bin = filledWithCuts ? binShell.add(filledWithCuts) : binShell
+
+  // Cut away the lower portion of the shaft side and replace with raised base posts
+  // so a companion bin can stack below. cutH = BASE_H + lower_units*HEIGHT_UNIT so
+  // the shaft posts sit exactly at the top of a lower_units-tall companion bin.
+  // The cut snaps to a whole number of gridfinity cells so the raised section length
+  // is always a clean multiple of CELL.
+  if (lower_units > 0) {
+    const cutH = BASE_H + lower_units * HEIGHT_UNIT
+    const nShaftCells = Math.round((outerHalfX - zoneGeom.shaftBaseX) / CELL) - (lower_units >= 2 ? 1 : 0)
+    const cutX = outerHalfX - nShaftCells * CELL
+    const halfY = cells_y * CELL / 2 + 1
+    const shaftCutout = Manifold.cube([outerHalfX - cutX + 1, halfY * 2, cutH])
+      .translate([cutX, -halfY, 0])
+    bin = bin.subtract(shaftCutout)
+
+    // Round the two outer corners where the handle-side lower base meets the raised step.
+    // At each corner (cutX, ±binOuterHalfY): subtract (corner box − quarter cylinder).
+    const r = BOX_OUTER_R
+    const binOuterHalfY = cells_y * CELL / 2 - 0.25
+    const cornerAnchorY = binOuterHalfY - r
+    for (const signY of [1, -1]) {
+      const boxStartY = signY > 0 ? cornerAnchorY : -binOuterHalfY
+      const cornerBox = Manifold.cube([r, r, cutH]).translate([cutX - r, boxStartY, 0])
+      const cornerCyl = Manifold.cylinder(cutH + 0.02, r, r, 32)
+        .translate([cutX - r, signY * cornerAnchorY, -0.01])
+      bin = bin.subtract(cornerBox.subtract(cornerCyl))
+    }
+
+    // Add gridfinity base posts (no holes) on the underside of the raised shaft floor.
+    const allCellXC = Array.from({ length: cells_x }, (_, i) => (i - (cells_x - 1) / 2) * CELL)
+    const shaftCellXC = allCellXC.filter(cx => cx > cutX)
+    const shaftPosts = buildCellPosts(shaftCellXC, [0])
+    if (shaftPosts) bin = bin.add(shaftPosts.translate([0, 0, lower_units * HEIGHT_UNIT]))
+  }
 
   const label = isStubby ? 'LTT Stubby Bin' : 'LTT Screwdriver Bin'
   return {

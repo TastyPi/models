@@ -5,6 +5,7 @@ import { PageLayout } from '../components/PageLayout'
 import { ModelInfo } from '../components/ModelInfo'
 import { SelectField } from '../components/SelectField'
 import { BooleanField } from '../components/BooleanField'
+import { NumberSlider } from '../components/NumberSlider'
 import { SidebarSection } from '../components/SidebarSection'
 import { BinHolesSection } from '../components/BinHolesSection'
 import { DownloadFooter } from '../components/DownloadFooter'
@@ -26,9 +27,16 @@ function urlScrewType(): 'standard' | 'stubby' {
   return sp.get('type') === 'stubby' ? 'stubby' : 'standard'
 }
 
+function urlInt(key: string, def: number): number {
+  const v = sp.get(key)
+  const n = v !== null ? parseInt(v, 10) : NaN
+  return isNaN(n) ? def : n
+}
+
 function LttScrewdriverBinPage() {
   const [screwType, setScrewType] = createSignal<'standard' | 'stubby'>(urlScrewType())
   const [bitHoles, setBitHoles] = createSignal(urlBool('bit_holes', false))
+  const [lowerUnits, setLowerUnits] = createSignal(urlInt('lower_units', 0))
   const [holeSettings, setHoleSettings] = createSignal<BinHoleSettings>(binHoleSettingsFromUrl(sp, 6.1))
   const [zones, setZones] = createSignal<BitZoneSettings>({
     left:  urlZoneSide('zone_left'),
@@ -43,6 +51,7 @@ function LttScrewdriverBinPage() {
     const h = holeSettings()
     setUrl('type', screwType() !== 'standard' ? screwType() : null)
     setUrl('bit_holes', bitHoles() ? 'true' : null)
+    setUrl('lower_units', lowerUnits() !== 0 ? String(lowerUnits()) : null)
     setUrl('zone_left', zones().left !== 'none' ? zones().left : null)
     setUrl('zone_right', zones().right !== 'none' ? zones().right : null)
     setUrl('magnet_size', h.magnet_size !== 6.1 ? String(h.magnet_size ?? 0) : null)
@@ -56,6 +65,7 @@ function LttScrewdriverBinPage() {
     holes: holeSettings(),
     zones: zones(),
     bitHoles: bitHoles(),
+    lower_units: lowerUnits(),
   }))
 
   const { objects, rendering, selectedObject, toggleObject, download } = useGeometry('ltt-screwdriver-bin', params)
@@ -69,7 +79,7 @@ function LttScrewdriverBinPage() {
       description="Gridfinity bin with an exact-fit cavity for the LTT Standard or Stubby screwdriver."
       attribution={attribution}
       designLicense={{ label: 'CC BY-NC 4.0', url: 'https://creativecommons.org/licenses/by-nc/4.0/' }}
-      header={<ModelInfo>{info(screwType(), zones())}</ModelInfo>}
+      header={<ModelInfo>{info(screwType(), zones(), lowerUnits())}</ModelInfo>}
       objects={objects}
       selectedObject={selectedObject}
       onObjectClick={toggleObject}
@@ -85,6 +95,12 @@ function LttScrewdriverBinPage() {
             { value: 'standard', label: 'Standard' },
             { value: 'stubby', label: 'Stubby' },
           ]}
+        />
+        <NumberSlider
+          label="Space below shaft (units)"
+          value={lowerUnits()}
+          onChange={setLowerUnits}
+          min={0} max={2} step={1} default={0}
         />
       </SidebarSection>
       <SidebarSection label="Extras" defaultOpen>
