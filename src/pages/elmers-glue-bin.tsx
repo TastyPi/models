@@ -3,8 +3,8 @@ import { render } from 'solid-js/web'
 import '../index.css'
 import { PageLayout } from '../components/PageLayout'
 import { ModelInfo } from '../components/ModelInfo'
-import { NumberSlider } from '../components/NumberSlider'
 import { SidebarSection } from '../components/SidebarSection'
+import { BooleanField } from '../components/BooleanField'
 import { BinHolesSection } from '../components/BinHolesSection'
 import { DownloadFooter } from '../components/DownloadFooter'
 import { useGeometry } from '../hooks/useGeometry'
@@ -13,17 +13,16 @@ import { attribution, info } from '../models/elmers-glue-bin'
 import { type BinHoleSettings, binHoleSettingsFromUrl } from '../models/gridfinity-bin'
 
 const sp = new URLSearchParams(window.location.search)
-function urlNum(key: string, def: number) { const v = sp.get(key); return v !== null ? parseFloat(v) : def }
+function urlBool(key: string, def: boolean) { const v = sp.get(key); return v !== null ? v !== 'false' : def }
 
 function ElmersGlueBinPage() {
-  const [clearance, setClearance] = createSignal(urlNum('clearance', 1.0))
+  const [stackable, setStackable] = createSignal(urlBool('stackable', false))
   const [holeSettings, setHoleSettings] = createSignal<BinHoleSettings>(binHoleSettingsFromUrl(sp, 6.1))
 
   const setUrl = createUrlSync()
 
   createEffect(() => {
     const h = holeSettings()
-    setUrl('clearance', clearance() !== 1.0 ? String(clearance()) : null)
     setUrl('magnet_size', h.magnet_size !== 6.1 ? String(h.magnet_size ?? 0) : null)
     setUrl('supportless', !h.supportless ? 'false' : null)
     setUrl('screw_holes', h.screw_holes ? 'true' : null)
@@ -31,7 +30,7 @@ function ElmersGlueBinPage() {
   })
 
   const params = createMemo(() => ({
-    clearance: clearance(),
+    stackable: stackable(),
     holes: holeSettings(),
   }))
 
@@ -42,15 +41,15 @@ function ElmersGlueBinPage() {
       title="Elmer's Glue Bin"
       description="Gridfinity bin (4×2 cells) with a cradle for an Elmer's school glue 118ml bottle lying flat."
       attribution={attribution}
-      header={<ModelInfo>{info()}</ModelInfo>}
+      header={<ModelInfo>{info(params())}</ModelInfo>}
       objects={objects}
       selectedObject={selectedObject}
       onObjectClick={toggleObject}
       rendering={rendering}
       footer={<DownloadFooter label="Download" onStl={() => download()} on3mf={() => download('3mf')} />}
     >
-      <SidebarSection label="Fit" defaultOpen>
-        <NumberSlider label="Clearance (mm)" value={clearance()} onChange={setClearance} min={0} max={3} step={0.1} />
+      <SidebarSection label="Options" defaultOpen>
+        <BooleanField label="Stackable" value={stackable()} onChange={setStackable} default={false} urlKey="stackable" />
       </SidebarSection>
       <BinHolesSection value={holeSettings()} onChange={setHoleSettings} />
     </PageLayout>

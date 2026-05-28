@@ -46,3 +46,4 @@ Models are 3D geometry rendered in the browser. To verify a model, ask the user 
 
 - No comments unless the WHY is non-obvious
 - Use CSS `:hover`/transitions for visual behaviour, not JS event handlers
+- Always use standard field components (`BooleanField`, `NumberSlider`, `SelectField`) for page inputs — no raw `<input>` elements or inline styles. If no existing component fits, create a new one with a co-located `*.module.css` file.
