@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Stanley STHT77403 — cavity shape</title>
+  <style>
+    html,body{margin:0;background:#12121f;color:#ccc;font-family:sans-serif;padding:16px;box-sizing:border-box}
+    h1{font-size:15px;font-weight:normal;margin:0 0 4px;color:#eee}
+    p{font-size:12px;margin:0 0 12px;line-height:1.5}
+    #layout{display:flex;flex-direction:row;gap:24px;align-items:flex-start}
+    #sidebar{display:flex;flex-direction:column;gap:0;width:180px;padding-top:4px;flex-shrink:0}
+    .row{display:flex;flex-direction:column;margin-bottom:14px}
+    .row label{font-size:11px;color:#aaa;margin-bottom:3px}
+    .row input[type=range]{width:100%}
+    .row .val{font-size:12px;color:#8af;font-family:monospace;margin-top:2px}
+    .fixed{font-size:12px;color:#666;font-family:monospace;margin-bottom:14px}
+    .section{font-size:11px;color:#666;margin-bottom:8px;margin-top:4px;text-transform:uppercase;letter-spacing:.05em}
+    #dims{font-size:11px;color:#555;margin-top:12px;font-family:monospace;word-break:break-all}
+    svg{display:block}
+    .dim{font-size:10px;fill:#555;font-family:sans-serif}
+  </style>
+</head>
+<body>
+  <h1>Stanley STHT77403 — cavity shape at 1:1 scale</h1>
+  <p>100% browser zoom. Lay the base of your stud finder on the outline.</p>
+  <div id="layout">
+    <div id="sidebar">
+      <div class="fixed">W = 60 mm (fixed)</div>
+      <div class="row">
+        <label>D (mm)</label>
+        <input type="range" id="D" min="120" max="155" step="0.5" value="137.5"/>
+        <div class="val" id="Dv">137.5</div>
+      </div>
+      <div class="row">
+        <label>sag X (mm)</label>
+        <input type="range" id="sagX" min="0" max="20" step="0.5" value="5.5"/>
+        <div class="val" id="sagXv">5.5</div>
+      </div>
+      <div class="row">
+        <label>sag Y (mm)</label>
+        <input type="range" id="sagY" min="0" max="20" step="0.5" value="3.5"/>
+        <div class="val" id="sagYv">3.5</div>
+      </div>
+      <div class="section">Notch (top edge)</div>
+      <div class="row">
+        <label>notch width (mm)</label>
+        <input type="range" id="notchW" min="0" max="30" step="0.5" value="8"/>
+        <div class="val" id="notchWv">8.0</div>
+      </div>
+      <div class="row">
+        <label>notch depth (mm)</label>
+        <input type="range" id="notchD" min="0" max="20" step="0.5" value="4"/>
+        <div class="val" id="notchDv">4.0</div>
+      </div>
+      <div id="dims"></div>
+    </div>
+    <svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+
+<script>
+const PX_MM = 6.786;
+const PAD   = 10 * PX_MM;
+const N     = 32;
+
+function arcFromThreePoints(p1, pm, p2, n) {
+  const [ax,ay] = p1, [bx,by] = pm, [cx,cy] = p2;
+  const D2 = 2*(ax*(by-cy)+bx*(cy-ay)+cx*(ay-by));
+  const ocx = ((ax*ax+ay*ay)*(by-cy)+(bx*bx+by*by)*(cy-ay)+(cx*cx+cy*cy)*(ay-by))/D2;
+  const ocy = ((ax*ax+ay*ay)*(cx-bx)+(bx*bx+by*by)*(ax-cx)+(cx*cx+cy*cy)*(bx-ax))/D2;
+  const R   = Math.sqrt((ax-ocx)**2+(ay-ocy)**2);
+  const a1  = Math.atan2(ay-ocy, ax-ocx);
+  const am  = Math.atan2(by-ocy, bx-ocx);
+  const a2  = Math.atan2(cy-ocy, cx-ocx);
+  let da = a2-a1; while(da> Math.PI) da-=2*Math.PI; while(da<-Math.PI) da+=2*Math.PI;
+  let dam=am-a1;  while(dam>Math.PI) dam-=2*Math.PI; while(dam<-Math.PI) dam+=2*Math.PI;
+  if(Math.sign(da)!==Math.sign(dam)) da-=Math.sign(da)*2*Math.PI;
+  return Array.from({length:n+1},(_,i)=>{const a=a1+(i/n)*da;return[ocx+R*Math.cos(a),ocy+R*Math.sin(a)];});
+}
+
+function arcSeg(p1, pm, p2) {
+  const dx=pm[0]-(p1[0]+p2[0])/2, dy=pm[1]-(p1[1]+p2[1])/2;
+  if(Math.sqrt(dx*dx+dy*dy)<1e-6)
+    return Array.from({length:N+1},(_,i)=>[p1[0]+i/N*(p2[0]-p1[0]),p1[1]+i/N*(p2[1]-p1[1])]);
+  return arcFromThreePoints(p1,pm,p2,N);
+}
+
+function buildShape(W, D, sagX, sagY, notchW, notchD) {
+  const hw=W/2, hd=D/2;
+  const cx=hw-sagX, cy=hd-sagY;
+
+  const bottom = arcSeg([-cx,-cy],[0,-hd],[cx,-cy]);
+  const right  = arcSeg([cx,-cy],[hw,0],[cx,cy]);
+  const left   = arcSeg([-cx,cy],[-hw,0],[-cx,-cy]);
+
+  // Top arc: from (cx,cy) through (0,hd) to (-cx,cy), possibly with a notch
+  let top;
+  if (notchW > 0 && notchD > 0) {
+    // Circle of the top arc (symmetric: centre at x=0)
+    // ocy from p1=(cx,cy) and pm=(0,hd) both on circle centred at (0,ocy):
+    //   cx^2 + (cy-ocy)^2 = (hd-ocy)^2
+    const ocy = (cx*cx + cy*cy - hd*hd) / (2*(cy - hd));
+    const R   = Math.abs(hd - ocy);
+    const nh  = notchW / 2;
+
+    if (nh < R) {
+      // Y on the arc at x = ±nh  (upper arc, so + sqrt)
+      const yEntry = ocy + Math.sqrt(R*R - nh*nh);
+      const rightEntry = [ nh, yEntry];
+      const leftEntry  = [-nh, yEntry];
+      const tip        = [0, hd - notchD];
+
+      // Generate full arc then split around x = nh and x = -nh
+      const full = arcFromThreePoints([cx,cy],[0,hd],[-cx,cy], N*4);
+
+      // Arc goes from x=cx → x=-cx (decreasing x)
+      // Find last index where x >= nh, and first index where x <= -nh
+      let ri = 0, li = full.length - 1;
+      for (let i = 0; i < full.length-1; i++) {
+        if (full[i][0] >= nh && full[i+1][0] < nh) ri = i;
+        if (full[i][0] >= -nh && full[i+1][0] < -nh) { li = i+1; break; }
+      }
+
+      top = [...full.slice(0, ri+1), rightEntry, tip, leftEntry, ...full.slice(li)];
+    } else {
+      top = arcSeg([cx,cy],[0,hd],[-cx,cy]);
+    }
+  } else {
+    top = arcSeg([cx,cy],[0,hd],[-cx,cy]);
+  }
+
+  const pts = [
+    ...bottom.slice(0,-1),
+    ...right.slice(0,-1),
+    ...top.slice(0,-1),
+    ...left.slice(0,-1),
+  ];
+  return pts;
+}
+
+function render(){
+  const W     = 60;
+  const D     = +document.getElementById('D').value;
+  const sagX  = +document.getElementById('sagX').value;
+  const sagY  = +document.getElementById('sagY').value;
+  const notchW= +document.getElementById('notchW').value;
+  const notchD= +document.getElementById('notchD').value;
+
+  document.getElementById('Dv').textContent    = D.toFixed(1);
+  document.getElementById('sagXv').textContent = sagX.toFixed(1);
+  document.getElementById('sagYv').textContent = sagY.toFixed(1);
+  document.getElementById('notchWv').textContent = notchW.toFixed(1);
+  document.getElementById('notchDv').textContent = notchD.toFixed(1);
+
+  const pts = buildShape(W,D,sagX,sagY,notchW,notchD);
+  const xs = pts.map(p=>p[0]), ys=pts.map(p=>p[1]);
+  const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
+  const shapeW=(maxX-minX)*PX_MM, shapeH=(maxY-minY)*PX_MM;
+  const svgW=shapeW+2*PAD, svgH=shapeH+2*PAD;
+
+  const cx=(minX+maxX)/2, cy=(minY+maxY)/2;
+  const tx=x=>(x-cx)*PX_MM+svgW/2;
+  const ty=y=>-(y-cy)*PX_MM+svgH/2;
+
+  const d='M '+pts.map(p=>tx(p[0]).toFixed(1)+','+ty(p[1]).toFixed(1)).join(' L ')+' Z';
+
+  const dimL=PAD/2;
+  const svg=document.getElementById('svg');
+  svg.setAttribute('width',svgW.toFixed(1));
+  svg.setAttribute('height',svgH.toFixed(1));
+  svg.innerHTML=`
+    <path d="${d}" fill="none" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
+    <line x1="${(svgW/2-shapeW/2).toFixed(1)}" y1="${dimL.toFixed(1)}" x2="${(svgW/2+shapeW/2).toFixed(1)}" y2="${dimL.toFixed(1)}" stroke="#444" stroke-width="1"/>
+    <line x1="${(svgW/2-shapeW/2).toFixed(1)}" y1="${(dimL-5).toFixed(1)}" x2="${(svgW/2-shapeW/2).toFixed(1)}" y2="${(dimL+5).toFixed(1)}" stroke="#444" stroke-width="1"/>
+    <line x1="${(svgW/2+shapeW/2).toFixed(1)}" y1="${(dimL-5).toFixed(1)}" x2="${(svgW/2+shapeW/2).toFixed(1)}" y2="${(dimL+5).toFixed(1)}" stroke="#444" stroke-width="1"/>
+    <text x="${(svgW/2).toFixed(1)}" y="${(dimL-8).toFixed(1)}" text-anchor="middle" class="dim">${(maxX-minX).toFixed(1)} mm</text>
+    <line x1="${(svgW-dimL).toFixed(1)}" y1="${(svgH/2-shapeH/2).toFixed(1)}" x2="${(svgW-dimL).toFixed(1)}" y2="${(svgH/2+shapeH/2).toFixed(1)}" stroke="#444" stroke-width="1"/>
+    <line x1="${(svgW-dimL-5).toFixed(1)}" y1="${(svgH/2-shapeH/2).toFixed(1)}" x2="${(svgW-dimL+5).toFixed(1)}" y2="${(svgH/2-shapeH/2).toFixed(1)}" stroke="#444" stroke-width="1"/>
+    <line x1="${(svgW-dimL-5).toFixed(1)}" y1="${(svgH/2+shapeH/2).toFixed(1)}" x2="${(svgW-dimL+5).toFixed(1)}" y2="${(svgH/2+shapeH/2).toFixed(1)}" stroke="#444" stroke-width="1"/>
+    <text x="${(svgW-dimL+4).toFixed(1)}" y="${(svgH/2).toFixed(1)}" dominant-baseline="middle" class="dim">${(maxY-minY).toFixed(1)} mm</text>
+  `;
+  document.getElementById('dims').textContent=
+    `W=60 D=${D} sagX=${sagX} sagY=${sagY} notchW=${notchW} notchD=${notchD}`;
+}
+
+['D','sagX','sagY','notchW','notchD'].forEach(id=>document.getElementById(id).addEventListener('input',render));
+render();
+</script>
+</body>
+</html>

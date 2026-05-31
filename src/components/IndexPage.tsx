@@ -78,6 +78,12 @@ const MODELS: { slug: string; label: string; description: string; params: Record
     params: { thread_diameter: 30, thread_root_diameter: 26, thread_pitch: 5, thread_ridge_root: 2.5, thread_ridge_peak: 2.5, thread_length: 30, tolerance: 0.4, wall_thickness: 5, floor_thickness: 3 },
   },
   {
+    slug: 'stanley-stud-finder-bin',
+    label: 'Stanley Stud Finder Bin',
+    description: 'Gridfinity bin (2×4 cells) with an exact-fit cavity for the Stanley stud finder.',
+    params: { stackable: false, holes: { magnet_size: null, screw_holes: false, supportless: true, corner_magnets: false } },
+  },
+  {
     slug: 'wall-hook',
     label: 'Wall Hook',
     description: 'Triangular prism hook. Side (a) mounts against the wall with screw holes, side (b) is the hook arm with a retention lip, side (c) is the hypotenuse — print flat on side (c), no supports needed.',
