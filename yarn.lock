@@ -1640,7 +1640,7 @@ __metadata:
     "@types/three": "npm:^0.184.1"
     manifold-3d: "npm:^3.5.1"
     solid-js: "npm:^1.9.14"
-    three: "npm:^0.184.0"
+    three: "npm:^0.185.1"
     typescript: "npm:~6.0.2"
     vite: "npm:^8.1.3"
     vite-plugin-solid: "npm:^2.11.12"
@@ -2138,10 +2138,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"three@npm:^0.184.0":
-  version: 0.184.0
-  resolution: "three@npm:0.184.0"
-  checksum: 10/a79a18747a064d94b01c56205d9c381b1e935e8d14389b484ee38c4d330c85e5e797b97efdfd3e139451997bc88e4984f37b8e151c6dce57eccaf2086777b6e2
+"three@npm:^0.185.1":
+  version: 0.185.1
+  resolution: "three@npm:0.185.1"
+  checksum: 10/517c6f82ef9e8f10a114bbd349066d65ac55a97e8d9e4cd52c7da4014c646c3d0a335718d69c84d80c7e209769b3cff0cc68de922e2c207c227ca17733b72323
   languageName: node
   linkType: hard
 
