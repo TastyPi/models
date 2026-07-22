@@ -15,11 +15,11 @@
     "@sinclair/typebox": "^0.34.52",
     "manifold-3d": "^3.5.1",
     "solid-js": "^1.9.14",
-    "three": "^0.184.0"
+    "three": "^0.185.1"
   },
   "devDependencies": {
     "@types/node": "^26.1.1",
-    "@types/three": "^0.184.1",
+    "@types/three": "^0.185.1",
     "typescript": "~6.0.2",
     "vite": "^8.1.5",
     "vite-plugin-solid": "^2.11.13",
