@@ -1643,7 +1643,7 @@ __metadata:
     three: "npm:^0.184.0"
     typescript: "npm:~6.0.2"
     vite: "npm:^8.1.5"
-    vite-plugin-solid: "npm:^2.11.12"
+    vite-plugin-solid: "npm:^2.11.13"
     vitest: "npm:^4.1.10"
   languageName: unknown
   linkType: soft
@@ -2255,9 +2255,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vite-plugin-solid@npm:^2.11.12":
-  version: 2.11.12
-  resolution: "vite-plugin-solid@npm:2.11.12"
+"vite-plugin-solid@npm:^2.11.13":
+  version: 2.11.13
+  resolution: "vite-plugin-solid@npm:2.11.13"
   dependencies:
     "@babel/core": "npm:^7.23.3"
     "@types/babel__core": "npm:^7.20.4"
@@ -2268,11 +2268,11 @@ __metadata:
   peerDependencies:
     "@testing-library/jest-dom": ^5.16.6 || ^5.17.0 || ^6.*
     solid-js: ^1.7.2
-    vite: ^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0
+    vite: ^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0 || ^9.0.0
   peerDependenciesMeta:
     "@testing-library/jest-dom":
       optional: true
-  checksum: 10/fee4235f630605c8ce830757c8cabcc3805fd0afe0b6b53c3d687b6bb900914de8ba72785df9c38c4e33ce84f7b6f409ce982af8793b6c7a5050118ae05268d7
+  checksum: 10/b411a3c33f1afc9f36818282c9cb2d620bfd5961d7e4bc7b0fead06b79afa9daa54128ef1b4d533b333398fb33bf1906d72015a94a939c0055f0130e5250af0c
   languageName: node
   linkType: hard
 
