@@ -1699,7 +1699,7 @@ __metadata:
     "@types/node": "npm:^26.2.0"
     "@types/three": "npm:^0.184.1"
     manifold-3d: "npm:^3.5.1"
-    solid-js: "npm:^1.9.14"
+    solid-js: "npm:^1.9.15"
     three: "npm:^0.184.0"
     typescript: "npm:~6.0.2"
     vite: "npm:^8.2.1"
@@ -2137,14 +2137,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"solid-js@npm:^1.9.14":
-  version: 1.9.14
-  resolution: "solid-js@npm:1.9.14"
+"solid-js@npm:^1.9.15":
+  version: 1.9.15
+  resolution: "solid-js@npm:1.9.15"
   dependencies:
     csstype: "npm:^3.1.0"
     seroval: "npm:~1.5.4"
     seroval-plugins: "npm:~1.5.4"
-  checksum: 10/1d379de1bf03046417cf9456a69bc034b00ab09bb707fba6ebae64d7c41d71dd3f05b290dc3326da7c6dff2ef59ec702976aecb841899b8246a831ed9fd4d64d
+  checksum: 10/1a72e6e85b8db7912dd8c6b3525c4073e8b3fe27bd5b9170ffd1d23a109beaaa9463eb7e789b7b1867b556c18b0ca2c11c6d62bc233edf2ac8199e3881da76f2
   languageName: node
   linkType: hard
 
