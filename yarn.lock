@@ -1311,9 +1311,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"manifold-3d@npm:^3.5.4":
-  version: 3.5.4
-  resolution: "manifold-3d@npm:3.5.4"
+"manifold-3d@npm:^3.5.5":
+  version: 3.5.5
+  resolution: "manifold-3d@npm:3.5.5"
   dependencies:
     "@gltf-transform/core": "npm:^4.2.0"
     "@gltf-transform/extensions": "npm:^4.2.0"
@@ -1333,7 +1333,7 @@ __metadata:
     esbuild-wasm: ^0.27.3
   bin:
     manifold-cad: bin/manifold-cad
-  checksum: 10/e33e742037e5ed0203996dee84681148a94b86ad6f2625c0e06afc1e19a30c4936689546bc716265ee975fd77f868ebb9e46699832da150fdbd3c77dc49ebc0b
+  checksum: 10/2626a7c8d27627a7dfd9a356b22b54c39287e130b7ef1d8545aa1a65e6a906808c0f6719c99e97a51ee4323a203cb0988e6d5ad9605937b99882305fa1b47ccb
   languageName: node
   linkType: hard
 
@@ -1376,7 +1376,7 @@ __metadata:
     "@sinclair/typebox": "npm:^0.34.52"
     "@types/node": "npm:^26.6.6"
     "@types/three": "npm:^0.184.1"
-    manifold-3d: "npm:^3.5.4"
+    manifold-3d: "npm:^3.5.5"
     solid-js: "npm:^1.9.18"
     three: "npm:^0.184.0"
     typescript: "npm:~6.0.2"
