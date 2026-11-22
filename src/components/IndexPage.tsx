@@ -84,6 +84,12 @@ const MODELS: { slug: string; label: string; description: string; params: Record
     params: { holes: { magnet_size: 6.1, screw_holes: false, supportless: true, corner_magnets: false } },
   },
   {
+    slug: 'scktt02-bin',
+    label: 'SCKTT02 Socket Tester Bin',
+    description: 'Gridfinity 2×2 bin with a round pocket for the LAP SCKTT02 socket tester.',
+    params: { height_units: 3, holes: { magnet_size: 6.1, screw_holes: false, supportless: true, corner_magnets: false } },
+  },
+  {
     slug: 'stanley-stud-finder-bin',
     label: 'Stanley Stud Finder Bin',
     description: 'Gridfinity bin (2×4 cells) with an exact-fit cavity for the Stanley stud finder.',

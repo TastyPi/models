@@ -12,6 +12,7 @@ export const MODEL_SLUGS = [
   'battery-tester-bin',
   'stanley-stud-finder-bin',
   'rsc-x2-2-bin',
+  'scktt02-bin',
 ] as const
 
 export type ModelSlug = typeof MODEL_SLUGS[number]
