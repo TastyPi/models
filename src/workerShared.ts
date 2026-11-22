@@ -9,10 +9,11 @@ import * as magnetTest from './models/magnet-test'
 import * as dymoLetraTag from './models/dymo-letratag'
 import * as lttScrewdriverBin from './models/ltt-screwdriver-bin'
 import * as poleSocket from './models/pole-socket'
-import * as aaBatteryBin from './models/aa-battery-bin'
+import * as batteryBin from './models/battery-bin'
 import * as elmersGlueBin from './models/elmers-glue-bin'
 import * as batteryTesterBin from './models/battery-tester-bin'
 import * as stanleyStudFinderBin from './models/stanley-stud-finder-bin'
+import * as rscX22Bin from './models/rsc-x2-2-bin'
 import type { RawMesh, GeomResult, ObjGeom, PreviewMesh } from './types'
 import type { ModelSlug } from './models/registry'
 
@@ -27,10 +28,11 @@ export const MODELS: Record<ModelSlug, {
   'dymo-letratag':        { generate: dymoLetraTag.generate },
   'ltt-screwdriver-bin':  { generate: lttScrewdriverBin.generate },
   'pole-socket':          { generate: poleSocket.generate },
-  'aa-battery-bin':       { generate: aaBatteryBin.generate },
+  'battery-bin':          { generate: batteryBin.generate },
   'elmers-glue-bin':         { generate: elmersGlueBin.generate },
   'battery-tester-bin':      { generate: batteryTesterBin.generate },
   'stanley-stud-finder-bin': { generate: stanleyStudFinderBin.generate },
+  'rsc-x2-2-bin':            { generate: rscX22Bin.generate },
 }
 
 export function buildPreviewMeshes(obj: ObjGeom): PreviewMesh['meshes'] {

@@ -7,12 +7,12 @@ import { BinHolesSection } from '../components/BinHolesSection'
 import { DownloadFooter } from '../components/DownloadFooter'
 import { useGeometry } from '../hooks/useGeometry'
 import { createUrlSync } from '../hooks/urlSync'
-import { attribution, info, type AaBatteryBinParams } from '../models/aa-battery-bin'
+import { attribution, info } from '../models/rsc-x2-2-bin'
 import { type BinHoleSettings, binHoleSettingsFromUrl } from '../models/gridfinity-bin'
 
 const sp = new URLSearchParams(window.location.search)
 
-function AaBatteryBinPage() {
+function RscX22BinPage() {
   const [holeSettings, setHoleSettings] = createSignal<BinHoleSettings>(binHoleSettingsFromUrl(sp, 6.1))
 
   const setUrl = createUrlSync()
@@ -25,14 +25,14 @@ function AaBatteryBinPage() {
     setUrl('corner_magnets', h.corner_magnets ? 'true' : null)
   })
 
-  const params = createMemo<AaBatteryBinParams>(() => ({ holes: holeSettings() }))
+  const params = createMemo(() => ({ holes: holeSettings() }))
 
-  const { objects, rendering, selectedObject, toggleObject, download } = useGeometry('aa-battery-bin', params)
+  const { objects, rendering, selectedObject, toggleObject, download } = useGeometry('rsc-x2-2-bin', params)
 
   return (
     <PageLayout
-      title="AA Battery Bin"
-      description="Gridfinity 1×1 bin with cylindrical pockets for 5 AA batteries in a quincunx arrangement."
+      title="RSC-X2-2 Charger Bin"
+      description="Gridfinity 1×1 bin that holds an RSC-X2-2 coin cell charger on end, with a groove for the cell spring and slots for 4 LIR2032 cells."
       attribution={attribution}
       header={<ModelInfo>{info()}</ModelInfo>}
       objects={objects}
@@ -46,4 +46,4 @@ function AaBatteryBinPage() {
   )
 }
 
-render(() => <AaBatteryBinPage />, document.getElementById('root')!)
+render(() => <RscX22BinPage />, document.getElementById('root')!)
