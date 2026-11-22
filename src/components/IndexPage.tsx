@@ -6,10 +6,10 @@ import { VIEW_DIR, addSceneLights, setupCamera } from './sceneHelpers'
 
 const MODELS: { slug: string; label: string; description: string; params: Record<string, unknown> }[] = [
   {
-    slug: 'aa-battery-bin',
-    label: 'AA Battery Bin',
-    description: 'Gridfinity 1×1 bin (5 units tall) with cylindrical pockets for 4 or 5 AA batteries. Fits in the bottom drawer of a Halfords 3 Drawer Middle Chest.',
-    params: { holes: { magnet_size: 6.1, screw_holes: false, supportless: true, corner_magnets: false } },
+    slug: 'battery-bin',
+    label: 'Battery Bin',
+    description: 'Gridfinity 1×1 battery bins: 5 AA (fits the bottom drawer of a Halfords 3 Drawer Middle Chest), or two 9V (MN1604) with 3 AAA or MN21.',
+    params: { type: 'aa', holes: { magnet_size: 6.1, screw_holes: false, supportless: true, corner_magnets: false } },
   },
   {
     slug: 'battery-tester-bin',
@@ -76,6 +76,12 @@ const MODELS: { slug: string; label: string; description: string; params: Record
     label: 'Pole Socket',
     description: 'Female threaded socket for large pole fittings. All thread dimensions are fully parametric — dial in diameter, pitch, depth, and engagement length to match your pole.',
     params: { thread_diameter: 30, thread_root_diameter: 26, thread_pitch: 5, thread_ridge_root: 2.5, thread_ridge_peak: 2.5, thread_length: 30, tolerance: 0.4, wall_thickness: 5, floor_thickness: 3 },
+  },
+  {
+    slug: 'rsc-x2-2-bin',
+    label: 'RSC-X2-2 Charger Bin',
+    description: 'Gridfinity 1×1 bin (5 units tall) that holds an RSC-X2-2 coin cell charger standing on end, with a groove for the cell spring and slots for 4 LIR2032 cells.',
+    params: { holes: { magnet_size: 6.1, screw_holes: false, supportless: true, corner_magnets: false } },
   },
   {
     slug: 'stanley-stud-finder-bin',
