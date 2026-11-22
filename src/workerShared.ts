@@ -14,6 +14,7 @@ import * as elmersGlueBin from './models/elmers-glue-bin'
 import * as batteryTesterBin from './models/battery-tester-bin'
 import * as stanleyStudFinderBin from './models/stanley-stud-finder-bin'
 import * as rscX22Bin from './models/rsc-x2-2-bin'
+import * as scktt02Bin from './models/scktt02-bin'
 import type { RawMesh, GeomResult, ObjGeom, PreviewMesh } from './types'
 import type { ModelSlug } from './models/registry'
 
@@ -33,6 +34,7 @@ export const MODELS: Record<ModelSlug, {
   'battery-tester-bin':      { generate: batteryTesterBin.generate },
   'stanley-stud-finder-bin': { generate: stanleyStudFinderBin.generate },
   'rsc-x2-2-bin':            { generate: rscX22Bin.generate },
+  'scktt02-bin':             { generate: scktt02Bin.generate },
 }
 
 export function buildPreviewMeshes(obj: ObjGeom): PreviewMesh['meshes'] {

@@ -26,6 +26,7 @@ export default defineConfig({
         'elmers-glue-bin':         resolve(__dirname, 'elmers-glue-bin/index.html'),
         'stanley-stud-finder-bin': resolve(__dirname, 'stanley-stud-finder-bin/index.html'),
         'rsc-x2-2-bin':            resolve(__dirname, 'rsc-x2-2-bin/index.html'),
+        'scktt02-bin':             resolve(__dirname, 'scktt02-bin/index.html'),
       },
     },
   },
